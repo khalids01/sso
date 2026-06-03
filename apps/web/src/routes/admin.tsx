@@ -22,7 +22,6 @@ import {
   LayoutDashboard,
   Users,
   ChevronRight,
-  Component,
   MessageSquare,
   ShieldAlert,
   Activity,
@@ -92,11 +91,6 @@ const navItems = [
     title: "Webhooks",
     icon: Webhook,
     url: "/admin/webhooks",
-  },
-  {
-    title: "Components",
-    icon: Component,
-    url: "/admin/kitchen-sink",
   },
 ];
 
