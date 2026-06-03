@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
-import { rolesGuard } from "@/guards/roles.guard";
+import { Permissions } from "@rbac";
+import { adminModuleGuard } from "../admin-rbac.plugin";
 import { ActivityQueryDto } from "./activity.dto";
 import { activityService } from "./activity.service";
 
@@ -8,21 +9,15 @@ export const adminActivityController = new Elysia({
   detail: {
     tags: ["Admin - Activity"],
   },
-}).guard(
-  {
-    beforeHandle: rolesGuard(["ADMIN", "OWNER"]),
-  },
-  (app) =>
-    app.get(
-      "/",
-      ({ query }) => {
-        return activityService.list(query);
+})
+  .use(adminModuleGuard(Permissions.AdminActivityRead))
+  .get(
+    "/",
+    ({ query }) => activityService.list(query),
+    {
+      query: ActivityQueryDto,
+      detail: {
+        summary: "List admin activity events",
       },
-      {
-        query: ActivityQueryDto,
-        detail: {
-          summary: "List admin activity events",
-        },
-      },
-    ),
-);
+    },
+  );

@@ -19,6 +19,23 @@ async function runAuthGuardCase(sessionUser: Record<string, unknown>) {
           },
         }));
 
+        mock.module("@redis", () => ({
+          getCache: mock(async () => null),
+          setCache: mock(async () => undefined),
+          deleteCache: mock(async () => undefined),
+          connectRedis: mock(async () => ({
+            get: mock(async () => null),
+            set: mock(async () => "OK"),
+            status: "ready",
+          })),
+          getRedis: () => ({ status: "wait" }),
+        }));
+
+        mock.module("./src/rbac/resolve/get-effective.ts", () => ({
+          getEffectivePermissions: mock(async () => new Set()),
+          createPermissionChecker: () => () => false,
+        }));
+
         const { authGuard } = await import("./src/guards/auth.guard.ts");
         const app = new Elysia()
           .use(authGuard)

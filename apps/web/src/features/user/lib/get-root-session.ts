@@ -35,6 +35,29 @@ export const getRootSession = createServerFn({ method: "GET" }).handler(
 
       const user = session.user as Record<string, unknown>;
 
+      let permissions: string[] = [];
+
+      try {
+        const contextResponse = await fetch(
+          `${env.VITE_SERVER_URL}/session/context`,
+          {
+            headers,
+            credentials: "include",
+          },
+        );
+
+        if (contextResponse.ok) {
+          const context = (await contextResponse.json()) as {
+            permissions?: string[];
+          };
+          permissions = Array.isArray(context.permissions)
+            ? context.permissions
+            : [];
+        }
+      } catch {
+        permissions = [];
+      }
+
       return {
         user: {
           id: String(user.id ?? ""),
@@ -48,6 +71,7 @@ export const getRootSession = createServerFn({ method: "GET" }).handler(
               ? user.subscriptionStatus
               : null,
         },
+        permissions,
       } satisfies NonNullable<ClientSession>;
     } catch {
       return null;

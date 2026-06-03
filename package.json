@@ -32,7 +32,8 @@
     "db:studio": "turbo -F @db db:studio",
     "db:generate": "turbo -F @db db:generate",
     "db:reset": "turbo -F @db db:reset",
-    "db:migrate": "turbo -F @db db:migrate"
+    "db:migrate": "turbo -F @db db:migrate",
+    "db:seed": "turbo -F @db db:seed"
   },
   "dependencies": {
     "@env": "workspace:*",

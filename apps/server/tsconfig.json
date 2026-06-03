@@ -11,7 +11,8 @@
       "@env/*": ["../../packages/env/src/*"],
       "@config": ["../../packages/config/src/config.ts"],
       "@email": ["../../packages/email/src"],
-      "@redis": ["../../packages/redis/src"]
+      "@redis": ["../../packages/redis/src"],
+      "@rbac": ["../../packages/rbac/src"]
     },
     "jsx": "react-jsx"
   },
@@ -23,6 +24,7 @@
     "../../packages/email/src/**/*",
     "../../packages/env/src/**/*",
     "../../packages/config/src/**/*",
-    "../../packages/redis/src/**/*"
+    "../../packages/redis/src/**/*",
+    "../../packages/rbac/src/**/*"
   ]
 }

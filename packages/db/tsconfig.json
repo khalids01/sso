@@ -11,13 +11,17 @@
     "ignoreDeprecations": "6.0",
     "paths": {
       "@env/*": ["../env/src/*"],
-      "@config": ["../config/src/config.ts"]
+      "@config": ["../config/src/config.ts"],
+      "@rbac": ["../rbac/src"],
+      "@redis": ["../redis/src"]
     }
   },
   "include": [
     "src/**/*",
     "prisma/generated/**/*",
     "../env/src/**/*",
-    "../config/src/**/*"
+    "../config/src/**/*",
+    "../rbac/src/**/*",
+    "../redis/src/**/*"
   ]
 }

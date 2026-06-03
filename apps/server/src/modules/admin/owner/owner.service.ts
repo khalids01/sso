@@ -1,5 +1,7 @@
 import prisma from "@db";
 import { randomUUID } from "node:crypto";
+import { Roles } from "@rbac";
+import { assignUserRoleSlug } from "@/rbac/policies/sync-user-role";
 import type { CreateOwner } from "./owner.dto";
 
 export class OwnerService {
@@ -36,6 +38,8 @@ export class OwnerService {
                 role: "OWNER",
             },
         });
+
+        await assignUserRoleSlug(owner.id, Roles.PlatformOwner);
 
         return owner;
     }

@@ -30,10 +30,12 @@ This project uses PostgreSQL with Prisma.
 1. Make sure you have a PostgreSQL database set up.
 2. Update your `apps/server/.env` file with your PostgreSQL connection details.
 
-3. Generate the Prisma client and push the schema:
+3. Generate the Prisma client, run migrations, and seed RBAC:
 
 ```bash
-bun run db:push
+bun run db:generate
+bun run db:migrate
+bun run db:seed
 ```
 
 Then, run the development server:
@@ -44,6 +46,23 @@ bun run dev
 
 Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
 The API is running at [http://localhost:3000](http://localhost:3000).
+
+## RBAC (Role-Based Access Control)
+
+Permissions are defined in [`packages/rbac`](packages/rbac) (`permissions.ts`, `roles.ts`, `maps.ts`). The maps file is the **seed default** only; runtime authorization reads from Postgres and Redis.
+
+```bash
+# Apply migrations, then seed roles and permissions
+bun run db:migrate
+bun run db:seed
+```
+
+- **Routes** declare required permissions via `requirePermission(Permissions.*)` (see `apps/server/src/rbac/guards`).
+- **Effective permissions** are cached per user in Redis (`rbac:effective:{userId}`) and attached in `authGuard`.
+- **Web UI** loads permissions from `GET /session/context` (see `apps/web/src/features/user/lib/get-root-session.ts`).
+- **Owner rules**: owner role permissions are protected; admins cannot view or modify owner accounts.
+
+Tests live in [`apps/server/tests/rbac`](apps/server/tests/rbac).
 
 ## Redis Setup
 

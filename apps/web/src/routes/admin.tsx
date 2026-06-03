@@ -32,7 +32,9 @@ import UserMenu from "@/components/core/user-menu";
 import { ThemeToggle } from "@/components/core/theme-toggle";
 import { NotificationBell } from "@/components/core/notification-bell";
 import Logo from "@/components/core/logo";
+import { Permissions } from "@rbac";
 import { getUser } from "@/features/user/lib/get-user";
+import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {
@@ -46,8 +48,12 @@ export const Route = createFileRoute("/admin")({
       });
     }
 
-    const user = context.session.user as any;
-    if (user.role !== "ADMIN" && user.role !== "OWNER") {
+    if (
+      !sessionHasPermission(
+        context.session.permissions,
+        Permissions.AdminAccess,
+      )
+    ) {
       throw redirect({
         to: "/dashboard",
       });

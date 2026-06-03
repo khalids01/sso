@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
-import { rolesGuard } from "@/guards/roles.guard";
+import { Permissions } from "@rbac";
+import { adminModuleGuard } from "../admin/admin-rbac.plugin";
 import {
   RateLimitOverviewDto,
   UpdateRateLimitDto,
@@ -11,35 +12,26 @@ export const rateLimitController = new Elysia({
   detail: {
     tags: ["Admin - Rate Limit"],
   },
-}).guard(
-  {
-    beforeHandle: rolesGuard(["ADMIN", "OWNER"]),
-  },
-  (app) =>
-    app
-      .get(
-        "/",
-        async () => {
-          return rateLimitService.getOverview();
-        },
-        {
-          response: RateLimitOverviewDto,
-          detail: {
-            summary: "Get rate limit settings and basic stats",
-          },
-        },
-      )
-      .patch(
-        "/",
-        async ({ body }) => {
-          return rateLimitService.updateConfig(body);
-        },
-        {
-          body: UpdateRateLimitDto,
-          response: RateLimitOverviewDto,
-          detail: {
-            summary: "Update rate limit settings",
-          },
-        },
-      ),
-);
+})
+  .use(adminModuleGuard(Permissions.AdminRateLimitManage))
+  .get(
+    "/",
+    async () => rateLimitService.getOverview(),
+    {
+      response: RateLimitOverviewDto,
+      detail: {
+        summary: "Get rate limit settings and basic stats",
+      },
+    },
+  )
+  .patch(
+    "/",
+    async ({ body }) => rateLimitService.updateConfig(body),
+    {
+      body: UpdateRateLimitDto,
+      response: RateLimitOverviewDto,
+      detail: {
+        summary: "Update rate limit settings",
+      },
+    },
+  );

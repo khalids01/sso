@@ -13,7 +13,8 @@
     "db:reset": "prisma migrate reset",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:seed": "bun run prisma/seed/rbac.ts"
   },
   "devDependencies": {
     "@config": "workspace:*",
@@ -22,6 +23,8 @@
     "typescript": "^6.0.2"
   },
   "dependencies": {
+    "@rbac": "workspace:*",
+    "@redis": "workspace:*",
     "@env": "workspace:*",
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.8.0",

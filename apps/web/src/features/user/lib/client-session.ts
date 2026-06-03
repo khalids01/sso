@@ -12,4 +12,5 @@ export type ClientSessionUser = {
 
 export type ClientSession = {
   user: ClientSessionUser;
+  permissions: string[];
 } | null;

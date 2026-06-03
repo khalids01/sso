@@ -4,6 +4,7 @@ import { usersController } from "./admin/users/users.controller";
 import { adminInvitationsController } from "./admin/invitations/invitations.controller";
 import { metadataController } from "./admin/metadata/metadata.controller";
 import { authController } from "./auth/auth.controller";
+import { sessionController } from "./session/session.controller";
 import { notificationsController } from "./notifications/notifications.controller";
 import { feedbackController } from "./feedback/feedback.controller";
 import { polarController } from "./polar/polar.controller";
@@ -16,6 +17,7 @@ import { adminWebhooksController } from "./admin/webhooks/webhooks.controller";
 
 export const app = new Elysia()
   .use(authController)
+  .use(sessionController)
   .use(ownerController)
   .use(usersController)
   .use(adminInvitationsController)

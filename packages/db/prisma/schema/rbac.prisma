@@ -1,0 +1,63 @@
+model RbacPermission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  group       String?
+  isSystem    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  roles     RbacRolePermission[]
+  overrides RbacUserPermissionOverride[]
+
+  @@map("rbac_permission")
+}
+
+model RbacRole {
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  name         String
+  scope        String    @default("platform")
+  isSystem     Boolean   @default(true)
+  isProtected  Boolean   @default(false)
+  seedVersion  Int       @default(1)
+  customizedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  permissions     RbacRolePermission[]
+  userAssignments RbacUserRole[]
+
+  @@map("rbac_role")
+}
+
+model RbacRolePermission {
+  roleId       String
+  permissionId String
+  role         RbacRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   RbacPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("rbac_role_permission")
+}
+
+model RbacUserRole {
+  userId String
+  roleId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   RbacRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("rbac_user_role")
+}
+
+model RbacUserPermissionOverride {
+  userId       String
+  permissionId String
+  effect       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   RbacPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId, effect])
+  @@map("rbac_user_permission_override")
+}

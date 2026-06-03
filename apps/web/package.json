@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@auth": "workspace:*",
+    "@rbac": "workspace:*",
     "@base-ui/react": "^1.2.0",
     "@db": "workspace:*",
     "@elysiajs/eden": "^1.4.8",

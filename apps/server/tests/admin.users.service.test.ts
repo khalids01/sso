@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { RolePermissionMap, Roles } from "@rbac";
 import { Prisma } from "../../../packages/db/prisma/generated/client";
 
 const sessionFindManyMock = mock(async () => []);
@@ -9,8 +10,14 @@ const userUpdateMock = mock(async (): Promise<any> => null);
 const userDeleteMock = mock(async (): Promise<any> => null);
 const invitationCreateMock = mock(async () => ({ id: "invitation-1" }));
 const activityRecordMock = mock(async () => null);
-const adminActor = { id: "admin-1", role: "ADMIN" as const };
-const ownerActor = { id: "owner-1", role: "OWNER" as const };
+const adminActor = {
+  id: "admin-1",
+  permissions: new Set(RolePermissionMap[Roles.PlatformAdmin]),
+};
+const ownerActor = {
+  id: "owner-1",
+  permissions: new Set(RolePermissionMap[Roles.PlatformOwner]),
+};
 
 const safeAdminUserSelect = {
   id: true,
@@ -69,6 +76,10 @@ mock.module("@config", () => ({
   siteConfig: {
     name: "TS Starter",
   },
+}));
+
+mock.module("../src/rbac/policies/sync-user-role.ts", () => ({
+  syncLegacyUserRole: mock(async () => undefined),
 }));
 
 beforeEach(() => {
@@ -355,7 +366,7 @@ describe("UsersService", () => {
 
     await expect(
       usersService.updateUser("owner-1", { name: "Updated Owner" }, adminActor),
-    ).rejects.toThrow("Only owners can update owner accounts");
+    ).rejects.toThrow("Only owners can access owner accounts");
     expect(userUpdateMock).not.toHaveBeenCalled();
   });
 

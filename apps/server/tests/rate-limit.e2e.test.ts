@@ -103,6 +103,10 @@ mock.module("@/modules/auth/auth.service", () => ({
 
 mock.module("@redis", () => ({
   connectRedis: connectRedisMock,
+  getCache: mock(async () => null),
+  setCache: mock(async () => undefined),
+  deleteCache: mock(async () => undefined),
+  getRedis: () => ({ status: "ready" }),
 }));
 
 function createSettings(overrides: Partial<SettingsRecord> = {}): SettingsRecord {

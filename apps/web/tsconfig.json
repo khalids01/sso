@@ -26,7 +26,8 @@
       "@db": ["../../packages/db/src"],
       "@auth": ["../../packages/auth/src"],
       "@auth/*": ["../../packages/auth/src/*"],
-      "@env/*": ["../../packages/env/src/*"]
+      "@env/*": ["../../packages/env/src/*"],
+      "@rbac": ["../../packages/rbac/src"]
     }
   }
 }

@@ -15,7 +15,9 @@ import { useSession } from "@/providers/session-provider";
 import { Button } from "../ui/button";
 import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Permissions } from "@rbac";
 import { env } from "@env/web";
+import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 function expireCookie(name: string) {
   document.cookie = `${name}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
@@ -67,9 +69,10 @@ export default function UserMenu() {
       label: "Admin Dashboard",
       href: "/admin/overview",
       type: "url",
-      show:
-        session.user.role === "ADMIN" ||
-        session.user.role === "OWNER",
+      show: sessionHasPermission(
+        session.permissions,
+        Permissions.AdminAccess,
+      ),
     },
     {
       label: "Sign out",

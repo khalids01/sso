@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
-import { rolesGuard } from "../../../guards/roles.guard";
+import { Permissions } from "@rbac";
+import { adminModuleGuard } from "../admin-rbac.plugin";
 import { adminInvitationsService } from "./invitations.service";
 import { AdminInvitationQueryDto } from "./invitations.dto";
 
@@ -8,21 +9,15 @@ export const adminInvitationsController = new Elysia({
   detail: {
     tags: ["Admin - Invitations"],
   },
-}).guard(
-  {
-    beforeHandle: rolesGuard(["ADMIN", "OWNER"]),
-  },
-  (app) =>
-    app.get(
-      "/",
-      async ({ query }) => {
-        return adminInvitationsService.listInvitations(query);
+})
+  .use(adminModuleGuard(Permissions.AdminInvitationsManage))
+  .get(
+    "/",
+    async ({ query }) => adminInvitationsService.listInvitations(query),
+    {
+      query: AdminInvitationQueryDto,
+      detail: {
+        summary: "List invitations grouped by invited email",
       },
-      {
-        query: AdminInvitationQueryDto,
-        detail: {
-          summary: "List invitations grouped by invited email",
-        },
-      },
-    ),
-);
+    },
+  );

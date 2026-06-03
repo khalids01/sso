@@ -25,6 +25,8 @@ model User {
   feedbacks          Feedback[]
   actedActivityEvents ActivityEvent[] @relation("ActivityEventActor")
   targetedActivityEvents ActivityEvent[] @relation("ActivityEventTarget")
+  rbacRoles              RbacUserRole[]
+  rbacPermissionOverrides RbacUserPermissionOverride[]
 
   // Polar Integration
   polarCustomerId    String?

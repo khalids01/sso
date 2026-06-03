@@ -1,63 +1,58 @@
 import { Elysia } from "elysia";
-import { rolesGuard } from "@/guards/roles.guard";
+import { Permissions } from "@rbac";
+import { authGuard } from "@/guards/auth.guard";
+import { requirePermission } from "@/rbac/guards/permissions.guard";
 import { feedbackService } from "./feedback.service";
 import {
-    SubmitFeedbackDto,
-    UpdateFeedbackStatusDto,
-    FeedbackQueryDto,
+  SubmitFeedbackDto,
+  UpdateFeedbackStatusDto,
+  FeedbackQueryDto,
 } from "./feedback.dto";
-import { authGuard } from "@/guards/auth.guard";
-import { auth } from "@/modules/auth/auth.service";
 
 export const feedbackController = new Elysia({
-    prefix: "/feedback",
-    detail: { tags: ["Feedback"] },
+  prefix: "/feedback",
+  detail: { tags: ["Feedback"] },
 })
-    .use(authGuard)
-    .post(
-        "/",
-        async (ctx) => {
-            const { body, userId } = ctx as typeof ctx & { userId?: string };
-            const feedback = await feedbackService.submitFeedback(
-                userId!,
-                body.message,
-                body.severity
-            );
-            return { success: true, feedback };
-        },
-        {
-            beforeHandle: rolesGuard(["USER"]),
-            body: SubmitFeedbackDto,
-            detail: { summary: "Submit feedback or bug report" },
-        }
-    )
-    .get(
-        "/all",
-        async ({ query }) => {
-            return await feedbackService.getAllFeedback(query);
-        },
-        {
-            beforeHandle: rolesGuard(["ADMIN", "OWNER"]),
-            query: FeedbackQueryDto,
-            detail: { summary: "Get all feedback (Admin only)" },
-        }
-    )
-    .patch(
-        "/:id/status",
-        async ({ params: { id }, body, request }) => {
-            const session = await auth.api.getSession({
-                headers: request.headers,
-            });
-            const feedback = await feedbackService.updateFeedbackStatus(
-                id,
-                body.status,
-                session?.user.id
-            );
-            return { success: true, feedback };
-        },
-        {
-            beforeHandle: rolesGuard(["ADMIN", "OWNER"]),
-            body: UpdateFeedbackStatusDto,
-            detail: { summary: "Update feedback status (Admin only)" },
-        }
-    );
+  .use(authGuard)
+  .post(
+    "/",
+    async (ctx) => {
+      const { body, userId } = ctx as typeof ctx & { userId?: string };
+      const feedback = await feedbackService.submitFeedback(
+        userId!,
+        body.message,
+        body.severity,
+      );
+      return { success: true, feedback };
+    },
+    {
+      beforeHandle: requirePermission(Permissions.FeedbackSubmit),
+      body: SubmitFeedbackDto,
+      detail: { summary: "Submit feedback or bug report" },
+    },
+  )
+  .get(
+    "/all",
+    async ({ query }) => feedbackService.getAllFeedback(query),
+    {
+      beforeHandle: requirePermission(Permissions.FeedbackModerate),
+      query: FeedbackQueryDto,
+      detail: { summary: "Get all feedback (Admin only)" },
+    },
+  )
+  .patch(
+    "/:id/status",
+    async ({ params: { id }, body, userId }) => {
+      const feedback = await feedbackService.updateFeedbackStatus(
+        id,
+        body.status,
+        userId,
+      );
+      return { success: true, feedback };
+    },
+    {
+      beforeHandle: requirePermission(Permissions.FeedbackModerate),
+      body: UpdateFeedbackStatusDto,
+      detail: { summary: "Update feedback status (Admin only)" },
+    },
+  );
