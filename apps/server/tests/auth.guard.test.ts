@@ -14,9 +14,34 @@ async function runAuthGuardCase(sessionUser: Record<string, unknown>) {
             api: {
               getSession: mock(async () => ({
                 user: ${JSON.stringify(sessionUser)},
+                session: {
+                  id: "session-1",
+                  userId: ${JSON.stringify(sessionUser.id ?? "user-1")},
+                  expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+                  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+                  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+                  token: "token",
+                },
+                permissions: [],
+                roles: [],
+                primaryRoleSlug: "platform.user",
               })),
             },
           },
+          getAuthSession: mock(async () => ({
+            user: ${JSON.stringify(sessionUser)},
+            session: {
+              id: "session-1",
+              userId: ${JSON.stringify(sessionUser.id ?? "user-1")},
+              expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+              createdAt: new Date("2026-01-01T00:00:00.000Z"),
+              updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+              token: "token",
+            },
+            permissions: [],
+            roles: [],
+            primaryRoleSlug: "platform.user",
+          })),
         }));
 
         mock.module("@redis", () => ({

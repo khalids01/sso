@@ -5,6 +5,9 @@
     ".": {
       "default": "./src/index.ts"
     },
+    "./session": {
+      "default": "./src/session.ts"
+    },
     "./*": {
       "default": "./src/*.ts"
     }

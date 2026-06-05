@@ -4,13 +4,11 @@ import {
   hasPermission,
   type Permission,
 } from "@rbac";
+import type { AuthUser } from "@auth";
 import { getAccountStatusRejection } from "@/guards/account-status";
 
 type PermissionGuardContext = {
-  user?: {
-    banned?: boolean | null;
-    archived?: boolean | null;
-  } | null;
+  user?: AuthUser | null;
   permissions?: ReadonlySet<Permission>;
   set: {
     status?: number | string;

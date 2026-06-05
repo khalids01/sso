@@ -1,12 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
+import { toClientSession, type ClientSessionResult } from "@auth";
 
 import { authClient } from "@/lib/auth-client";
-import type { ClientSession } from "@/features/user/lib/client-session";
-import { toClientSession } from "@/features/user/lib/to-client-session";
 
 export const getRootSession = createServerFn({ method: "GET" }).handler(
-  async (): Promise<ClientSession> => {
+  async (): Promise<ClientSessionResult> => {
     const headers = getRequestHeaders();
 
     try {

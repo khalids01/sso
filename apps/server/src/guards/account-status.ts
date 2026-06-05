@@ -1,9 +1,6 @@
-type AccountStatusUser = {
-  banned?: boolean | null;
-  archived?: boolean | null;
-};
+import type { AuthUser } from "@auth";
 
-export function getAccountStatusRejection(user?: AccountStatusUser | null) {
+export function getAccountStatusRejection(user?: AuthUser | null) {
   if (!user) {
     return null;
   }

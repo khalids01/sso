@@ -25,6 +25,7 @@ mock.module("@auth", () => ({
       getSession: getSessionMock,
     },
   },
+  getAuthSession: mock(async () => getSessionMock()),
 }));
 
 mock.module("../../src/rbac/resolve/get-effective.ts", () => ({

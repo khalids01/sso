@@ -1,6 +1,6 @@
 import { polarClient } from "@polar-sh/better-auth/client";
 import { magicLinkClient, customSessionClient } from "better-auth/client/plugins";
-import type { Auth } from "@auth";
+import type { Auth, AuthClientSession } from "@auth";
 import { env } from "@env/web";
 import { createAuthClient } from "better-auth/react";
 
@@ -12,6 +12,4 @@ export const authClient = createAuthClient({
   },
 });
 
-export type AuthClientSession = NonNullable<
-  Awaited<ReturnType<typeof authClient.getSession>>
->;
+export type { AuthClientSession };

@@ -1,6 +1,11 @@
 import { Elysia } from "elysia";
-import { auth } from "@auth";
 import type { Permission } from "@rbac";
+import {
+  getAuthSession,
+  type AuthGetSessionResult,
+  type AuthSessionData,
+  type AuthUser,
+} from "@auth";
 import {
   createPermissionChecker,
   getEffectivePermissions,
@@ -9,35 +14,40 @@ import { getAccountStatusRejection } from "./account-status";
 
 const emptyPermissions = new Set<Permission>();
 
-function readSessionPermissions(session: unknown): ReadonlySet<Permission> | null {
-  if (
-    session != null &&
-    typeof session === "object" &&
-    "permissions" in session &&
-    Array.isArray(session.permissions)
-  ) {
-    return new Set(session.permissions as Permission[]);
+function getPermissionsFromSession(
+  session: AuthGetSessionResult,
+): ReadonlySet<Permission> | null {
+  if (!session) {
+    return null;
   }
 
-  return null;
+  return new Set(session.permissions);
 }
 
-export const authGuard = new Elysia()
-  .derive({ as: "scoped" }, async ({ request }) => {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
+export type AuthGuardContext = {
+  session: AuthGetSessionResult;
+  user: AuthUser | undefined;
+  userId: string | undefined;
+  permissions: ReadonlySet<Permission>;
+  hasPermission: ReturnType<typeof createPermissionChecker>;
+};
 
-    const userId = session?.user?.id;
+export const authGuard = new Elysia()
+  .derive({ as: "scoped" }, async ({ request }): Promise<AuthGuardContext> => {
+    const session: AuthGetSessionResult = await getAuthSession(request.headers);
+
+    const userId = session?.user.id;
     const permissions =
-      readSessionPermissions(session) ??
+      getPermissionsFromSession(session) ??
       (userId
         ? await getEffectivePermissions(userId)
         : emptyPermissions);
 
+    const user: AuthUser | undefined = session?.user;
+
     return {
       session,
-      user: session?.user,
+      user,
       userId,
       permissions,
       hasPermission: createPermissionChecker(permissions),
@@ -52,3 +62,13 @@ export const authGuard = new Elysia()
     set.status = rejection.status;
     return rejection;
   });
+
+export function requireAuthSession(
+  session: AuthGetSessionResult,
+): AuthSessionData {
+  if (!session) {
+    throw new Error("Authentication required");
+  }
+
+  return session;
+}

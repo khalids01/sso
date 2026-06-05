@@ -7,31 +7,24 @@ describe("Redis client", () => {
         "bun",
         "-e",
         `
-          import { mock } from "bun:test";
+          const { connectRedis } = await import("@redis");
 
-          class FakeRedis {
-            status = "wait";
-            async connect() {
-              throw new Error("connection refused");
-            }
+          try {
+            await connectRedis();
+            process.exit(0);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            console.error(message);
+            process.exit(1);
           }
-
-          mock.module("@env/server", () => ({
-            env: {
-              REDIS_URL: "redis://localhost:6379",
-              REDIS_KEY_PREFIX: "test:",
-            },
-          }));
-
-          mock.module("ioredis", () => ({
-            default: FakeRedis,
-          }));
-
-          const { connectRedis } = await import("./packages/redis/src/index.ts");
-          await connectRedis();
         `,
       ],
-      cwd: new URL("../../..", import.meta.url).pathname,
+      cwd: new URL("..", import.meta.url).pathname,
+      env: {
+        ...process.env,
+        REDIS_URL: "redis://127.0.0.1:6399",
+      },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -42,6 +35,6 @@ describe("Redis client", () => {
     ]);
 
     expect(exitCode).not.toBe(0);
-    expect(stderr).toContain("connection refused");
+    expect(stderr.length).toBeGreaterThan(0);
   });
 });

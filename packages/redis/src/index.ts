@@ -10,6 +10,7 @@ export function getRedis() {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
       enableAutoPipelining: true,
+      retryStrategy: () => null,
     });
   }
 
@@ -20,7 +21,13 @@ export async function connectRedis() {
   const redis = getRedis();
 
   if (redis.status === "wait") {
-    await redis.connect();
+    try {
+      await redis.connect();
+    } catch (error) {
+      redis.disconnect();
+      redisClient = null;
+      throw error;
+    }
   }
 
   return redis;
