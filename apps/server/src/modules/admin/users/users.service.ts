@@ -3,6 +3,7 @@ import {
   countActivePlatformOwners,
   getRoleIdBySlug,
 } from "@db/rbac/assignments";
+import { isAssignableRoleSlug } from "@db/rbac/roles";
 import {
   formatRoleLabel,
   Roles,
@@ -136,10 +137,17 @@ async function assertNotLastOwner(targetRoleSlug: RoleSlug) {
 async function assertCanUpdateUser(args: {
   actor: AdminActor;
   targetId: string;
-  data: { roleSlug?: RoleSlug };
+  data: { roleSlug?: string };
 }) {
   assertAuthenticatedActor(args.actor);
   assertNotAssignableOwnerRole(args.data.roleSlug);
+
+  if (args.data.roleSlug) {
+    const assignable = await isAssignableRoleSlug(args.data.roleSlug);
+    if (!assignable) {
+      throw new Error("Role cannot be assigned to users");
+    }
+  }
 
   const target = await getAdminTargetUser(args.targetId);
 
@@ -292,7 +300,7 @@ export class UsersService {
 
   async updateUser(
     id: string,
-    data: { name?: string; roleSlug?: RoleSlug },
+    data: { name?: string; roleSlug?: string },
     actor: AdminActor,
   ) {
     await assertCanUpdateUser({
@@ -312,11 +320,17 @@ export class UsersService {
     if (data.roleSlug) {
       await assignUserRoleAndInvalidate(id, data.roleSlug);
 
+      const assignedRole = await prisma.rbacRole.findUnique({
+        where: { slug: data.roleSlug },
+        select: { name: true },
+      });
+      const roleLabel = assignedRole?.name ?? data.roleSlug;
+
       await activityService.record({
         type: "user.role_updated",
         actorUserId: actor.id,
         targetUserId: id,
-        message: `${user.name} role changed to ${formatRoleLabel(data.roleSlug)}`,
+        message: `${user.name} role changed to ${roleLabel}`,
         metadata: {
           roleSlug: data.roleSlug,
           email: user.email,

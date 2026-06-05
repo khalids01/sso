@@ -17,6 +17,12 @@ export const Permissions = {
   AdminWebhooksRead: "admin.webhooks.read",
   AdminRateLimitManage: "admin.rate_limit.manage",
 
+  AdminRolesList: "admin.roles.list",
+  AdminRolesRead: "admin.roles.read",
+  AdminRolesUpdate: "admin.roles.update",
+  AdminRolesManage: "admin.roles.manage",
+  AdminRolesReset: "admin.roles.reset",
+
   FeedbackSubmit: "feedback.submit",
   FeedbackModerate: "feedback.moderate",
 

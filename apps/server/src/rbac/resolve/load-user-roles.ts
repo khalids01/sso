@@ -1,8 +1,7 @@
 import prisma from "@db";
-import type { RoleSlug } from "@rbac";
 
 export type UserRoleSummary = {
-  slug: RoleSlug;
+  slug: string;
   name: string;
 };
 
@@ -22,7 +21,7 @@ export async function loadUserRoles(
   });
 
   return assignments.map((assignment) => ({
-    slug: assignment.role.slug as RoleSlug,
+    slug: assignment.role.slug,
     name: assignment.role.name,
   }));
 }

@@ -38,6 +38,13 @@ export const queryKeys = {
         limit: number;
       }) => ["admin-visitors-list", params] as const,
     },
+    roles: {
+      all: () => ["admin-roles"] as const,
+      list: () => [...queryKeys.admin.roles.all(), "list"] as const,
+      detail: (roleId: string) => [...queryKeys.admin.roles.all(), roleId] as const,
+      permissions: () => [...queryKeys.admin.roles.all(), "permissions"] as const,
+      assignable: () => [...queryKeys.admin.roles.all(), "assignable"] as const,
+    },
     users: {
       all: () => ["admin-users"] as const,
       list: (search: string) => [...queryKeys.admin.users.all(), search] as const,

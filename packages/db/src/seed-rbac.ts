@@ -1,1 +1,1 @@
-export { seedRbac } from "../prisma/seed/rbac.ts";
+export { seedRbac } from "../prisma/seed/rbac";

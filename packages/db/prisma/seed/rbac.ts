@@ -1,18 +1,17 @@
-import prisma from "../../src/client.ts";
+import prisma from "../../src/client";
 import {
   AllPermissions,
   RoleDefinitions,
-  RolePermissionMap,
-  Roles,
   permissionGroup,
   type Permission,
   type RoleSlug,
 } from "@rbac";
+import { syncAllRolePermissionsFromMap } from "../../src/rbac/sync-role-permissions";
 import { getRedis, connectRedis } from "@redis";
 import {
   RBAC_CATALOG_VERSION_KEY,
   rolePermissionsKey,
-} from "./lib/rbac-keys.ts";
+} from "./lib/rbac-keys";
 
 const CATALOG_VERSION = 1;
 
@@ -65,60 +64,6 @@ async function upsertRoles() {
   return roles;
 }
 
-async function syncRolePermissions(
-  roles: Record<RoleSlug, { id: string }>,
-) {
-  const permissions = await prisma.rbacPermission.findMany({
-    select: { id: true, name: true },
-  });
-  const permissionByName = new Map(
-    permissions.map((permission) => [permission.name, permission.id]),
-  );
-
-  for (const [slug, permissionNames] of Object.entries(RolePermissionMap)) {
-    const roleSlug = slug as RoleSlug;
-    const role = await prisma.rbacRole.findUnique({
-      where: { slug: roleSlug },
-      select: {
-        id: true,
-        isProtected: true,
-        customizedAt: true,
-      },
-    });
-
-    if (!role) {
-      continue;
-    }
-
-    const shouldSync =
-      role.isProtected || role.customizedAt === null;
-
-    if (!shouldSync) {
-      continue;
-    }
-
-    const permissionIds = permissionNames
-      .map((name) => permissionByName.get(name))
-      .filter((id): id is string => Boolean(id));
-
-    await prisma.rbacRolePermission.deleteMany({
-      where: { roleId: role.id },
-    });
-
-    if (permissionIds.length > 0) {
-      await prisma.rbacRolePermission.createMany({
-        data: permissionIds.map((permissionId) => ({
-          roleId: role.id,
-          permissionId,
-        })),
-        skipDuplicates: true,
-      });
-    }
-  }
-
-  return roles;
-}
-
 async function warmRolePermissionCaches() {
   const redis = await connectRedis();
 
@@ -151,8 +96,8 @@ async function warmRolePermissionCaches() {
 
 export async function seedRbac() {
   await upsertPermissions();
-  const roles = await upsertRoles();
-  await syncRolePermissions(roles);
+  await upsertRoles();
+  await syncAllRolePermissionsFromMap();
 
   try {
     await warmRolePermissionCaches();

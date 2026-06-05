@@ -49,7 +49,7 @@ export function hasPermission(
     return permissions.has(required);
   }
 
-  return permissions.includes(required);
+  return Array.prototype.includes.call(permissions, required);
 }
 
 export function hasAnyPermission(

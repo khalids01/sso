@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, History, MoreHorizontal, Shield } from "lucide-react";
+import { toast } from "sonner";
 import { queryKeys } from "@/constants/query-keys";
 import { client } from "@/lib/client";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,9 +22,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { AssignableRole } from "@/features/admin/roles/types";
 
 export function UserActions({ user }: { user: any }) {
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
+  const [roleSlug, setRoleSlug] = useState<string>(user.role.slug);
+  const queryClient = useQueryClient();
+
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: queryKeys.admin.users.sessions(user.id),
     queryFn: async () => {
@@ -33,6 +47,40 @@ export function UserActions({ user }: { user: any }) {
       return data as any[];
     },
     enabled: sessionsOpen,
+  });
+
+  const { data: assignableRoles, isLoading: rolesLoading } = useQuery({
+    queryKey: queryKeys.admin.roles.assignable(),
+    queryFn: async () => {
+      const { data, error } = await client.admin.roles.assignable.get();
+      if (error) {
+        throw new Error("Failed to load assignable roles");
+      }
+      return data as AssignableRole[];
+    },
+    enabled: roleOpen,
+  });
+
+  const changeRoleMutation = useMutation({
+    mutationFn: async (nextRoleSlug: string) => {
+      const { data, error } = await client.admin.users({ id: user.id }).patch({
+        roleSlug: nextRoleSlug,
+      });
+      if (error) {
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("User role updated");
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.all() });
+      setRoleOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(
+        String(error?.value?.message || error?.message || "Failed to update role"),
+      );
+    },
   });
 
   return (
@@ -53,7 +101,12 @@ export function UserActions({ user }: { user: any }) {
               <History className="mr-2 h-4 w-4" />
               View Sessions
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setRoleSlug(user.role.slug);
+                setRoleOpen(true);
+              }}
+            >
               <Shield className="mr-2 h-4 w-4" />
               Change Role
             </DropdownMenuItem>
@@ -95,6 +148,51 @@ export function UserActions({ user }: { user: any }) {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={roleOpen} onOpenChange={setRoleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Role - {user.name}</DialogTitle>
+            <DialogDescription>
+              Assign a role to this user. Owner roles cannot be assigned here.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-4">
+            <label htmlFor="user-role">Role</label>
+            {rolesLoading ? (
+              <div className="text-sm text-muted-foreground">Loading roles...</div>
+            ) : (
+              <Select
+                value={roleSlug}
+                onValueChange={(value) => setRoleSlug(value || user.role.slug)}
+              >
+                <SelectTrigger id="user-role" className="w-full">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {assignableRoles?.map((role) => (
+                    <SelectItem key={role.id} value={role.slug}>
+                      {role.name} ({role.slug})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={
+                changeRoleMutation.isPending ||
+                rolesLoading ||
+                roleSlug === user.role.slug
+              }
+              onClick={() => changeRoleMutation.mutate(roleSlug)}
+            >
+              Save role
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

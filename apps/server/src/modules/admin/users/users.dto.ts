@@ -1,9 +1,11 @@
 import { t } from "elysia";
 import { InviteableRoleSlugs, Roles } from "@rbac";
 
-export const AssignableUserRoleSchema = t.Union(
+export const InviteableUserRoleSchema = t.Union(
   InviteableRoleSlugs.map((slug) => t.Literal(slug)),
 );
+
+export const AssignableUserRoleSchema = t.String({ minLength: 1, maxLength: 64 });
 
 export const UserRoleFilterSchema = t.Union([
   t.Literal(Roles.PlatformOwner),
@@ -22,7 +24,7 @@ export const BanUserDto = t.Object({
 
 export const InviteUserDto = t.Object({
     email: t.String({ format: "email" }),
-    roleSlug: t.Optional(AssignableUserRoleSchema),
+    roleSlug: t.Optional(InviteableUserRoleSchema),
 });
 
 export const UserQueryDto = t.Object({

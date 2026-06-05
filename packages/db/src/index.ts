@@ -5,6 +5,6 @@ export {
   getPrimaryRoleSlug,
   getRoleIdBySlug,
   hasPlatformOwner,
-} from "./rbac/assignments.ts";
-export { default } from "./client.ts";
-export { default as prisma } from "./client.ts";
+} from "./rbac/assignments";
+export { default } from "./client";
+export { default as prisma } from "./client";

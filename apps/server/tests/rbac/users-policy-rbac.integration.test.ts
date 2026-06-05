@@ -41,7 +41,16 @@ mock.module("@db", () => ({
       findUnique: findUniqueMock,
       update: updateMock,
     },
+    rbacRole: {
+      findUnique: async ({ where }: { where: { slug: string } }) => ({
+        name: where.slug === Roles.PlatformAdmin ? "Admin" : "User",
+      }),
+    },
   },
+}));
+
+mock.module("@db/rbac/roles", () => ({
+  isAssignableRoleSlug: async (slug: string) => slug !== Roles.PlatformOwner,
 }));
 
 mock.module("@db/rbac/assignments", () => ({

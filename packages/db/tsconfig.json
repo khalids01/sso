@@ -7,8 +7,6 @@
     "outDir": "dist",
     "rootDir": "..",
     "composite": true,
-    "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@env/*": ["../env/src/*"],
       "@config": ["../config/src/config.ts"],
@@ -19,6 +17,7 @@
   "include": [
     "src/**/*",
     "prisma/generated/**/*",
+    "prisma/seed/**/*",
     "../env/src/**/*",
     "../config/src/**/*",
     "../rbac/src/**/*",

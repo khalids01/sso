@@ -27,6 +27,7 @@ import {
   Activity,
   History,
   Webhook,
+  Shield,
 } from "lucide-react";
 import UserMenu from "@/components/core/user-menu";
 import { ThemeToggle } from "@/components/core/theme-toggle";
@@ -34,6 +35,7 @@ import { NotificationBell } from "@/components/core/notification-bell";
 import Logo from "@/components/core/logo";
 import { Permissions } from "@rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
+import { Route as RootRoute } from "@/routes/__root";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ context }) => {
@@ -71,6 +73,12 @@ const navItems = [
     url: "/admin/users",
   },
   {
+    title: "Roles",
+    icon: Shield,
+    url: "/admin/roles",
+    permission: Permissions.AdminRolesList,
+  },
+  {
     title: "Feedback",
     icon: MessageSquare,
     url: "/admin/feedback",
@@ -99,6 +107,14 @@ const navItems = [
 
 function AdminLayout() {
   const location = useLocation();
+  const { session } = RootRoute.useRouteContext();
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.permission) {
+      return true;
+    }
+
+    return sessionHasPermission(session?.permissions ?? [], item.permission);
+  });
 
   return (
     <SidebarProvider>
@@ -119,7 +135,7 @@ function AdminLayout() {
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {navItems.map((item) => {
+                  {visibleNavItems.map((item) => {
                     const isActive = location.pathname === item.url;
                     return (
                       <SidebarMenuItem key={item.title}>

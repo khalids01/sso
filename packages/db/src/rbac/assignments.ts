@@ -1,7 +1,7 @@
-import prisma from "../client.ts";
+import prisma from "../client";
 import { Roles, type RoleSlug } from "@rbac";
 
-export async function getRoleIdBySlug(slug: RoleSlug): Promise<string> {
+export async function getRoleIdBySlug(slug: string): Promise<string> {
   const role = await prisma.rbacRole.findUnique({
     where: { slug },
     select: { id: true },
@@ -14,7 +14,7 @@ export async function getRoleIdBySlug(slug: RoleSlug): Promise<string> {
   return role.id;
 }
 
-export async function assignUserRole(userId: string, slug: RoleSlug) {
+export async function assignUserRole(userId: string, slug: string) {
   const roleId = await getRoleIdBySlug(slug);
 
   await prisma.$transaction([

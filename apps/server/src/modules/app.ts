@@ -14,12 +14,14 @@ import { visitorsController } from "./visitors/visitors.controller";
 import { adminVisitorsController } from "./admin/visitors/visitors.controller";
 import { adminActivityController } from "./admin/activity/activity.controller";
 import { adminWebhooksController } from "./admin/webhooks/webhooks.controller";
+import { rolesController } from "./admin/roles/roles.controller";
 
 export const app = new Elysia()
   .use(authController)
   .use(sessionController)
   .use(ownerController)
   .use(usersController)
+  .use(rolesController)
   .use(adminInvitationsController)
   .use(metadataController)
   .use(rateLimitController)

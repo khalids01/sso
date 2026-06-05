@@ -22,6 +22,18 @@ const ownerActor = {
 const assignUserRoleAndInvalidateMock = mock(async () => undefined);
 const countActivePlatformOwnersMock = mock(async () => 2);
 const getRoleIdBySlugMock = mock(async () => "role-user-id");
+const isAssignableRoleSlugMock = mock(async (slug: string) => slug !== Roles.PlatformOwner);
+const rbacRoleFindUniqueMock = mock(async ({ where }: { where: { slug: string } }) => {
+  if (where.slug === Roles.PlatformAdmin) {
+    return { name: "Admin" };
+  }
+
+  if (where.slug === Roles.PlatformUser) {
+    return { name: "User" };
+  }
+
+  return { name: where.slug };
+});
 
 const safeAdminUserSelect = {
   id: true,
@@ -74,8 +86,15 @@ mock.module("@db", () => ({
     invitation: {
       create: invitationCreateMock,
     },
+    rbacRole: {
+      findUnique: rbacRoleFindUniqueMock,
+    },
   },
   Prisma,
+}));
+
+mock.module("@db/rbac/roles", () => ({
+  isAssignableRoleSlug: isAssignableRoleSlugMock,
 }));
 
 mock.module("@db/rbac/assignments", () => ({
