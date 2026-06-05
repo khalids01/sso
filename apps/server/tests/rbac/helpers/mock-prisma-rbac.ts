@@ -1,5 +1,37 @@
 import type { RbacGraph } from "./fixtures";
 
+function buildSnapshotRow(graph: RbacGraph, userId: string) {
+  const user = graph.users[userId];
+  const roleSlugs = user?.roleSlugs ?? [];
+
+  const roles = roleSlugs.map((slug) => {
+    const role = graph.roles[slug];
+    return {
+      id: role.id,
+      slug: role.slug,
+      name: role.slug,
+    };
+  });
+
+  const rolePermissions: Record<string, string[]> = {};
+  for (const slug of roleSlugs) {
+    const role = graph.roles[slug];
+    rolePermissions[role.id] = [...role.permissions];
+  }
+
+  const overrides =
+    user?.overrides?.map((override) => ({
+      permission: override.permission,
+      effect: override.effect,
+    })) ?? [];
+
+  return {
+    roles,
+    role_permissions: rolePermissions,
+    overrides,
+  };
+}
+
 export function createRbacPrismaMock(graph: RbacGraph) {
   return {
     rbacPermission: {
@@ -79,6 +111,10 @@ export function createRbacPrismaMock(graph: RbacGraph) {
           await action();
         }
       }
+    },
+    $queryRaw: async (query: { values?: unknown[] }) => {
+      const userId = String(query?.values?.[0] ?? "");
+      return [buildSnapshotRow(graph, userId)];
     },
   };
 }

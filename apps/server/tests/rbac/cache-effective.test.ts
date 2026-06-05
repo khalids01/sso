@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { Permissions } from "@rbac";
+import { Permissions, Roles } from "@rbac";
 import { mockRedisModule } from "./helpers/mock-redis-module";
 
 const { store } = mockRedisModule();
@@ -23,6 +23,8 @@ describe("rbac effective cache", () => {
 
     await setCachedEffectivePermissions("user-1", {
       permissions: [Permissions.AdminAccess],
+      roles: [{ slug: Roles.PlatformAdmin, name: "Admin" }],
+      primaryRoleSlug: Roles.PlatformAdmin,
       catalogVersion: 1,
       computedAt: new Date().toISOString(),
     });

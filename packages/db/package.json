@@ -11,6 +11,12 @@
     "./rbac/assignments": {
       "default": "./src/rbac/assignments.ts"
     },
+    "./rbac/session": {
+      "default": "./src/rbac/session.ts"
+    },
+    "./rbac/prisma": {
+      "default": "./src/rbac/prisma.ts"
+    },
     "./rbac/*": {
       "default": "./src/rbac/*.ts"
     },

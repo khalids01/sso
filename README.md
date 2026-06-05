@@ -59,7 +59,7 @@ bun run db:seed
 
 - **Routes** declare required permissions via `requirePermission(Permissions.*)` (see `apps/server/src/rbac/guards`).
 - **Effective permissions** are cached per user in Redis (`rbac:effective:{userId}`) and attached in `authGuard`.
-- **Web UI** loads permissions from `GET /session/context` (see `apps/web/src/features/user/lib/get-root-session.ts`).
+- **Web UI** loads permissions from Better Auth `getSession` via `customSession` (see `apps/web/src/features/user/lib/get-root-session.ts`). `GET /session/context` remains available as a compatibility endpoint.
 - **Owner rules**: owner role permissions are protected; admins cannot view or modify owner accounts.
 
 Tests live in [`apps/server/tests/rbac`](apps/server/tests/rbac).

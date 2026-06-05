@@ -12,6 +12,7 @@ const getSessionMock = mock(async () => ({
     banned: false,
     archived: false,
   },
+  permissions: [...RolePermissionMap[Roles.PlatformAdmin]],
 }));
 
 const getEffectivePermissionsMock = mock(async () =>
@@ -69,5 +70,6 @@ describe("auth guard rbac integration", () => {
 
     const denied = await app.handle(new Request("http://localhost/forbidden"));
     expect(denied.status).toBe(403);
+    expect(getEffectivePermissionsMock).not.toHaveBeenCalled();
   });
 });

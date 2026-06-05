@@ -9,6 +9,19 @@ import { getAccountStatusRejection } from "./account-status";
 
 const emptyPermissions = new Set<Permission>();
 
+function readSessionPermissions(session: unknown): ReadonlySet<Permission> | null {
+  if (
+    session != null &&
+    typeof session === "object" &&
+    "permissions" in session &&
+    Array.isArray(session.permissions)
+  ) {
+    return new Set(session.permissions as Permission[]);
+  }
+
+  return null;
+}
+
 export const authGuard = new Elysia()
   .derive({ as: "scoped" }, async ({ request }) => {
     const session = await auth.api.getSession({
@@ -16,9 +29,11 @@ export const authGuard = new Elysia()
     });
 
     const userId = session?.user?.id;
-    const permissions = userId
-      ? await getEffectivePermissions(userId)
-      : emptyPermissions;
+    const permissions =
+      readSessionPermissions(session) ??
+      (userId
+        ? await getEffectivePermissions(userId)
+        : emptyPermissions);
 
     return {
       session,

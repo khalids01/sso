@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
-import { Roles, toPermissionArray } from "@rbac";
+import { toPermissionArray } from "@rbac";
+import { getUserSessionRbac } from "@db/rbac/session";
 import { authGuard } from "@/guards/auth.guard";
-import { loadUserRoles } from "@/rbac/resolve/load-user-roles";
 
 export const sessionController = new Elysia({
   prefix: "/session",
@@ -10,13 +10,12 @@ export const sessionController = new Elysia({
   .use(authGuard)
   .get(
     "/context",
-    async ({ user, permissions, userId }) => {
+    async ({ user, userId }) => {
       if (!user || !userId) {
         return { user: null, permissions: [], roles: [] };
       }
 
-      const roles = await loadUserRoles(userId);
-      const primaryRoleSlug = roles[0]?.slug ?? Roles.PlatformUser;
+      const rbac = await getUserSessionRbac(userId);
 
       return {
         user: {
@@ -36,9 +35,9 @@ export const sessionController = new Elysia({
               ? (user as { subscriptionStatus?: string }).subscriptionStatus
               : null,
         },
-        permissions: toPermissionArray(permissions ?? new Set()),
-        roles,
-        primaryRoleSlug,
+        permissions: toPermissionArray(new Set(rbac.permissions)),
+        roles: rbac.roles,
+        primaryRoleSlug: rbac.primaryRoleSlug,
       };
     },
     {

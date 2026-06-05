@@ -4,6 +4,7 @@ export * from "./cache/role-permissions";
 export * from "./cache/effective";
 export * from "./cache/invalidate";
 export * from "./resolve/get-effective";
+export * from "./resolve/get-session-rbac";
 export * from "./resolve/load-user-context";
 export * from "./resolve/load-user-roles";
 export * from "./resolve/build-effective";
