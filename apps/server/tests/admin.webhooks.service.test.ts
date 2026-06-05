@@ -4,7 +4,7 @@ import { Prisma } from "../../../packages/db/prisma/generated/client";
 const webhookCountMock = mock(async () => 0);
 const webhookFindManyMock = mock(async (): Promise<any> => []);
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: {
     webhookEvent: {
       count: webhookCountMock,

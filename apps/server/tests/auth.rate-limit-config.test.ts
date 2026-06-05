@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test";
 describe("auth rate-limit config", () => {
   it("keeps Better Auth rate-limit enabled and magic-link limits explicit", async () => {
     const authConfigPath = new URL(
-      "../../../packages/auth/src/auth-options.ts",
+      "../../../packages/auth/src/auth-options.server.ts",
       import.meta.url,
     );
     const source = await Bun.file(authConfigPath).text();

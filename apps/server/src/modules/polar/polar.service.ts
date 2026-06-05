@@ -1,4 +1,4 @@
-import prisma from "@db";
+import prisma from "@db/server";
 
 const POLAR_PROVIDER = "polar";
 const PROCESSING_TIMEOUT_MS = 10 * 60 * 1000;

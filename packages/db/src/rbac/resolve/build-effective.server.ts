@@ -4,7 +4,7 @@ import {
   type Permission,
   type PermissionOverride,
 } from "@rbac";
-import { getRolePermissions } from "./load-role-permissions";
+import { getRolePermissions } from "./load-role-permissions.server";
 
 export async function computeEffectivePermissions(args: {
   roleIds: string[];

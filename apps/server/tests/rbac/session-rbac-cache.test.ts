@@ -16,10 +16,10 @@ describe("user session rbac cache validation", () => {
 
   it("treats legacy payloads without roles as invalid", async () => {
     const { setCachedUserSessionRbac } = await import(
-      "@db/rbac/cache/effective"
+      "@db/server/rbac/cache/effective"
     );
     const { isUserSessionRbacCacheValid } = await import(
-      "@db/rbac/cache/invalidate"
+      "@db/server/rbac/cache/invalidate"
     );
 
     await setCachedUserSessionRbac("user-1", {

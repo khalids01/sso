@@ -16,6 +16,7 @@
     "@db": "workspace:*",
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/openapi": "^1.4.14",
+    "@email": "workspace:*",
     "@env": "workspace:*",
     "@polar-sh/adapter-utils": "0.4.3",
     "@polar-sh/elysia": "^0.5.3",

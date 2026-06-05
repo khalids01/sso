@@ -1,6 +1,6 @@
-import prisma from "../client";
+import prisma from "../client.server";
 import { Roles, type Permission, type RoleSlug } from "@rbac";
-import { syncRolePermissionsForSlug } from "./sync-role-permissions";
+import { syncRolePermissionsForSlug } from "./sync-role-permissions.server";
 
 const RESERVED_SYSTEM_SLUGS = new Set([
   Roles.PlatformOwner,

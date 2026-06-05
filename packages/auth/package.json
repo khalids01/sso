@@ -2,14 +2,11 @@
   "name": "@auth",
   "type": "module",
   "exports": {
-    ".": {
-      "default": "./src/index.ts"
+    "./client": {
+      "default": "./src/index.client.ts"
     },
-    "./session": {
-      "default": "./src/session.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
+    "./server": {
+      "default": "./src/index.server.ts"
     }
   },
   "scripts": {},

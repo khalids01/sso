@@ -1,8 +1,8 @@
 import { customSession } from "better-auth/plugins";
-import { getUserSessionRbac } from "@db/rbac/session";
+import { getUserSessionRbac } from "@db/server/rbac/session";
 import { betterAuth } from "better-auth";
 
-import { authOptions } from "./auth-options";
+import { authOptions } from "./auth-options.server";
 
 export const auth = betterAuth({
   ...authOptions,

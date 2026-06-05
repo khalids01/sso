@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
-import { auth } from "@auth";
-import prisma from "@db";
+import { auth } from "@auth/server";
+import prisma from "@db/server";
 import { env } from "@env/server";
 import {
   CheckEmailDto,

@@ -9,7 +9,7 @@ async function runAuthGuardCase(sessionUser: Record<string, unknown>) {
         import { mock } from "bun:test";
         import { Elysia } from "elysia";
 
-        mock.module("@auth", () => ({
+        mock.module("@auth/server", () => ({
           auth: {
             api: {
               getSession: mock(async () => ({
@@ -44,7 +44,7 @@ async function runAuthGuardCase(sessionUser: Record<string, unknown>) {
           })),
         }));
 
-        mock.module("@redis", () => ({
+        mock.module("@redis/server", () => ({
           getCache: mock(async () => null),
           setCache: mock(async () => undefined),
           deleteCache: mock(async () => undefined),

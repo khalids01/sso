@@ -9,13 +9,12 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@env/server": ["../env/src/server.ts"],
-      "@env/*": ["../env/src/*"],
+      "@env/server": ["../env/src/env.server.ts"],
+      "@env/client": ["../env/src/env.client.ts"],
       "@config": ["../config/src/config.ts"],
       "@rbac": ["../rbac/src/index.ts"],
       "@rbac/*": ["../rbac/src/*"],
-      "@redis": ["../redis/src/index.ts"],
-      "@redis/*": ["../redis/src/*"]
+      "@redis/server": ["../redis/src/index.server.ts"]
     }
   },
   "include": [

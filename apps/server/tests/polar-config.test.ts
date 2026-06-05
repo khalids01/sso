@@ -18,7 +18,7 @@ async function runEnvImport(env: Record<string, string | undefined>) {
     cmd: [
       "bun",
       "-e",
-      "import './packages/env/src/server.ts'; console.log('imported');",
+      "import './packages/env/src/env.server.ts'; console.log('imported');",
     ],
     cwd: new URL("../../..", import.meta.url).pathname,
     env,

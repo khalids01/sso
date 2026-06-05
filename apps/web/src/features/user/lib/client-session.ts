@@ -2,4 +2,4 @@ export type {
   ClientSession,
   ClientSessionResult,
   ClientSessionUser,
-} from "@auth";
+} from "@auth/client";

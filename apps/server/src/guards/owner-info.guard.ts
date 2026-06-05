@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { hasPlatformOwner } from "@db/rbac/assignments";
+import { hasPlatformOwner } from "@db/server/rbac/assignments";
 import { env } from "@env/server";
 
 export const ownerInfoGuard = new Elysia({ name: "ownerInfoGuard" })

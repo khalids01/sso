@@ -19,7 +19,7 @@ const getEffectivePermissionsMock = mock(async () =>
   new Set(RolePermissionMap[Roles.PlatformAdmin]),
 );
 
-mock.module("@auth", () => ({
+mock.module("@auth/server", () => ({
   auth: {
     api: {
       getSession: getSessionMock,

@@ -1,4 +1,4 @@
-import prisma from "@db";
+import prisma from "@db/server";
 
 export class NotificationsService {
   async getForUser(userId: string) {

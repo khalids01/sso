@@ -5,7 +5,7 @@ const activityCreateMock = mock(async (args?: unknown) => args);
 const activityCountMock = mock(async () => 0);
 const activityFindManyMock = mock(async (): Promise<any> => []);
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: {
     activityEvent: {
       create: activityCreateMock,

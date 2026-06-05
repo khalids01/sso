@@ -9,7 +9,7 @@ const userFindManyMock = mock(async () => {
   throw new Error("user.findMany should not be used");
 });
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: {
     $queryRaw: queryRawMock,
     invitation: {

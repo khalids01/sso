@@ -1,7 +1,7 @@
 import { cors } from "@elysiajs/cors";
-import { auth } from "@auth";
+import { auth } from "@auth/server";
 import { env } from "@env/server";
-import { connectRedis } from "@redis";
+import { connectRedis } from "@redis/server";
 import { Elysia } from "elysia";
 import { app } from "./modules/app";
 import { openapi } from "@elysiajs/openapi";

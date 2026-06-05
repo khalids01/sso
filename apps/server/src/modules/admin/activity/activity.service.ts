@@ -1,4 +1,4 @@
-import prisma, { type Prisma } from "@db";
+import prisma, { type Prisma } from "@db/server";
 import { Roles } from "@rbac";
 import type { ActivityQuery, ActivitySeverity } from "./activity.dto";
 

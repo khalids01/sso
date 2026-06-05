@@ -5,17 +5,16 @@
   "scripts": {
     "build": "vite build",
     "serve": "vite preview",
-    "dev": "vite dev"
+    "dev": "vite dev",
+    "check-boundaries": "bun run scripts/check-boundaries.ts"
   },
   "dependencies": {
     "@auth": "workspace:*",
     "@rbac": "workspace:*",
     "@base-ui/react": "^1.2.0",
-    "@db": "workspace:*",
     "@elysiajs/eden": "^1.4.8",
     "@env": "workspace:*",
     "@polar-sh/better-auth": "^1.8.1",
-    "@prisma/client": "^7.4.1",
     "@tailwindcss/vite": "^4.2.0",
     "@tanstack/react-form": "^1.28.3",
     "@tanstack/react-query": "^5.90.21",

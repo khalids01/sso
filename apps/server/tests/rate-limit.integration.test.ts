@@ -82,7 +82,7 @@ const upsertMock = mock(async ({ update }: { update: Partial<SettingsRecord> }) 
 const getSessionMock = mock(async () => currentSession);
 const connectRedisMock = mock(async () => fakeRedis);
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: {
     rateLimitSettings: {
       findUnique: findUniqueMock,
@@ -101,7 +101,7 @@ mock.module("@/modules/auth/auth.service", () => ({
   },
 }));
 
-mock.module("@redis", () => ({
+mock.module("@redis/server", () => ({
   connectRedis: connectRedisMock,
   getCache: mock(async () => null),
   setCache: mock(async () => undefined),

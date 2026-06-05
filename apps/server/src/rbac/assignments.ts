@@ -1,4 +1,4 @@
-import { assignUserRole as dbAssignUserRole } from "@db/rbac/assignments";
+import { assignUserRole as dbAssignUserRole } from "@db/server/rbac/assignments";
 
 import { invalidateUser } from "./cache/invalidate";
 

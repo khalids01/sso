@@ -5,7 +5,7 @@ import {
   type AuthGetSessionResult,
   type AuthSessionData,
   type AuthUser,
-} from "@auth";
+} from "@auth/server";
 import {
   createPermissionChecker,
   getEffectivePermissions,

@@ -1,4 +1,4 @@
-import prisma from "../../src/client";
+import prisma from "../../src/client.server";
 import {
   AllPermissions,
   RoleDefinitions,
@@ -6,8 +6,8 @@ import {
   type Permission,
   type RoleSlug,
 } from "@rbac";
-import { syncAllRolePermissionsFromMap } from "../../src/rbac/sync-role-permissions";
-import { getRedis, connectRedis } from "@redis";
+import { syncAllRolePermissionsFromMap } from "../../src/rbac/sync-role-permissions.server";
+import { getRedis, connectRedis } from "@redis/server";
 import {
   RBAC_CATALOG_VERSION_KEY,
   rolePermissionsKey,

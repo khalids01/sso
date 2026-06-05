@@ -9,11 +9,12 @@
     "rootDir": "..",
     "baseUrl": ".",
     "paths": {
-      "@db": ["../db/src/index.ts"],
-      "@db/*": ["../db/src/*"],
-      "@env/*": ["../env/src/*"],
+      "@db/server": ["../db/src/index.server.ts"],
+      "@db/server/*": ["../db/src/*"],
+      "@env/client": ["../env/src/env.client.ts"],
+      "@env/server": ["../env/src/env.server.ts"],
       "@config": ["../config/src/config.ts"],
-      "@email": ["../email/src"],
+      "@email/server": ["../email/src/index.server.ts"],
       "@rbac": ["../rbac/src/index.ts"]
     }
   },

@@ -1,6 +1,6 @@
-import { connectRedis } from "@redis";
+import { connectRedis } from "@redis/server";
 import type { UserSessionRbacPayload } from "@rbac";
-import { deleteCachedUserSessionRbac } from "./effective";
+import { deleteCachedUserSessionRbac } from "./effective.server";
 import { RBAC_CATALOG_VERSION_KEY } from "../keys";
 
 export async function invalidateUser(userId: string) {

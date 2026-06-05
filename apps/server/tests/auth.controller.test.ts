@@ -13,7 +13,7 @@ const authApi =
     signInMagicLink: mock(async () => ({ success: true })),
   });
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: {
     user: {
       findUnique: findUniqueMock,
@@ -22,7 +22,7 @@ mock.module("@db", () => ({
   Prisma,
 }));
 
-mock.module("@auth", () => ({
+mock.module("@auth/server", () => ({
   auth: {
     api: authApi,
   },

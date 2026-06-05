@@ -13,7 +13,7 @@ import {
 } from "@react-email/components";
 import { siteConfig } from "@config";
 
-import { renderEmailTemplate } from "../render";
+import { renderEmailTemplate } from "../render.server";
 
 export type InvitationTemplateInput = {
   inviteUrl: string;

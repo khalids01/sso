@@ -1,4 +1,4 @@
-import prisma from "../client";
+import prisma from "../client.server";
 import { Roles, type RoleSlug } from "@rbac";
 
 export async function getRoleIdBySlug(slug: string): Promise<string> {

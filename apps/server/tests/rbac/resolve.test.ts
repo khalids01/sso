@@ -15,7 +15,7 @@ const { store, redis: redisMock } = mockRedisModule();
 
 let getCacheCalls = 0;
 
-mock.module("@db/rbac/prisma", () => ({
+mock.module("@db/server/rbac/prisma", () => ({
   default: createRbacPrismaMock(graph),
 }));
 

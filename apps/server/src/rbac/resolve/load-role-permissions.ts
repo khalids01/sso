@@ -1,1 +1,1 @@
-export * from "@db/rbac/resolve/load-role-permissions";
+export * from "@db/server/rbac/resolve/load-role-permissions";

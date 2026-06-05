@@ -11,7 +11,7 @@ const feedbackUpdateMock = mock(async (): Promise<any> => null);
 const userFindManyMock = mock(async (): Promise<any> => []);
 const activityRecordMock = mock(async () => null);
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: {
     feedback: {
       findMany: feedbackFindManyMock,

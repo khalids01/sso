@@ -8,8 +8,8 @@ import {
 } from "./owner.dto";
 import { env } from "@env/server";
 import { ownerInfoGuard } from "@/guards/owner-info.guard";
-import { hasPlatformOwner } from "@db/rbac/assignments";
-import { auth } from "@auth";
+import { hasPlatformOwner } from "@db/server/rbac/assignments";
+import { auth } from "@auth/server";
 
 const ownerService = new OwnerService();
 

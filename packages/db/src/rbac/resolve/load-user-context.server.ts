@@ -1,4 +1,4 @@
-import prisma from "../prisma";
+import prisma from "../prisma.server";
 import type { Permission, PermissionOverride } from "@rbac";
 
 export type UserRbacContext = {

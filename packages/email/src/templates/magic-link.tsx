@@ -10,7 +10,7 @@ import {
   Text,
 } from "@react-email/components";
 
-import { renderEmailTemplate } from "../render";
+import { renderEmailTemplate } from "../render.server";
 
 type MagicLinkEmailProps = {
   url: string;

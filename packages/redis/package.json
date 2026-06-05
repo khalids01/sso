@@ -1,22 +1,17 @@
 {
   "name": "@redis",
-  "version": "0.1.0",
   "type": "module",
   "exports": {
-    ".": {
-      "default": "./src/index.ts"
+    "./server": {
+      "default": "./src/index.server.ts"
     }
-  },
-  "scripts": {
-    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@env": "workspace:*",
-    "ioredis": "^5.8.1"
+    "ioredis": "^5.9.2"
   },
   "devDependencies": {
     "@config": "workspace:*",
-    "@types/bun": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "^6.0.2"
   }
 }

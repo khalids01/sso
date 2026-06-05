@@ -86,7 +86,7 @@ const dbMock = {
   },
 };
 
-mock.module("../../../../packages/db/src/client.ts", () => dbMock);
+mock.module("../../../../packages/db/src/client.server.ts", () => dbMock);
 
 describe("rbac seed integration", () => {
   it("upserts all permissions and respects customized roles", async () => {
@@ -94,7 +94,7 @@ describe("rbac seed integration", () => {
     rbacState.roles.clear();
     rbacState.rolePermissions.clear();
     const { seedRbac } = await import(
-      "../../../../packages/db/src/seed-rbac.ts"
+      "../../../../packages/db/src/seed-rbac.server.ts"
     );
 
     await seedRbac();

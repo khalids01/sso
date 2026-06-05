@@ -1,4 +1,4 @@
-import prisma from "../prisma";
+import prisma from "../prisma.server";
 import type { SessionRoleSummary } from "@rbac";
 
 export type UserRoleSummary = SessionRoleSummary;

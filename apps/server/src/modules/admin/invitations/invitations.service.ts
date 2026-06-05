@@ -1,4 +1,4 @@
-import prisma, { Prisma } from "@db";
+import prisma, { Prisma } from "@db/server";
 import type { AdminInvitationQuery } from "./invitations.dto";
 
 type InvitationListItem = {

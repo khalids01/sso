@@ -35,7 +35,7 @@ const updateMock = mock(async () => ({
   subscriptionStatus: null,
 }));
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: {
     user: {
       findUnique: findUniqueMock,
@@ -49,11 +49,11 @@ mock.module("@db", () => ({
   },
 }));
 
-mock.module("@db/rbac/roles", () => ({
+mock.module("@db/server/rbac/roles", () => ({
   isAssignableRoleSlug: async (slug: string) => slug !== Roles.PlatformOwner,
 }));
 
-mock.module("@db/rbac/assignments", () => ({
+mock.module("@db/server/rbac/assignments", () => ({
   countActivePlatformOwners: async () => 2,
   getRoleIdBySlug: async () => "role-admin-id",
 }));

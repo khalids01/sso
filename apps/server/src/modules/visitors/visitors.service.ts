@@ -1,5 +1,5 @@
-import prisma from "@db";
-import { connectRedis } from "@redis";
+import prisma from "@db/server";
+import { connectRedis } from "@redis/server";
 import { auth } from "@/modules/auth/auth.service";
 import {
   getClientIp,

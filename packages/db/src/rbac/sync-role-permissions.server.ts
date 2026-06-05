@@ -1,4 +1,4 @@
-import prisma from "../client";
+import prisma from "../client.server";
 import { RolePermissionMap, type Permission, type RoleSlug } from "@rbac";
 
 async function getPermissionIdByName() {

@@ -199,12 +199,12 @@ const fakeRedis = {
 
 const connectRedisMock = mock(async () => fakeRedis);
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: dbMock,
   Prisma,
 }));
 
-mock.module("@redis", () => ({
+mock.module("@redis/server", () => ({
   connectRedis: connectRedisMock,
   getCache: mock(async () => null),
   setCache: mock(async () => undefined),

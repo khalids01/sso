@@ -16,7 +16,7 @@ import { Button } from "../ui/button";
 import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Permissions } from "@rbac";
-import { env } from "@env/web";
+import { env } from "@env/client";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 function expireCookie(name: string) {

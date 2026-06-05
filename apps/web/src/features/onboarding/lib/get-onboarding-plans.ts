@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { PLANS } from "@auth/client";
 
 export type OnboardingPlanOption = {
   slug: string;
@@ -8,12 +9,10 @@ export type OnboardingPlanOption = {
 
 export const getOnboardingPlans = createServerFn({ method: "GET" }).handler(
   async () => {
-    const { PLANS } = await import("@auth/plans");
-
     return Object.values(PLANS).map((plan) => ({
       slug: plan.slug,
       name: plan.name,
-      selectable: plan.slug === "free",
+      selectable: plan.selectable,
     })) satisfies OnboardingPlanOption[];
   },
 );

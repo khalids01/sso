@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { client } from "@/lib/client";
-import type { Prisma } from "@db";
+import type { FeedbackItem } from "@/features/feedback/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/constants/query-keys";
 import {
@@ -28,18 +28,6 @@ import { useState } from "react";
 export const Route = createFileRoute("/admin/feedback")({
   component: AdminFeedbackPage,
 });
-
-type FeedbackItem = Prisma.FeedbackGetPayload<{
-  include: {
-    user: {
-      select: {
-        name: true;
-        email: true;
-        image: true;
-      };
-    };
-  };
-}>;
 
 function AdminFeedbackPage() {
   const queryClient = useQueryClient();

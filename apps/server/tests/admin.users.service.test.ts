@@ -71,7 +71,7 @@ const sampleRbacRoles = [
   },
 ];
 
-mock.module("@db", () => ({
+mock.module("@db/server", () => ({
   default: {
     user: {
       findMany: userFindManyMock,
@@ -93,11 +93,11 @@ mock.module("@db", () => ({
   Prisma,
 }));
 
-mock.module("@db/rbac/roles", () => ({
+mock.module("@db/server/rbac/roles", () => ({
   isAssignableRoleSlug: isAssignableRoleSlugMock,
 }));
 
-mock.module("@db/rbac/assignments", () => ({
+mock.module("@db/server/rbac/assignments", () => ({
   countActivePlatformOwners: countActivePlatformOwnersMock,
   getRoleIdBySlug: getRoleIdBySlugMock,
 }));
@@ -108,7 +108,7 @@ mock.module("../src/modules/admin/activity/activity.service", () => ({
   },
 }));
 
-mock.module("@email", () => ({
+mock.module("@email/server", () => ({
   sendEmail: mock(async () => undefined),
   invitationTemplate: mock(async () => "<p>Invitation</p>"),
 }));

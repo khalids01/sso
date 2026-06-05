@@ -9,7 +9,7 @@ import {
   replaceRolePermissions,
   resetRolePermissionsFromMap,
   updateCustomRoleMetadata,
-} from "@db/rbac/roles";
+} from "@db/server/rbac/roles";
 import { type Permission } from "@rbac";
 import { activityService } from "../activity/activity.service";
 import { setCachedRolePermissions } from "@/rbac/cache/role-permissions";

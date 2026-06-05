@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "@tanstack/react-router";
-import { env } from "@env/web";
+import { env } from "@env/client";
 
 type TrackPayload = {
   path: string;

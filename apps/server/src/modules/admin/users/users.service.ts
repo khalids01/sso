@@ -1,16 +1,16 @@
-import prisma from "@db";
+import prisma from "@db/server";
 import {
   countActivePlatformOwners,
   getRoleIdBySlug,
-} from "@db/rbac/assignments";
-import { isAssignableRoleSlug } from "@db/rbac/roles";
+} from "@db/server/rbac/assignments";
+import { isAssignableRoleSlug } from "@db/server/rbac/roles";
 import {
   formatRoleLabel,
   Roles,
   type Permission,
   type RoleSlug,
 } from "@rbac";
-import { sendEmail, invitationTemplate } from "@email";
+import { sendEmail, invitationTemplate } from "@email/server";
 import { env } from "@env/server";
 import { siteConfig } from "@config";
 import { activityService } from "../activity/activity.service";

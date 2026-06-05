@@ -2,14 +2,14 @@ import type { Permission, UserSessionRbacPayload } from "@rbac";
 import {
   getCachedUserSessionRbac,
   setCachedUserSessionRbac,
-} from "../cache/effective";
+} from "../cache/effective.server";
 import {
   getCatalogVersion,
   isEffectiveCacheStale,
   isUserSessionRbacPayloadComplete,
-} from "../cache/invalidate";
-import { computeEffectivePermissionArrayFromSnapshot } from "./build-effective";
-import { loadUserRbacSnapshot } from "./load-snapshot";
+} from "../cache/invalidate.server";
+import { computeEffectivePermissionArrayFromSnapshot } from "./build-effective.server";
+import { loadUserRbacSnapshot } from "./load-snapshot.server";
 
 export async function getUserSessionRbac(
   userId: string,

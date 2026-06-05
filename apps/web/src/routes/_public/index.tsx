@@ -1,5 +1,5 @@
 import { Home } from "@/features/landing/home";
-import { env } from "@env/web";
+import { env } from "@env/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { getOwnerSetupStatus } from "@/features/admin/owner/api";
 

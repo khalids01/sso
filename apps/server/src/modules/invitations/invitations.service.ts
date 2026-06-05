@@ -1,4 +1,4 @@
-import prisma from "@db";
+import prisma from "@db/server";
 import { Roles, type RoleSlug } from "@rbac";
 import { assignUserRoleAndInvalidate } from "@/rbac/assignments";
 

@@ -36,7 +36,7 @@ const deleteCustomRoleMock = mock(async () => ({
 const getUserIdsForRoleMock = mock(async () => ["user-1"]);
 const activityRecordMock = mock(async () => null);
 
-mock.module("@db/rbac/roles", () => ({
+mock.module("@db/server/rbac/roles", () => ({
   listRoles: listRolesMock,
   listAssignableRoles: listAssignableRolesMock,
   listPermissionCatalog: listPermissionCatalogMock,

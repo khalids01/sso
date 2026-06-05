@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./server": "./src/server.ts",
-    "./web": "./src/web.ts"
+    "./client": "./src/env.client.ts",
+    "./server": "./src/env.server.ts"
   },
   "dependencies": {
     "zod": "catalog:",

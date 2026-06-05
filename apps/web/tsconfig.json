@@ -23,11 +23,8 @@
     "noUncheckedSideEffectImports": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@db": ["../../packages/db/src/index.ts"],
-      "@db/*": ["../../packages/db/src/*"],
-      "@auth": ["../../packages/auth/src"],
-      "@auth/*": ["../../packages/auth/src/*"],
-      "@env/*": ["../../packages/env/src/*"],
+      "@auth/client": ["../../packages/auth/src/index.client.ts"],
+      "@env/client": ["../../packages/env/src/env.client.ts"],
       "@rbac": ["../../packages/rbac/src"]
     }
   }

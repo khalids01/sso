@@ -1,1 +1,1 @@
-export * from "@db/rbac/cache/role-permissions";
+export * from "@db/server/rbac/cache/role-permissions";

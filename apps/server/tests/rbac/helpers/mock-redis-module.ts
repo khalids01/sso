@@ -4,7 +4,7 @@ import { createMemoryRedis, createMemoryRedisStore } from "./memory-redis";
 export function mockRedisModule(store = createMemoryRedisStore()) {
   const redis = createMemoryRedis(store);
 
-  mock.module("@redis", () => ({
+  mock.module("@redis/server", () => ({
     getCache: async (key: string) => {
       const value = await redis.get(key);
       return value ? JSON.parse(value) : null;

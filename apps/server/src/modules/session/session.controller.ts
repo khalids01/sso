@@ -1,6 +1,5 @@
 import { Elysia } from "elysia";
-import { getUserSessionRbac } from "@db/rbac/session";
-import { toClientSession } from "@auth";
+import { toClientSession } from "@auth/client";
 import { authGuard } from "@/guards/auth.guard";
 
 export const sessionController = new Elysia({
@@ -12,19 +11,13 @@ export const sessionController = new Elysia({
     "/context",
     async ({ session, userId }) => {
       if (!session || !userId) {
-        return { user: null, permissions: [], roles: [] };
+        return { user: null, permissions: [], roles: [], primaryRoleSlug: null };
       }
 
-      const rbac = await getUserSessionRbac(userId);
-      const clientSession = toClientSession({
-        ...session,
-        permissions: rbac.permissions,
-        roles: rbac.roles,
-        primaryRoleSlug: rbac.primaryRoleSlug,
-      });
+      const clientSession = toClientSession(session);
 
       if (!clientSession) {
-        return { user: null, permissions: [], roles: [] };
+        return { user: null, permissions: [], roles: [], primaryRoleSlug: null };
       }
 
       return {

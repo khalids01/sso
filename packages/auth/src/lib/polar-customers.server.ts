@@ -1,9 +1,9 @@
 import type { BetterAuthPlugin, User } from "better-auth";
-import prisma from "@db";
-import { getPrimaryRoleSlug } from "@db/rbac/assignments";
+import prisma from "@db/server";
+import { getPrimaryRoleSlug } from "@db/server/rbac/assignments";
 import { Roles } from "@rbac";
 
-import { polarClient } from "./payments";
+import { polarClient } from "./payments.server";
 
 type AuthUser = Partial<User> & {
   id?: string;

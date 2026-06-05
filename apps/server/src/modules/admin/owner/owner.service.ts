@@ -1,5 +1,5 @@
-import prisma from "@db";
-import { hasPlatformOwner } from "@db/rbac/assignments";
+import prisma from "@db/server";
+import { hasPlatformOwner } from "@db/server/rbac/assignments";
 import { randomUUID } from "node:crypto";
 import { Roles } from "@rbac";
 import { assignUserRoleAndInvalidate } from "@/rbac/assignments";

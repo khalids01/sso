@@ -1,4 +1,4 @@
-import prisma from "@db";
+import prisma from "@db/server";
 import { Roles } from "@rbac";
 import { notificationsService } from "../notifications/notifications.service";
 import { activityService } from "../admin/activity/activity.service";

@@ -1,9 +1,9 @@
-import prisma from "../prisma";
+import prisma from "../prisma.server";
 import type { Permission } from "@rbac";
 import {
   getCachedRolePermissions,
   setCachedRolePermissions,
-} from "../cache/role-permissions";
+} from "../cache/role-permissions.server";
 
 export async function loadRolePermissionsFromDb(
   roleId: string,
