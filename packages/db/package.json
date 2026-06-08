@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "bun run prisma/seed/rbac.ts"
+    "db:seed": "bun run prisma/seed/rbac.ts",
+    "db:make-owner": "bun run scripts/make-owner.ts"
   },
   "devDependencies": {
     "@config": "workspace:*",
