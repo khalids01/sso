@@ -43,6 +43,7 @@ function clearAuthCookies() {
 export default function UserMenu() {
   const navigate = useNavigate();
   const { session } = useSession();
+  // console.log(session);
 
   if (!session) {
     return (
