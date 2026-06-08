@@ -57,6 +57,19 @@ export function assertNotAssignableOwnerRole(roleSlug?: RoleSlug | string | null
   }
 }
 
+export function assertOwnerRoleIsImmutable(args: {
+  targetRoleSlug: RoleSlug | string | null | undefined;
+  nextRoleSlug?: RoleSlug | string | null;
+}) {
+  if (
+    isOwnerRole(args.targetRoleSlug) &&
+    args.nextRoleSlug !== undefined &&
+    !isOwnerRole(args.nextRoleSlug)
+  ) {
+    policyError("The owner role cannot be changed");
+  }
+}
+
 export function assertActorCanChangePrivilegedAccounts(args: {
   actorPermissions: ReadonlySet<Permission> | readonly Permission[];
   targetRoleSlug: RoleSlug | string | null | undefined;

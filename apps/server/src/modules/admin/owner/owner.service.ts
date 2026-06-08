@@ -34,7 +34,9 @@ export class OwnerService {
             },
         });
 
-        await assignUserRoleAndInvalidate(owner.id, Roles.PlatformOwner);
+        await assignUserRoleAndInvalidate(owner.id, Roles.PlatformOwner, {
+            allowOwnerAssignment: true,
+        });
 
         return owner;
     }

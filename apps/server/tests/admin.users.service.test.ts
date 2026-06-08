@@ -320,6 +320,35 @@ describe("UsersService", () => {
     expect(userUpdateMock).not.toHaveBeenCalled();
   });
 
+  it("rejects demoting owner accounts through user management", async () => {
+    userFindUniqueMock.mockResolvedValue({
+      id: "owner-user",
+      rbacRoles: [
+        {
+          role: {
+            slug: Roles.PlatformOwner,
+            name: "Owner",
+          },
+        },
+      ],
+    });
+
+    const { usersService } = await import(
+      "../src/modules/admin/users/users.service"
+    );
+
+    await expect(
+      usersService.updateUser(
+        "owner-user",
+        { roleSlug: Roles.PlatformUser },
+        ownerActor,
+      ),
+    ).rejects.toThrow("The owner role cannot be changed");
+
+    expect(userUpdateMock).not.toHaveBeenCalled();
+    expect(assignUserRoleAndInvalidateMock).not.toHaveBeenCalled();
+  });
+
   it("rejects OWNER invitations from admin user management", async () => {
     const { usersService } = await import(
       "../src/modules/admin/users/users.service"

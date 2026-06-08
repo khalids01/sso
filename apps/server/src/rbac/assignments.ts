@@ -5,7 +5,8 @@ import { invalidateUser } from "./cache/invalidate";
 export async function assignUserRoleAndInvalidate(
   userId: string,
   slug: string,
+  options?: { allowOwnerAssignment?: boolean },
 ) {
-  await dbAssignUserRole(userId, slug);
+  await dbAssignUserRole(userId, slug, options);
   await invalidateUser(userId);
 }

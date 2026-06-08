@@ -14,7 +14,21 @@ export async function getRoleIdBySlug(slug: string): Promise<string> {
   return role.id;
 }
 
-export async function assignUserRole(userId: string, slug: string) {
+export async function assignUserRole(
+  userId: string,
+  slug: string,
+  options?: { allowOwnerAssignment?: boolean },
+) {
+  const currentSlug = await getPrimaryRoleSlug(userId);
+
+  if (currentSlug === Roles.PlatformOwner && slug !== Roles.PlatformOwner) {
+    throw new Error("Owner role cannot be changed");
+  }
+
+  if (slug === Roles.PlatformOwner && !options?.allowOwnerAssignment) {
+    throw new Error("Owner role cannot be assigned except during bootstrap");
+  }
+
   const roleId = await getRoleIdBySlug(slug);
 
   await prisma.$transaction([

@@ -20,6 +20,7 @@ import {
   assertActorCanGrantAdminRole,
   assertNotAssignableOwnerRole,
   assertNotSelfTarget,
+  assertOwnerRoleIsImmutable,
   filterOwnerUsers,
   isOwnerRole,
 } from "@/rbac/policies/owner.policy";
@@ -150,6 +151,13 @@ async function assertCanUpdateUser(args: {
   }
 
   const target = await getAdminTargetUser(args.targetId);
+
+  if (args.data.roleSlug) {
+    assertOwnerRoleIsImmutable({
+      targetRoleSlug: target.roleSlug,
+      nextRoleSlug: args.data.roleSlug,
+    });
+  }
 
   assertActorCanAccessOwnerTarget({
     actorPermissions: args.actor.permissions,

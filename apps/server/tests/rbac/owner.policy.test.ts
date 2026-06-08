@@ -5,6 +5,7 @@ import {
   assertActorCanChangePrivilegedAccounts,
   assertActorCanGrantAdminRole,
   assertNotSelfTarget,
+  assertOwnerRoleIsImmutable,
   filterOwnerUsers,
 } from "../../src/rbac/policies/owner.policy";
 
@@ -71,5 +72,28 @@ describe("owner policy", () => {
 
   it("owner permissions include grant_admin capability", () => {
     expect(ownerPermissions.has(Permissions.AdminUsersGrantAdmin)).toBe(true);
+  });
+
+  it("blocks changing owner role to another role", () => {
+    expect(() =>
+      assertOwnerRoleIsImmutable({
+        targetRoleSlug: Roles.PlatformOwner,
+        nextRoleSlug: Roles.PlatformUser,
+      }),
+    ).toThrow("The owner role cannot be changed");
+
+    expect(() =>
+      assertOwnerRoleIsImmutable({
+        targetRoleSlug: Roles.PlatformOwner,
+        nextRoleSlug: Roles.PlatformOwner,
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      assertOwnerRoleIsImmutable({
+        targetRoleSlug: Roles.PlatformUser,
+        nextRoleSlug: Roles.PlatformAdmin,
+      }),
+    ).not.toThrow();
   });
 });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, History, MoreHorizontal, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { Roles } from "@rbac";
 import { queryKeys } from "@/constants/query-keys";
 import { client } from "@/lib/client";
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,8 @@ export function UserActions({ user }: { user: any }) {
     },
   });
 
+  const canChangeRole = user.role.slug !== Roles.PlatformOwner;
+
   return (
     <>
       <DropdownMenu>
@@ -101,15 +104,17 @@ export function UserActions({ user }: { user: any }) {
               <History className="mr-2 h-4 w-4" />
               View Sessions
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setRoleSlug(user.role.slug);
-                setRoleOpen(true);
-              }}
-            >
-              <Shield className="mr-2 h-4 w-4" />
-              Change Role
-            </DropdownMenuItem>
+            {canChangeRole ? (
+              <DropdownMenuItem
+                onClick={() => {
+                  setRoleSlug(user.role.slug);
+                  setRoleOpen(true);
+                }}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Change Role
+              </DropdownMenuItem>
+            ) : null}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-destructive">
