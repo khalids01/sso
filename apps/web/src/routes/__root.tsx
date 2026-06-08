@@ -4,19 +4,17 @@ import {
   Scripts,
   createRootRouteWithContext,
 } from "@tanstack/react-router";
-// import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Toaster } from "@/components/ui/sonner";
-import { TanstackQueryProvider } from "@/providers/tanstack-router";
+import { TanstackQueryProvider } from "@/providers/tanstack-query";
 import { ThemeProvider } from "@/providers/theme-provider";
-import { SessionProvider } from "@/providers/session-provider";
-import type { ClientSessionResult } from "@auth/client";
 import { getRootSession } from "@/features/user/lib/get-root-session";
 import { VisitorTracker } from "@/features/visitors/visitor-tracker";
+import type { ClientSessionResult } from "@auth/client";
 
 // const isDevelopment = import.meta.env.DEV;
 
 export interface RouterAppContext {
-  session: ClientSessionResult;
+  session?: ClientSessionResult;
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
@@ -34,16 +32,20 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
     ],
   }),
-  beforeLoad: async () => {
+  loader: async () => {
     const session = await getRootSession();
-    return { session };
+    return { session: session ?? null };
   },
+  staleTime: Infinity,
+  gcTime: Infinity,
+  shouldReload: false,
 
   component: RootDocument,
 });
 
 function RootDocument() {
-  const { session } = Route.useRouteContext();
+
+  const { session } = Route.useLoaderData();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -52,11 +54,9 @@ function RootDocument() {
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <SessionProvider session={session}>
-            <TanstackQueryProvider>
-              <Outlet />
-            </TanstackQueryProvider>
-          </SessionProvider>
+          <TanstackQueryProvider>
+            <Outlet />
+          </TanstackQueryProvider>
           <VisitorTracker />
           <Toaster richColors position="top-center"/>
           {/* {isDevelopment && <TanStackRouterDevtools position="bottom-left" />} */}

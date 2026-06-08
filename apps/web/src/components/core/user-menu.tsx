@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 
 import {
   DropdownMenu,
@@ -42,8 +42,8 @@ function clearAuthCookies() {
 
 export default function UserMenu() {
   const navigate = useNavigate();
+  const router = useRouter();
   const { session } = useSession();
-  // console.log(session);
 
   if (!session) {
     return (
@@ -81,10 +81,11 @@ export default function UserMenu() {
       onClick: () => {
         authClient.signOut({
           fetchOptions: {
-            onSuccess: () => {
-              navigate({
+            onSuccess: async () => {
+              await navigate({
                 to: "/",
               });
+              await router.invalidate();
             },
             onError() {
               clearAuthCookies();

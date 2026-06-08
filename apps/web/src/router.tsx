@@ -10,9 +10,7 @@ export const getRouter = () => {
     routeTree,
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
-    context: {
-      session: null,
-    } satisfies RouterAppContext,
+    context: {} satisfies RouterAppContext,
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: () => <div>Not Found</div>,
     Wrap: ({ children }) => <>{children}</>,

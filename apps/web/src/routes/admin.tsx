@@ -3,7 +3,6 @@ import {
   Outlet,
   Link,
   useLocation,
-  redirect,
 } from "@tanstack/react-router";
 import {
   Sidebar,
@@ -36,12 +35,17 @@ import Logo from "@/components/core/logo";
 import { Permissions } from "@rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 import { adminMiddleware } from "@/middleware/admin";
+import { useSession } from "@/providers/session-provider";
 
 export const Route = createFileRoute("/admin")({
   server: {
     middleware: [ adminMiddleware],
   },
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context, cause }) => {
+    if (cause === "stay") {
+      return;
+    }
+
     return {
       session: context.session,
     };
@@ -96,7 +100,7 @@ const navItems = [
 
 function AdminLayout() {
   const location = useLocation();
-  const { session } = Route.useRouteContext();
+  const { session } = useSession();
   const visibleNavItems = navItems.filter((item) => {
     if (!item.permission) {
       return true;
