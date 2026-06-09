@@ -130,27 +130,29 @@ export function UserActions({ user }: { user: any }) {
       </DropdownMenu>
 
       <Dialog open={sessionsOpen} onOpenChange={setSessionsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl overflow-hidden">
           <DialogHeader>
             <DialogTitle>User Sessions - {user.name}</DialogTitle>
             <DialogDescription>All active and past sessions for this user.</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="min-w-0 py-4">
             {sessionsLoading ? (
               <div className="flex justify-center py-8">Loading sessions...</div>
             ) : sessions?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">No sessions found.</div>
             ) : (
-              <div className="space-y-4">
+              <div className="max-h-[60vh] space-y-4 overflow-y-auto overflow-x-hidden">
                 {sessions?.map((session: any) => (
-                  <div key={session.id} className="flex flex-col rounded-lg border p-3 text-sm">
-                    <div className="flex justify-between font-medium">
-                      <span>IP: {session.ipAddress || "Unknown"}</span>
-                      <span className="text-xs text-muted-foreground">
+                  <div key={session.id} className="min-w-0 rounded-lg border p-3 text-sm">
+                    <div className="flex min-w-0 items-start justify-between gap-2 font-medium">
+                      <span className="min-w-0 truncate">
+                        IP: {session.ipAddress || "Unknown"}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
                         {new Date(session.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                    <div className="mt-1 min-w-0 break-all text-xs text-muted-foreground">
                       OS: {session.userAgent || "Unknown"}
                     </div>
                   </div>
