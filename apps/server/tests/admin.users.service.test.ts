@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { RolePermissionMap, Roles } from "@rbac";
 import { Prisma } from "../../../packages/db/prisma/generated/client";
+import * as rbacAssignments from "../../../packages/db/src/rbac/assignments.server";
 
 const sessionFindManyMock = mock(async () => []);
 const userFindManyMock = mock(async () => []);
@@ -98,6 +99,7 @@ mock.module("@db/server/rbac/roles", () => ({
 }));
 
 mock.module("@db/server/rbac/assignments", () => ({
+  ...rbacAssignments,
   countActivePlatformOwners: countActivePlatformOwnersMock,
   getRoleIdBySlug: getRoleIdBySlugMock,
 }));

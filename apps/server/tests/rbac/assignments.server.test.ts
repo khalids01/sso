@@ -39,7 +39,9 @@ describe("assignUserRole", () => {
       role: { slug: Roles.PlatformOwner },
     });
 
-    const { assignUserRole } = await import("@db/server/rbac/assignments");
+    const { assignUserRole } = await import(
+      "../../../../packages/db/src/rbac/assignments.server"
+    );
 
     await expect(
       assignUserRole("user-1", Roles.PlatformUser),
@@ -49,7 +51,9 @@ describe("assignUserRole", () => {
   });
 
   it("blocks assigning owner role outside bootstrap", async () => {
-    const { assignUserRole } = await import("@db/server/rbac/assignments");
+    const { assignUserRole } = await import(
+      "../../../../packages/db/src/rbac/assignments.server"
+    );
 
     await expect(
       assignUserRole("user-1", Roles.PlatformOwner),
@@ -59,7 +63,9 @@ describe("assignUserRole", () => {
   });
 
   it("allows owner bootstrap assignment", async () => {
-    const { assignUserRole } = await import("@db/server/rbac/assignments");
+    const { assignUserRole } = await import(
+      "../../../../packages/db/src/rbac/assignments.server"
+    );
 
     await assignUserRole("user-1", Roles.PlatformOwner, {
       allowOwnerAssignment: true,

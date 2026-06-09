@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { RolePermissionMap, Roles } from "@rbac";
+import * as rbacAssignments from "../../../../packages/db/src/rbac/assignments.server";
 
 const ownerActor = {
   id: "owner-1",
@@ -54,6 +55,7 @@ mock.module("@db/server/rbac/roles", () => ({
 }));
 
 mock.module("@db/server/rbac/assignments", () => ({
+  ...rbacAssignments,
   countActivePlatformOwners: async () => 2,
   getRoleIdBySlug: async () => "role-admin-id",
 }));
