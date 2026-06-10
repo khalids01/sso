@@ -8,6 +8,7 @@ import type { BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { sendEmail, magicLinkTemplate } from "../../email/src/index.server";
 
+import { defaultUserRoleOnSignup } from "./lib/default-user-role.server";
 import { polarClient } from "./lib/payments.server";
 import { polarCustomersForBillingUsers } from "./lib/polar-customers.server";
 
@@ -159,6 +160,7 @@ export const authOptions = {
         });
       },
     }),
+    defaultUserRoleOnSignup(),
   ],
 } satisfies BetterAuthOptions;
 
