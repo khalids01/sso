@@ -3,6 +3,7 @@ import type { WebhookSubscriptionCreatedPayload } from "@polar-sh/sdk/models/com
 import type { WebhookSubscriptionUpdatedPayload } from "@polar-sh/sdk/models/components/webhooksubscriptionupdatedpayload";
 import { magicLink } from "better-auth/plugins";
 import prisma from "../../db/src/client.server";
+import { getUserSessionCacheVersion } from "../../db/src/session-revocation.server";
 import { env } from "../../env/src/env.server";
 import type { BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -31,6 +32,7 @@ export const authOptions = {
     cookieCache: {
       enabled: true,
       maxAge: 60 * 60 * 24 * 30, // 1 month
+      version: (_session, user) => getUserSessionCacheVersion(user.id),
     },
   },
   trustedOrigins: [env.CORS_ORIGIN],

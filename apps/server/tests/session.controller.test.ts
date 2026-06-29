@@ -59,4 +59,5 @@ describe("sessionController", () => {
       primaryRoleId: "role-user",
     });
   });
+
 });

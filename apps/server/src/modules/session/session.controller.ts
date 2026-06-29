@@ -33,4 +33,66 @@ export const sessionController = new Elysia({
     {
       detail: { summary: "Authenticated session context with permissions" },
     },
+  )
+  .get(
+    "/devices",
+    async ({ session, userId, set }) => {
+      set.headers["cache-control"] = "private, no-store";
+
+      if (!session || !userId) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
+      const { listUserSessionDevices } = await import(
+        "../../../../../packages/db/src/session-revocation.server"
+      );
+      return listUserSessionDevices(userId, session.session.id);
+    },
+    {
+      detail: { summary: "Current user's logged-in devices" },
+    },
+  )
+  .delete(
+    "/devices/:sessionId",
+    async ({ params: { sessionId }, session, userId, set }) => {
+      if (!session || !userId) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
+      try {
+        const { revokeUserSessionDevice } = await import(
+          "../../../../../packages/db/src/session-revocation.server"
+        );
+        return await revokeUserSessionDevice(
+          userId,
+          sessionId,
+          session.session.id,
+        );
+      } catch (error) {
+        set.status = 400;
+        return error instanceof Error ? error.message : "Failed to log out device";
+      }
+    },
+    {
+      detail: { summary: "Log out one other device" },
+    },
+  )
+  .delete(
+    "/devices/others",
+    async ({ session, userId, set }) => {
+      if (!session || !userId) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
+      const { revokeUserSessionsExcept } = await import(
+        "../../../../../packages/db/src/session-revocation.server"
+      );
+      return revokeUserSessionsExcept(userId, session.session.id);
+    },
+    {
+      detail: { summary: "Log out all other devices" },
+    },
   );

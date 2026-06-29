@@ -81,11 +81,63 @@ export const usersController = new Elysia({
         )
         .get(
           "/:id/sessions",
-          async ({ params: { id } }) => usersService.getUserSessions(id),
+          async ({ params: { id }, permissions, userId, session }) =>
+            usersService.getUserSessionsForAdmin(
+              id,
+              getActor({ userId, permissions }),
+              session?.session.id,
+            ),
           {
             beforeHandle: requirePermission(Permissions.AdminUsersRead),
             detail: {
               summary: "Get active sessions for a user",
+            },
+          },
+        )
+        .delete(
+          "/:id/sessions/:sessionId",
+          async ({
+            params: { id, sessionId },
+            set,
+            permissions,
+            userId,
+            session,
+          }) => {
+            try {
+              return await usersService.revokeUserSessionForAdmin(
+                id,
+                sessionId,
+                getActor({ userId, permissions }),
+                session?.session.id,
+              );
+            } catch (error) {
+              return handleUserMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminUsersUpdate),
+            detail: {
+              summary: "Revoke a user session",
+            },
+          },
+        )
+        .delete(
+          "/:id/sessions",
+          async ({ params: { id }, set, permissions, userId, session }) => {
+            try {
+              return await usersService.revokeAllUserSessionsForAdmin(
+                id,
+                getActor({ userId, permissions }),
+                session?.session.id,
+              );
+            } catch (error) {
+              return handleUserMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminUsersUpdate),
+            detail: {
+              summary: "Revoke all sessions for a user",
             },
           },
         )

@@ -12,3 +12,4 @@ export {
 } from "./rbac/overrides.server";
 export { default } from "./client.server";
 export { default as prisma } from "./client.server";
+export * from "./session-revocation.server";

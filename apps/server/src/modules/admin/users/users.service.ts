@@ -513,17 +513,121 @@ export class UsersService {
   }
 
   async getUserSessions(id: string) {
-    return prisma.session.findMany({
-      where: { userId: id },
+    return this.listSessionDevices(id);
+  }
+
+  async getUserSessionsForAdmin(
+    id: string,
+    actor: AdminActor,
+    currentSessionId?: string,
+  ) {
+    const target = await getAdminTargetUser(id);
+
+    assertActorCanAccessOwnerTarget({
+      actorPermissions: actor.permissions,
+      targetRoleSlug: target.roleSlug,
+    });
+
+    return this.listSessionDevices(id, currentSessionId);
+  }
+
+  async revokeUserSessionForAdmin(
+    userId: string,
+    sessionId: string,
+    actor: AdminActor,
+    currentSessionId?: string,
+  ) {
+    if (sessionId === currentSessionId) {
+      throw new Error("Current session cannot be revoked from admin panel");
+    }
+
+    const target = await getAdminTargetUser(userId);
+
+    assertActorCanAccessOwnerTarget({
+      actorPermissions: actor.permissions,
+      targetRoleSlug: target.roleSlug,
+    });
+
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { userId: true },
+    });
+
+    if (!session || session.userId !== userId) {
+      throw new Error("Session not found");
+    }
+
+    await prisma.session.delete({
+      where: { id: sessionId },
+    });
+
+    const { bumpUserSessionCacheVersion } = await import(
+      "../../../../../../packages/db/src/session-revocation.server"
+    );
+    await bumpUserSessionCacheVersion(userId);
+
+    return { id: sessionId, userId };
+  }
+
+  async revokeAllUserSessionsForAdmin(
+    userId: string,
+    actor: AdminActor,
+    currentSessionId?: string,
+  ) {
+    const target = await getAdminTargetUser(userId);
+
+    assertActorCanAccessOwnerTarget({
+      actorPermissions: actor.permissions,
+      targetRoleSlug: target.roleSlug,
+    });
+
+    const result = await prisma.session.deleteMany({
+      where: {
+        userId,
+        ...(actor.id === userId && currentSessionId
+          ? {
+              id: {
+                not: currentSessionId,
+              },
+            }
+          : {}),
+      },
+    });
+
+    if (result.count > 0) {
+      const { bumpUserSessionCacheVersion } = await import(
+        "../../../../../../packages/db/src/session-revocation.server"
+      );
+      await bumpUserSessionCacheVersion(userId);
+    }
+
+    return result;
+  }
+
+  private async listSessionDevices(id: string, currentSessionId?: string) {
+    const sessions = await prisma.session.findMany({
+      where: {
+        userId: id,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
       select: {
         id: true,
+        userId: true,
         expiresAt: true,
         createdAt: true,
+        updatedAt: true,
         ipAddress: true,
         userAgent: true,
       },
       orderBy: { createdAt: "desc" },
     });
+
+    return sessions.map((session) => ({
+      ...session,
+      isCurrent: session.id === currentSessionId,
+    }));
   }
 }
 

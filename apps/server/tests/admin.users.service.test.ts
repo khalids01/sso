@@ -4,6 +4,9 @@ import { Prisma } from "../../../packages/db/prisma/generated/client";
 import * as rbacAssignments from "../../../packages/db/src/rbac/assignments.server";
 
 const sessionFindManyMock = mock(async () => []);
+const sessionFindUniqueMock = mock(async (): Promise<any> => null);
+const sessionDeleteMock = mock(async (): Promise<any> => null);
+const sessionDeleteManyMock = mock(async () => ({ count: 0 }));
 const userFindManyMock = mock(async () => []);
 const userCountMock = mock(async () => 0);
 const userFindUniqueMock = mock(async (): Promise<any> => null);
@@ -83,6 +86,9 @@ mock.module("@db/server", () => ({
     },
     session: {
       findMany: sessionFindManyMock,
+      findUnique: sessionFindUniqueMock,
+      delete: sessionDeleteMock,
+      deleteMany: sessionDeleteManyMock,
     },
     invitation: {
       create: invitationCreateMock,
@@ -132,6 +138,10 @@ mock.module("../src/rbac/assignments.ts", () => ({
 }));
 
 beforeEach(() => {
+  sessionFindManyMock.mockResolvedValue([]);
+  sessionFindUniqueMock.mockResolvedValue(null);
+  sessionDeleteMock.mockResolvedValue(null);
+  sessionDeleteManyMock.mockResolvedValue({ count: 0 });
   userFindUniqueMock.mockResolvedValue({
     id: "user-1",
     rbacRoles: sampleRbacRoles,
@@ -175,6 +185,9 @@ beforeEach(() => {
 
 afterEach(() => {
   sessionFindManyMock.mockReset();
+  sessionFindUniqueMock.mockReset();
+  sessionDeleteMock.mockReset();
+  sessionDeleteManyMock.mockReset();
   userFindManyMock.mockReset();
   userCountMock.mockReset();
   userFindUniqueMock.mockReset();
@@ -374,15 +387,59 @@ describe("UsersService", () => {
     await usersService.getUserSessions("user-1");
 
     expect(sessionFindManyMock).toHaveBeenCalledWith({
-      where: { userId: "user-1" },
+      where: {
+        userId: "user-1",
+        expiresAt: {
+          gt: expect.any(Date),
+        },
+      },
       select: {
         id: true,
+        userId: true,
         expiresAt: true,
         createdAt: true,
+        updatedAt: true,
         ipAddress: true,
         userAgent: true,
       },
       orderBy: { createdAt: "desc" },
+    });
+  });
+
+  it("prevents admins from revoking their current session", async () => {
+    const { usersService } = await import(
+      "../src/modules/admin/users/users.service"
+    );
+
+    await expect(
+      usersService.revokeUserSessionForAdmin(
+        "admin-1",
+        "session-current",
+        adminActor,
+        "session-current",
+      ),
+    ).rejects.toThrow("Current session cannot be revoked from admin panel");
+    expect(sessionDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves the current admin session when revoking all own sessions", async () => {
+    const { usersService } = await import(
+      "../src/modules/admin/users/users.service"
+    );
+
+    await usersService.revokeAllUserSessionsForAdmin(
+      "admin-1",
+      adminActor,
+      "session-current",
+    );
+
+    expect(sessionDeleteManyMock).toHaveBeenCalledWith({
+      where: {
+        userId: "admin-1",
+        id: {
+          not: "session-current",
+        },
+      },
     });
   });
 
