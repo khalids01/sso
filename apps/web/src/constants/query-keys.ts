@@ -2,9 +2,6 @@ export const queryKeys = {
   session: {
     devices: () => ["session-devices"] as const,
   },
-  owner: {
-    setupStatus: () => ["owner-status"] as const,
-  },
   admin: {
     overview: () => ["admin-overview"] as const,
     rateLimit: () => ["admin-rate-limit"] as const,

@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SetupRouteImport } from './routes/setup'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AcceptInvitationRouteImport } from './routes/accept-invitation'
@@ -33,11 +32,6 @@ import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AdminRolesRoleIdRouteImport } from './routes/admin/roles/$roleId'
 
-const SetupRoute = SetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -153,7 +147,6 @@ export interface FileRoutesByFullPath {
   '/accept-invitation': typeof AcceptInvitationRoute
   '/admin': typeof AdminRouteWithChildren
   '/onboarding': typeof OnboardingRoute
-  '/setup': typeof SetupRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/account': typeof ProtectedAccountRoute
@@ -176,7 +169,6 @@ export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/accept-invitation': typeof AcceptInvitationRoute
   '/onboarding': typeof OnboardingRoute
-  '/setup': typeof SetupRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/account': typeof ProtectedAccountRoute
@@ -201,7 +193,6 @@ export interface FileRoutesById {
   '/accept-invitation': typeof AcceptInvitationRoute
   '/admin': typeof AdminRouteWithChildren
   '/onboarding': typeof OnboardingRoute
-  '/setup': typeof SetupRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
   '/_protected/account': typeof ProtectedAccountRoute
@@ -228,7 +219,6 @@ export interface FileRouteTypes {
     | '/accept-invitation'
     | '/admin'
     | '/onboarding'
-    | '/setup'
     | '/login'
     | '/signup'
     | '/account'
@@ -251,7 +241,6 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invitation'
     | '/onboarding'
-    | '/setup'
     | '/login'
     | '/signup'
     | '/account'
@@ -275,7 +264,6 @@ export interface FileRouteTypes {
     | '/accept-invitation'
     | '/admin'
     | '/onboarding'
-    | '/setup'
     | '/_auth/login'
     | '/_auth/signup'
     | '/_protected/account'
@@ -301,7 +289,6 @@ export interface RootRouteChildren {
   AcceptInvitationRoute: typeof AcceptInvitationRoute
   AdminRoute: typeof AdminRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
-  SetupRoute: typeof SetupRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
@@ -310,13 +297,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/setup': {
-      id: '/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof SetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -535,7 +515,6 @@ const rootRouteChildren: RootRouteChildren = {
   AcceptInvitationRoute: AcceptInvitationRoute,
   AdminRoute: AdminRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
-  SetupRoute: SetupRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,

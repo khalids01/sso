@@ -2,7 +2,7 @@ export const GROUPS = [
   {
     key: "public",
     title: "Public API",
-    description: "Anonymous requests like setup checks and unauthenticated endpoints.",
+    description: "Anonymous requests such as public pages and unauthenticated endpoints.",
   },
   {
     key: "auth",

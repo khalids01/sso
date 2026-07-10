@@ -228,13 +228,13 @@ describe("rateLimitService", () => {
 
   it("uses the request IP for anonymous requests and blocks after the limit", async () => {
     const { enforceRateLimit } = await import("../src/modules/rate-limit/rate-limit.service");
-    const first = createContext("http://localhost/owner/setup-status", {
+    const first = createContext("http://localhost/health", {
       "x-forwarded-for": "203.0.113.10, 10.0.0.1",
     });
-    const second = createContext("http://localhost/owner/setup-status", {
+    const second = createContext("http://localhost/health", {
       "x-forwarded-for": "203.0.113.10, 10.0.0.1",
     });
-    const third = createContext("http://localhost/owner/setup-status", {
+    const third = createContext("http://localhost/health", {
       "x-forwarded-for": "203.0.113.10, 10.0.0.1",
     });
 
@@ -263,14 +263,14 @@ describe("rateLimitService", () => {
     });
 
     const first = createContext(
-      "http://localhost/owner/setup-status",
+      "http://localhost/health",
       {
         "x-forwarded-for": "203.0.113.10",
       },
       "198.51.100.99",
     );
     const second = createContext(
-      "http://localhost/owner/setup-status",
+      "http://localhost/health",
       {
         "x-forwarded-for": "203.0.113.11",
       },
@@ -316,11 +316,11 @@ describe("rateLimitService", () => {
     const { enforceRateLimit } = await import("../src/modules/rate-limit/rate-limit.service");
 
     Date.now = () => 0;
-    await enforceRateLimit(createContext("http://localhost/owner/setup-status") as any);
-    await enforceRateLimit(createContext("http://localhost/owner/setup-status") as any);
+    await enforceRateLimit(createContext("http://localhost/health") as any);
+    await enforceRateLimit(createContext("http://localhost/health") as any);
 
     Date.now = () => 61_000;
-    const nextWindow = await enforceRateLimit(createContext("http://localhost/owner/setup-status") as any);
+    const nextWindow = await enforceRateLimit(createContext("http://localhost/health") as any);
 
     expect(nextWindow).toBeUndefined();
     Date.now = originalNow;
@@ -333,7 +333,7 @@ describe("rateLimitService", () => {
     console.error = mock(() => undefined) as unknown as typeof console.error;
 
     try {
-      const result = await enforceRateLimit(createContext("http://localhost/owner/setup-status") as any);
+      const result = await enforceRateLimit(createContext("http://localhost/health") as any);
 
       expect(result).toEqual({
         message: "Rate limit service unavailable",
