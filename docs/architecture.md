@@ -4,7 +4,7 @@
 
 SSO is a Bun/Turborepo TypeScript monorepo.
 
-- `apps/web`: TanStack Start frontend for public pages, protected user pages, setup, onboarding, and admin.
+- `apps/web`: TanStack Start frontend for public pages, protected user pages, onboarding, and admin.
 - `apps/server`: Elysia API server for auth helpers, session context, admin modules, rate limits, visitors, notifications, feedback, Polar, and invitations.
 - `packages/auth`: Better Auth configuration, custom session payload, magic-link auth, Polar integration, and session types.
 - `packages/db`: Prisma schema, generated client, RBAC data access, session revocation, and seed helpers.

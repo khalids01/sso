@@ -16,6 +16,8 @@ export const Permissions = {
   AdminMetadataRead: "admin.metadata.read",
   AdminWebhooksRead: "admin.webhooks.read",
   AdminRateLimitManage: "admin.rate_limit.manage",
+  AdminApplicationsRead: "admin.applications.read",
+  AdminApplicationsManage: "admin.applications.manage",
 
   AdminRolesList: "admin.roles.list",
   AdminRolesRead: "admin.roles.read",
