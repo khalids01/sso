@@ -1,5 +1,5 @@
 {
-  "name": "ts-starter",
+  "name": "sso",
   "author": {
     "name": "Khalid",
     "email": "khalidcode03@gmail.com",
@@ -26,7 +26,6 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
-    "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "db:studio": "turbo -F @db db:studio",

@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const testimonials = [
   {
     content:
-      "This starter kit saved me weeks of work. The integration between Better Auth and Prisma is seamless.",
+      "SSO gives us a clear place to manage identity, roles, and access across our applications.",
     author: "Alex Rivera",
     role: "Founder at TechFlow",
     avatar:
@@ -11,7 +11,7 @@ const testimonials = [
   },
   {
     content:
-      "The best TypeScript boilerplate I've ever used. Clean, scalable, and extremely well-documented.",
+      "The admin controls, activity logs, and RBAC model make access decisions much easier to reason about.",
     author: "Sarah Chen",
     role: "Senior Engineering Manager",
     avatar:
@@ -19,7 +19,7 @@ const testimonials = [
   },
   {
     content:
-      "Building on top of Tanstack Start is a game changer. The dev experience is top-notch.",
+      "The migration path lets us preserve existing auth flows while building a safer foundation.",
     author: "James Wilson",
     role: "Independent Indie Hacker",
     avatar:
@@ -33,10 +33,11 @@ export const Testimonials = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">
-            Loved by developers
+            Built for platform teams
           </h2>
           <p className="text-muted-foreground text-lg">
-            Join thousands of developers who are building their SaaS faster.
+            Centralize identity and access without mixing platform permissions
+            with application authorization.
           </p>
         </div>
 

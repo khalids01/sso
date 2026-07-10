@@ -2,38 +2,38 @@ import { Zap, Shield, Rocket, Layers, BarChart3, Users } from "lucide-react";
 
 const features = [
   {
-    title: "Lightning Fast",
+    title: "Centralized Identity",
     description:
-      "Optimized for performance with Tanstack Start and optimized server-side rendering.",
+      "Manage user identities for internal tools and customer-facing applications from one control plane.",
     icon: <Zap className="h-6 w-6" />,
   },
   {
     title: "Secure by Default",
     description:
-      "State-of-the-art authentication with Better Auth and type-safe database access.",
+      "Built on Better Auth, Prisma, RBAC guards, protected owner rules, and safe session controls.",
     icon: <Shield className="h-6 w-6" />,
   },
   {
-    title: "Rapid Development",
+    title: "Application Access",
     description:
-      "Built-in components and pre-configured workflows to help you ship in days, not months.",
+      "Prepare app-specific access, roles, scopes, and claims without mixing them into platform admin RBAC.",
     icon: <Rocket className="h-6 w-6" />,
   },
   {
     title: "Modular Architecture",
     description:
-      "Highly scalable folder structure that keeps your codebase clean and maintainable.",
+      "A modular TypeScript monorepo with clear boundaries between auth, RBAC, data, email, Redis, API, and web.",
     icon: <Layers className="h-6 w-6" />,
   },
   {
-    title: "Analytics Included",
+    title: "Operational Visibility",
     description:
-      "Integrated dashboard and analytics to monitor your SaaS growth from day one.",
+      "Admin activity, visitor analytics, webhooks, rate-limit stats, and session device visibility are built in.",
     icon: <BarChart3 className="h-6 w-6" />,
   },
   {
-    title: "Multi-tenant Ready",
-    description: "Built-in support for teams and organizations out of the box.",
+    title: "Migration Ready",
+    description: "Designed to replace the old production SSO while preserving the flows existing apps depend on.",
     icon: <Users className="h-6 w-6" />,
   },
 ];
@@ -44,11 +44,11 @@ export const Features = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">
-            Everything you need to launch
+            Everything needed to manage access
           </h2>
           <p className="text-muted-foreground text-lg">
-            Stop wasting time on boilerplate. Focus on your unique product
-            features while we handle the rest.
+            Keep identity, platform administration, and application access
+            separate while managing them from one place.
           </p>
         </div>
 

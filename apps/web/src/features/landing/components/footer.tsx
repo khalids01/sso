@@ -11,11 +11,11 @@ export const Footer = () => {
               to="/"
               className="text-2xl font-bold tracking-tight mb-6 inline-block"
             >
-              TS<span className="text-primary text-blue-600">Starter</span>
+              SSO
             </Link>
             <p className="text-muted-foreground mt-4 max-w-xs">
-              The ultimate SaaS boilerplate for TypeScript developers. Build
-              faster, scale better, and ship with confidence.
+              Centralized identity, access control, and SSO management for
+              internal and customer-facing applications.
             </p>
             <div className="flex items-center gap-4 mt-8">
               <a
@@ -117,7 +117,7 @@ export const Footer = () => {
 
         <div className="border-t border-border pt-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} TS Starter. All rights reserved.
+            © {new Date().getFullYear()} SSO. All rights reserved.
           </p>
           <div className="flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#" className="hover:text-primary transition-colors">

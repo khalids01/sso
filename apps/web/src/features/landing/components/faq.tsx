@@ -7,29 +7,29 @@ import {
 
 const faqs = [
   {
-    question: "What's included in the TS Starter?",
+    question: "What is included in SSO?",
     answer:
-      "It includes everything you need to launch a SaaS: Authentication (Better Auth), Database (Prisma), UI Components (Shadcn/UI), Styling (Tailwind 4), and much more.",
+      "SSO includes platform authentication, RBAC, owner/admin controls, user management, invitations, activity logs, Redis-backed caching, rate limits, and a TanStack admin UI.",
   },
   {
-    question: "Is it easy to customize the design?",
+    question: "Can end users exist without admin access?",
     answer:
-      "Yes! We use Tailwind CSS 4 and Shadcn/UI, making it extremely easy to customize every aspect of the design to match your brand.",
+      "Yes. Identity, SSO platform access, and client application access are separate concerns. A user can authenticate for an app without being allowed into the SSO admin dashboard.",
   },
   {
-    question: "Can I use this for commercial projects?",
+    question: "Can this replace the old production SSO?",
     answer:
-      "Absolutely. The starter is designed precisely for that. You can use it to build any SaaS, landing page, or web application you want.",
+      "That is the goal. The old production app remains the behavior and migration reference, while this app becomes the safer and more capable replacement.",
   },
   {
-    question: "Do you provide regular updates?",
+    question: "What is planned next?",
     answer:
-      "We keep all dependencies up to date and regularly add new features and components based on community feedback.",
+      "The next product layer is application/client management, app-specific access, and secure app-scoped token flows.",
   },
   {
     question: "What is the tech stack?",
     answer:
-      "The stack includes Tanstack Start, React 19, Prisma, Better Auth, Tailwind 4, and Vite.",
+      "The stack includes TanStack Start, React 19, Elysia, Prisma, PostgreSQL, Redis, Better Auth, Tailwind 4, and Bun.",
   },
 ];
 
@@ -42,7 +42,7 @@ export const FAQ = () => {
             Frequently Asked Questions
           </h2>
           <p className="text-muted-foreground text-lg">
-            Find answers to common questions about the TS Starter template.
+            Find answers to common questions about SSO.
           </p>
         </div>
 

@@ -18,7 +18,7 @@ export const LandingNav = () => {
         <div className="container mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link to="/" className="text-2xl font-bold tracking-tight">
-              TS<span className="text-primary text-blue-600">Starter</span>
+              SSO
             </Link>
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
               <a

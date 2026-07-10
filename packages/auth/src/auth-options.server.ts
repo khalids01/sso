@@ -159,7 +159,7 @@ export const authOptions = {
       sendMagicLink: async ({ email, url }) => {
         await sendEmail({
           to: email,
-          subject: "Sign in to TS Starter",
+          subject: "Sign in to SSO",
           html: await magicLinkTemplate(url),
         });
       },

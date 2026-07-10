@@ -12,11 +12,11 @@ export const CTA = () => {
 
         <div className="relative z-10 max-w-3xl mx-auto">
           <h2 className="text-4xl md:text-6xl font-bold mb-8 tracking-tight">
-            Ready to ship your next big idea?
+            Ready to centralize access?
           </h2>
           <p className="text-primary-foreground/80 text-lg md:text-xl mb-12">
-            Join 5,000+ developers building with TS Starter. Get started in
-            seconds and focus on what matters most.
+            Bring authentication, admin controls, and application access into
+            one SSO control plane.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/login">
@@ -25,7 +25,7 @@ export const CTA = () => {
                 variant="secondary"
                 className="rounded-full px-10 h-14 text-lg font-bold w-full sm:w-auto transition-transform hover:scale-105 cursor-pointer"
               >
-                Get Started for Free
+                Open SSO
               </Button>
             </Link>
             <Link to="/login">
@@ -34,7 +34,7 @@ export const CTA = () => {
                 variant="outline"
                 className="rounded-full px-10 h-14 text-lg font-bold border-primary-foreground/20 hover:bg-white/10 w-full sm:w-auto cursor-pointer"
               >
-                Sign up today <ArrowRight className="ml-2 h-5 w-5" />
+                Sign in today <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
           </div>

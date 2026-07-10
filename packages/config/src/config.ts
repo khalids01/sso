@@ -1,6 +1,6 @@
 
 export const siteConfig = {
-    name: "Saas Starter",
-    description: "Modern SaaS Starter with Elysia, Tanstack start and Better Auth",
+    name: "SSO",
+    description: "Centralized identity, access control, and SSO management for internal and customer-facing applications.",
     url: "https://example.com",
 };

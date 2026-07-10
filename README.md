@@ -1,36 +1,41 @@
-# ts-starter
+# SSO
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Elysia, and more.
+Centralized identity, access control, and SSO management for internal and customer-facing applications.
 
-## Features
+SSO is being built as the new control plane for company authentication. The current app already provides the platform foundation: Better Auth sessions, RBAC, owner/admin controls, user management, invitations, activity logs, visitor analytics, rate limits, Redis-backed caches, and a TanStack admin UI. The next product layer will add application/client management and app-scoped authentication flows.
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **shadcn/ui** - Reusable UI components
-- **Elysia** - Type-safe, high-performance framework
-- **Bun** - Runtime environment
-- **Prisma** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Turborepo** - Optimized monorepo build system
+## Stack
+
+- **TypeScript** with Bun and Turborepo
+- **TanStack Start** and React for the web app
+- **Elysia** for the API server
+- **Prisma** with PostgreSQL for durable data
+- **Better Auth** for platform sessions
+- **Redis** for RBAC/session caches, rate limits, and short-lived coordination
+- **TailwindCSS** and shadcn/ui for UI primitives
 
 ## Getting Started
 
-First, install the dependencies:
+Install dependencies:
 
 ```bash
 bun install
 ```
 
-## Database Setup
+Start PostgreSQL and Redis:
 
-This project uses PostgreSQL with Prisma.
+```bash
+docker compose up -d
+```
 
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
+Configure environment files from the examples:
 
-3. Generate the Prisma client, run migrations, and seed RBAC:
+```bash
+cp apps/server/.env.example apps/server/.env
+cp apps/web/.env.example apps/web/.env
+```
+
+Generate the Prisma client, run migrations, and seed RBAC:
 
 ```bash
 bun run db:generate
@@ -38,89 +43,81 @@ bun run db:migrate
 bun run db:seed
 ```
 
-Then, run the development server:
+Run the development servers:
 
 ```bash
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+The web app runs at [http://localhost:5002](http://localhost:5002), and the API runs at [http://localhost:5001](http://localhost:5001).
 
-## RBAC (Role-Based Access Control)
+## RBAC
 
-Permissions are defined in [`packages/rbac`](packages/rbac) (`permissions.ts`, `roles.ts`, `maps.ts`). The maps file is the **seed default** only; runtime authorization reads from Postgres and Redis.
+Permissions and system role definitions live in `packages/rbac`. The role map is the seed default; runtime authorization reads from PostgreSQL and Redis.
+
+- Routes declare required permissions with `requirePermission(Permissions.*)`.
+- Effective permissions are cached per user in Redis and attached to the session context.
+- The admin UI uses session permissions to guard routes and navigation.
+- The owner role is protected; non-owner admins cannot view or mutate owner accounts.
+
+Seed RBAC after migrations:
 
 ```bash
-# Apply migrations, then seed roles and permissions
-bun run db:migrate
 bun run db:seed
 ```
 
-- **Routes** declare required permissions via `requirePermission(Permissions.*)` (see `apps/server/src/rbac/guards`).
-- **Effective permissions** are cached per user in Redis (`rbac:effective:{userId}`) and attached in `authGuard`.
-- **Web UI** loads permissions from Better Auth `getSession` via `customSession` (see `apps/web/src/features/user/lib/get-root-session.ts`). `GET /session/context` remains available as a compatibility endpoint.
-- **Owner rules**: owner role permissions are protected; admins cannot view or modify owner accounts.
+## Redis
 
-Tests live in [`apps/server/tests/rbac`](apps/server/tests/rbac).
-
-## Redis Setup
-
-Redis is required for this starter. The shared client lives in `packages/redis`, so the server can use one shared connection for rate limits, visitor tracking, caching, and future cross-instance coordination.
-
-1. Start Redis locally:
+Redis is required for SSO. The shared client lives in `packages/redis`, and the default key prefix is:
 
 ```bash
-docker run --name ts-starter-redis -p 6379:6379 -d redis:7-alpine
+REDIS_KEY_PREFIX=sso:
 ```
 
-2. Add these variables to `apps/server/.env`:
+To run Redis manually:
 
 ```bash
-REDIS_URL=redis://localhost:6379
-REDIS_KEY_PREFIX=ts-starter:
+docker run --name sso-redis -p 6379:6379 -d redis:7-alpine
 ```
 
-3. Install dependencies after pulling the latest changes:
-
-```bash
-bun install
-```
-
-4. Import the shared client where you need caching:
-
-```ts
-import { getCache, setCache } from "@redis";
-
-const cachedUser = await getCache<{ id: string; email: string }>("user:123");
-
-if (!cachedUser) {
-  const user = await loadUserFromDatabase();
-  await setCache("user:123", user, 60);
-}
-```
-
-Use Redis for short-lived, regeneratable data such as API responses, rate-limit counters, sessions, or expensive query results. Do not treat it as your source of truth; PostgreSQL remains the real database.
+Redis stores short-lived and regeneratable data such as rate-limit counters, RBAC/session cache payloads, visitor flush coordination, and future token/session metadata. PostgreSQL remains the source of truth.
 
 ## Project Structure
 
-```
-ts-starter/
+```text
+sso/
 ├── apps/
-│   ├── web/         # Frontend application (React + TanStack Start)
-│   └── server/      # Backend API (Elysia)
+│   ├── web/         # TanStack Start frontend and admin UI
+│   └── server/      # Elysia API server
 ├── packages/
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
+│   ├── auth/        # Better Auth configuration and session types
+│   ├── config/      # Shared product config
+│   ├── db/          # Prisma schema, migrations, and server data access
+│   ├── email/       # Email transport and templates
+│   ├── env/         # Environment validation
+│   ├── rbac/        # Permission and role catalog
+│   └── redis/       # Shared Redis client
+└── docs/            # Product plan, architecture, and progress tracking
 ```
 
-## Available Scripts
+## Useful Scripts
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:server`: Start only the server
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run db:push`: Push schema changes to database
-- `bun run db:studio`: Open database studio UI
+- `bun run dev`: start all apps in development mode
+- `bun run dev:web`: start only the web app
+- `bun run dev:server`: start only the API server
+- `bun run build`: build all workspaces
+- `bun run check-types`: type-check all workspaces
+- `bun run db:generate`: generate Prisma client
+- `bun run db:migrate`: run Prisma migrations
+- `bun run db:seed`: seed RBAC defaults
+- `bun run db:studio`: open Prisma Studio
+
+## Product Direction
+
+The old production SSO remains the behavioral reference for existing app integrations. This app is the replacement foundation. The target design keeps platform/admin access separate from client-application access:
+
+- Platform RBAC controls the SSO admin/control plane.
+- Identity users can exist without access to the SSO admin app.
+- Client applications will have their own registrations, redirect URIs, secrets, memberships, app roles, and app-scoped tokens.
+
+See `docs/plan.md`, `docs/architecture.md`, and `docs/todo-progress.md` for the working plan.

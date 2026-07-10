@@ -17,18 +17,17 @@ export const Hero = () => {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
           </span>
-          Next Generation SaaS Starter
+          Centralized Access Control
         </div>
 
         <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 leading-tight">
-          Build and Scale Your <br />
-          SaaS Faster Than Ever
+          Manage Identity And <br />
+          Access From One Place
         </h1>
 
         <p className="max-w-2xl mx-auto text-muted-foreground text-lg md:text-xl mb-10 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-100">
-          The ultimate TypeScript-first boilerplate with Authentication,
-          Database, Payments, and UI components ready to go. Skip the setup and
-          ship today.
+          Centralized identity, access control, and SSO management for internal
+          and customer-facing applications.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">
@@ -37,7 +36,7 @@ export const Hero = () => {
               size="lg"
               className="rounded-full px-8 h-12 text-base font-semibold cursor-pointer"
             >
-              Get Started Now <ArrowRight className="ml-2 h-4 w-4" />
+              Open SSO <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
           <Link to="/login">
@@ -46,7 +45,7 @@ export const Hero = () => {
               variant="outline"
               className="rounded-full px-8 h-12 text-base font-semibold cursor-pointer"
             >
-              Live Demo
+              View Dashboard
             </Button>
           </Link>
         </div>
@@ -54,15 +53,15 @@ export const Hero = () => {
         <div className="mt-16 flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm text-muted-foreground animate-in fade-in duration-1000 delay-500">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span>Tanstack Start + Router</span>
+            <span>TanStack Start + Router</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span>Better Auth & Prisma</span>
+            <span>Better Auth + Prisma</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span>Shadcn UI & Tailwind 4</span>
+            <span>RBAC + Admin Controls</span>
           </div>
         </div>
 

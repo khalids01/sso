@@ -10,6 +10,7 @@ import { startVisitorFlushWorker } from "./modules/visitors/visitors.service";
 import { securityHeadersPlugin } from "./plugins/security-headers";
 
 const shouldLogRequests = env.NODE_ENV === "development";
+const port = env.PORT;
 const docsPlugin =
   env.NODE_ENV === "development"
     ? openapi({
@@ -54,8 +55,8 @@ const server = new Elysia()
   })
   .use(app)
   .get("/", () => "OK")
-  .listen(3000, () => {
-    console.log("Server is running on http://localhost:3000");
+  .listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
   });
 
 export type App = typeof server;

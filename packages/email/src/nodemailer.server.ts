@@ -29,7 +29,7 @@ export const sendEmail = async ({
   text?: string;
   from?: string;
 }) => {
-  const fromName = env.EMAIL_FROM || "TS Starter";
+  const fromName = env.EMAIL_FROM || "SSO";
   const fromAddress =
     from ?? (env.EMAIL ? `${fromName} <${env.EMAIL}>` : fromName);
 
