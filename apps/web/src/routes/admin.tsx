@@ -24,6 +24,7 @@ import {
   MessageSquare,
   ShieldAlert,
   Activity,
+  AppWindow,
   History,
   Webhook,
   Shield,
@@ -35,6 +36,7 @@ import { NotificationBell } from "@/components/core/notification-bell";
 import Logo from "@/components/core/logo";
 import {
   canShowActivityNav,
+  canShowApplicationsNav,
   canShowFeedbackNav,
   canShowRateLimitsNav,
   canShowRolesNav,
@@ -88,6 +90,12 @@ function getAdminNavItems(session: ClientSession | null | undefined): AdminNavIt
       icon: Shield,
       url: "/admin/roles",
       show: canShowRolesNav(session),
+    },
+    {
+      title: "Applications",
+      icon: AppWindow,
+      url: "/admin/applications",
+      show: canShowApplicationsNav(session),
     },
     {
       title: "Feedback",

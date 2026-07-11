@@ -47,15 +47,6 @@ export function MagicLinkEmail({ url }: MagicLinkEmailProps) {
               </Button>
             </Section>
 
-            <Section className="mb-4">
-              <Text className="m-0 mb-3 text-base leading-[1.6] text-gray-800">
-                Or copy and paste this link into your browser:
-              </Text>
-              <Text className="m-0 break-all text-sm leading-[1.5] text-gray-600">
-                {url}
-              </Text>
-            </Section>
-
             <Section className="mt-6 text-center">
               <Text className="m-0 mb-1.5 text-xs leading-[1.4] text-gray-500">
                 If you didn&apos;t request this email, you can safely ignore it.

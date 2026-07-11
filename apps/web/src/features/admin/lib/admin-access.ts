@@ -86,6 +86,13 @@ export function canShowRateLimitsNav(session: ClientSession | null | undefined) 
   );
 }
 
+export function canShowApplicationsNav(session: ClientSession | null | undefined) {
+  return (
+    isPlatformOwner(session) ||
+    sessionHasAnyPermissionPrefix(session?.permissions, "admin.applications.")
+  );
+}
+
 export function canShowVisitorsNav(session: ClientSession | null | undefined) {
   return (
     isPlatformOwner(session) ||

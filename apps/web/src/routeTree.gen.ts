@@ -23,6 +23,7 @@ import { Route as AdminRolesRouteImport } from './routes/admin/roles'
 import { Route as AdminRateLimitsRouteImport } from './routes/admin/rate-limits'
 import { Route as AdminOverviewRouteImport } from './routes/admin/overview'
 import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
+import { Route as AdminApplicationsRouteImport } from './routes/admin/applications'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
@@ -101,6 +102,11 @@ const AdminFeedbackRoute = AdminFeedbackRouteImport.update({
   path: '/feedback',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminApplicationsRoute = AdminApplicationsRouteImport.update({
+  id: '/applications',
+  path: '/applications',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminActivityRoute = AdminActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/rate-limits': typeof AdminRateLimitsRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/rate-limits': typeof AdminRateLimitsRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/rate-limits': typeof AdminRateLimitsRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/admin/activity'
+    | '/admin/applications'
     | '/admin/feedback'
     | '/admin/overview'
     | '/admin/rate-limits'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/admin/activity'
+    | '/admin/applications'
     | '/admin/feedback'
     | '/admin/overview'
     | '/admin/rate-limits'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/_protected/dashboard'
     | '/_protected/settings'
     | '/admin/activity'
+    | '/admin/applications'
     | '/admin/feedback'
     | '/admin/overview'
     | '/admin/rate-limits'
@@ -395,6 +407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFeedbackRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/applications': {
+      id: '/admin/applications'
+      path: '/applications'
+      fullPath: '/admin/applications'
+      preLoaderRoute: typeof AdminApplicationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/activity': {
       id: '/admin/activity'
       path: '/activity'
@@ -486,6 +505,7 @@ const AdminRolesRouteWithChildren = AdminRolesRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminActivityRoute: typeof AdminActivityRoute
+  AdminApplicationsRoute: typeof AdminApplicationsRoute
   AdminFeedbackRoute: typeof AdminFeedbackRoute
   AdminOverviewRoute: typeof AdminOverviewRoute
   AdminRateLimitsRoute: typeof AdminRateLimitsRoute
@@ -498,6 +518,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminActivityRoute: AdminActivityRoute,
+  AdminApplicationsRoute: AdminApplicationsRoute,
   AdminFeedbackRoute: AdminFeedbackRoute,
   AdminOverviewRoute: AdminOverviewRoute,
   AdminRateLimitsRoute: AdminRateLimitsRoute,

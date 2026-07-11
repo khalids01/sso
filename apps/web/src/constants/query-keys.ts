@@ -22,6 +22,12 @@ export const queryKeys = {
         eventType: string;
       }) => ["admin-webhooks", params] as const,
     },
+    applications: {
+      all: () => ["admin-applications"] as const,
+      list: () => [...queryKeys.admin.applications.all(), "list"] as const,
+      clients: (applicationId: string) =>
+        [...queryKeys.admin.applications.all(), applicationId, "clients"] as const,
+    },
     visitors: {
       overview: (params: {
         dateFrom: string;
