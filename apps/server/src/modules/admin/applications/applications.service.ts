@@ -1,8 +1,11 @@
 import prisma, { type Prisma } from "@db/server";
 import type {
   ApplicationsQuery,
+  ClientsQuery,
   CreateApplicationClientInput,
   CreateApplicationInput,
+  UpdateApplicationClientInput,
+  UpdateApplicationInput,
 } from "./applications.dto";
 import {
   ApplicationUrlValidationError,
@@ -11,6 +14,36 @@ import {
 } from "./redirect-validation";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
+
+const applicationSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  status: true,
+  logoUrl: true,
+  homepageUrl: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: {
+    select: {
+      clients: true,
+    },
+  },
+} satisfies Prisma.ApplicationSelect;
+
+const clientSelect = {
+  id: true,
+  applicationId: true,
+  clientId: true,
+  name: true,
+  clientType: true,
+  status: true,
+  redirectUris: true,
+  allowedOrigins: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.ApplicationClientSelect;
 
 export type AdminApplicationsActor = {
   id?: string;
@@ -130,6 +163,41 @@ async function recordApplicationActivity(input: {
   }
 }
 
+function applyLifecycleFilter(
+  where: Prisma.ApplicationWhereInput | Prisma.ApplicationClientWhereInput,
+  filter?: "current" | "archived",
+) {
+  if (filter === "archived") {
+    where.status = "archived";
+    return;
+  }
+
+  if (filter === "current") {
+    where.status = { in: ["active", "disabled"] };
+  }
+}
+
+function normalizeClientUrls(input: {
+  redirectUris?: string[];
+  allowedOrigins?: string[];
+}) {
+  try {
+    return {
+      redirectUris: input.redirectUris
+        ? normalizeRedirectUris(input.redirectUris)
+        : undefined,
+      allowedOrigins: input.allowedOrigins
+        ? normalizeOrigins(input.allowedOrigins)
+        : undefined,
+    };
+  } catch (error) {
+    if (error instanceof ApplicationUrlValidationError) {
+      throw new ApplicationsPolicyError(error.message);
+    }
+    throw error;
+  }
+}
+
 export class AdminApplicationsService {
   async list(query: ApplicationsQuery) {
     const { requestedPage, limit } = normalizePagination(query.page, query.limit);
@@ -137,6 +205,8 @@ export class AdminApplicationsService {
 
     if (query.status) {
       where.status = query.status;
+    } else {
+      applyLifecycleFilter(where, query.filter);
     }
 
     if (query.search) {
@@ -151,22 +221,7 @@ export class AdminApplicationsService {
     const page = Math.min(requestedPage, pages);
     const rows = await prisma.application.findMany({
       where,
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        status: true,
-        logoUrl: true,
-        homepageUrl: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            clients: true,
-          },
-        },
-      },
+      select: applicationSelect,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
@@ -217,21 +272,125 @@ export class AdminApplicationsService {
     return mapApplication(application);
   }
 
-  async listClients(applicationId: string) {
-    const rows = await prisma.applicationClient.findMany({
-      where: { applicationId },
+  async update(
+    id: string,
+    input: UpdateApplicationInput,
+    actor: AdminApplicationsActor,
+  ) {
+    const data: Prisma.ApplicationUpdateInput = {};
+
+    if (input.slug !== undefined) {
+      data.slug = normalizeSlug(input.slug);
+    }
+    if (input.name !== undefined) {
+      data.name = input.name.trim();
+    }
+    if (input.description !== undefined) {
+      data.description = input.description.trim() || null;
+    }
+    if (input.status !== undefined) {
+      data.status = normalizeStatus(input.status);
+    }
+    if (input.logoUrl !== undefined) {
+      data.logoUrl = input.logoUrl;
+    }
+    if (input.homepageUrl !== undefined) {
+      data.homepageUrl = input.homepageUrl;
+    }
+
+    const application = await prisma.application.update({
+      where: { id },
+      data,
+      select: applicationSelect,
+    });
+
+    await recordApplicationActivity({
+      type: "application.updated",
+      actorUserId: actor.id ?? null,
+      message: `Application updated: ${application.name}`,
+      metadata: { applicationId: application.id, slug: application.slug },
+    });
+
+    return mapApplication(application);
+  }
+
+  async archive(id: string, actor: AdminApplicationsActor) {
+    return this.setApplicationStatus(id, "archived", actor, "application.archived");
+  }
+
+  async restore(id: string, actor: AdminApplicationsActor) {
+    return this.setApplicationStatus(id, "active", actor, "application.restored");
+  }
+
+  private async setApplicationStatus(
+    id: string,
+    status: "active" | "archived",
+    actor: AdminApplicationsActor,
+    type: string,
+  ) {
+    const application = await prisma.application.update({
+      where: { id },
+      data: { status },
+      select: applicationSelect,
+    });
+
+    await recordApplicationActivity({
+      type,
+      actorUserId: actor.id ?? null,
+      message: `Application ${status === "archived" ? "archived" : "restored"}: ${application.name}`,
+      metadata: { applicationId: application.id, slug: application.slug },
+    });
+
+    return mapApplication(application);
+  }
+
+  async deletePermanent(id: string, actor: AdminApplicationsActor) {
+    const application = await prisma.application.findUnique({
+      where: { id },
       select: {
         id: true,
-        applicationId: true,
-        clientId: true,
+        slug: true,
         name: true,
-        clientType: true,
         status: true,
-        redirectUris: true,
-        allowedOrigins: true,
-        createdAt: true,
-        updatedAt: true,
+        _count: { select: { clients: true } },
       },
+    });
+
+    if (!application) {
+      throw new ApplicationsPolicyError("Application not found", 404);
+    }
+
+    if (application.status !== "archived") {
+      throw new ApplicationsPolicyError(
+        "Only archived applications can be permanently deleted",
+      );
+    }
+
+    if (application._count.clients > 0) {
+      throw new ApplicationsPolicyError(
+        "Delete or archive clients before permanently deleting this application",
+      );
+    }
+
+    await prisma.application.delete({ where: { id } });
+
+    await recordApplicationActivity({
+      type: "application.deleted",
+      actorUserId: actor.id ?? null,
+      message: `Application permanently deleted: ${application.name}`,
+      metadata: { applicationId: application.id, slug: application.slug },
+    });
+
+    return { id: application.id, deleted: true };
+  }
+
+  async listClients(applicationId: string, query: ClientsQuery = {}) {
+    const where: Prisma.ApplicationClientWhereInput = { applicationId };
+    applyLifecycleFilter(where, query.filter);
+
+    const rows = await prisma.applicationClient.findMany({
+      where,
+      select: clientSelect,
       orderBy: { createdAt: "desc" },
     });
 
@@ -245,18 +404,10 @@ export class AdminApplicationsService {
     input: CreateApplicationClientInput,
     actor: AdminApplicationsActor,
   ) {
-    let redirectUris: string[];
-    let allowedOrigins: string[];
-
-    try {
-      redirectUris = normalizeRedirectUris(input.redirectUris);
-      allowedOrigins = normalizeOrigins(input.allowedOrigins ?? []);
-    } catch (error) {
-      if (error instanceof ApplicationUrlValidationError) {
-        throw new ApplicationsPolicyError(error.message);
-      }
-      throw error;
-    }
+    const { redirectUris, allowedOrigins } = normalizeClientUrls({
+      redirectUris: input.redirectUris,
+      allowedOrigins: input.allowedOrigins ?? [],
+    });
 
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
@@ -274,21 +425,10 @@ export class AdminApplicationsService {
         name: input.name.trim(),
         clientType: input.clientType?.trim() || "public",
         status: normalizeStatus(input.status),
-        redirectUris,
-        allowedOrigins,
+        redirectUris: redirectUris ?? [],
+        allowedOrigins: allowedOrigins ?? [],
       },
-      select: {
-        id: true,
-        applicationId: true,
-        clientId: true,
-        name: true,
-        clientType: true,
-        status: true,
-        redirectUris: true,
-        allowedOrigins: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: clientSelect,
     });
 
     await recordApplicationActivity({
@@ -302,6 +442,138 @@ export class AdminApplicationsService {
     });
 
     return mapClient(client);
+  }
+
+  async updateClient(
+    applicationId: string,
+    clientId: string,
+    input: UpdateApplicationClientInput,
+    actor: AdminApplicationsActor,
+  ) {
+    const { redirectUris, allowedOrigins } = normalizeClientUrls(input);
+    const data: Prisma.ApplicationClientUpdateInput = {};
+
+    if (input.name !== undefined) {
+      data.name = input.name.trim();
+    }
+    if (input.clientType !== undefined) {
+      data.clientType = input.clientType.trim() || "public";
+    }
+    if (input.status !== undefined) {
+      data.status = normalizeStatus(input.status);
+    }
+    if (redirectUris !== undefined) {
+      data.redirectUris = redirectUris;
+    }
+    if (allowedOrigins !== undefined) {
+      data.allowedOrigins = allowedOrigins;
+    }
+
+    const client = await prisma.applicationClient.update({
+      where: { id: clientId, applicationId },
+      data,
+      select: clientSelect,
+    });
+
+    await recordApplicationActivity({
+      type: "application_client.updated",
+      actorUserId: actor.id ?? null,
+      message: `Application client updated: ${client.name}`,
+      metadata: { applicationId, clientId: client.clientId },
+    });
+
+    return mapClient(client);
+  }
+
+  async archiveClient(
+    applicationId: string,
+    clientId: string,
+    actor: AdminApplicationsActor,
+  ) {
+    return this.setClientStatus(
+      applicationId,
+      clientId,
+      "archived",
+      actor,
+      "application_client.archived",
+    );
+  }
+
+  async restoreClient(
+    applicationId: string,
+    clientId: string,
+    actor: AdminApplicationsActor,
+  ) {
+    return this.setClientStatus(
+      applicationId,
+      clientId,
+      "active",
+      actor,
+      "application_client.restored",
+    );
+  }
+
+  private async setClientStatus(
+    applicationId: string,
+    id: string,
+    status: "active" | "archived",
+    actor: AdminApplicationsActor,
+    type: string,
+  ) {
+    const client = await prisma.applicationClient.update({
+      where: { id, applicationId },
+      data: { status },
+      select: clientSelect,
+    });
+
+    await recordApplicationActivity({
+      type,
+      actorUserId: actor.id ?? null,
+      message: `Application client ${status === "archived" ? "archived" : "restored"}: ${client.name}`,
+      metadata: { applicationId, clientId: client.clientId },
+    });
+
+    return mapClient(client);
+  }
+
+  async deleteClientPermanent(
+    applicationId: string,
+    id: string,
+    actor: AdminApplicationsActor,
+  ) {
+    const client = await prisma.applicationClient.findUnique({
+      where: { id, applicationId },
+      select: {
+        id: true,
+        applicationId: true,
+        clientId: true,
+        name: true,
+        status: true,
+      },
+    });
+
+    if (!client) {
+      throw new ApplicationsPolicyError("Application client not found", 404);
+    }
+
+    if (client.status !== "archived") {
+      throw new ApplicationsPolicyError(
+        "Only archived clients can be permanently deleted",
+      );
+    }
+
+    await prisma.applicationClient.delete({
+      where: { id, applicationId },
+    });
+
+    await recordApplicationActivity({
+      type: "application_client.deleted",
+      actorUserId: actor.id ?? null,
+      message: `Application client permanently deleted: ${client.name}`,
+      metadata: { applicationId, clientId: client.clientId },
+    });
+
+    return { id: client.id, deleted: true };
   }
 }
 

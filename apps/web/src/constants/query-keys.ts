@@ -24,9 +24,15 @@ export const queryKeys = {
     },
     applications: {
       all: () => ["admin-applications"] as const,
-      list: () => [...queryKeys.admin.applications.all(), "list"] as const,
-      clients: (applicationId: string) =>
+      list: (filter?: "current" | "archived") =>
+        [...queryKeys.admin.applications.all(), "list", filter ?? "all"] as const,
+      clientsRoot: (applicationId: string) =>
         [...queryKeys.admin.applications.all(), applicationId, "clients"] as const,
+      clients: (applicationId: string, filter?: "current" | "archived") =>
+        [
+          ...queryKeys.admin.applications.clientsRoot(applicationId),
+          filter ?? "all",
+        ] as const,
     },
     visitors: {
       overview: (params: {

@@ -32,6 +32,7 @@ Next, design and add the application membership/access model so SSO can decide w
 - [x] Add minimal admin API for listing/creating applications and clients.
 - [x] Add `admin.applications.read` and `admin.applications.manage` permissions.
 - [x] Add admin UI for application/client management.
+- [x] Add application/client lifecycle management UI and API for edit, archive, restore, and permanent delete.
 - [x] Add exact redirect URI and origin validation.
 - [ ] Add client secret generation, rotation, and safe display behavior.
 - [ ] Add application branding fields for login and email flows.

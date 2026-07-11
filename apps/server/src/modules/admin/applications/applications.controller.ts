@@ -9,8 +9,11 @@ import {
 } from "./applications.service";
 import {
   ApplicationsQueryDto,
+  ClientsQueryDto,
   CreateApplicationClientDto,
   CreateApplicationDto,
+  UpdateApplicationClientDto,
+  UpdateApplicationDto,
 } from "./applications.dto";
 
 function getActor(ctx: { userId?: string }): AdminApplicationsActor {
@@ -76,11 +79,91 @@ export const applicationsController = new Elysia({
             },
           },
         )
+        .patch(
+          "/:id",
+          async ({ params: { id }, body, set, userId }) => {
+            try {
+              return await adminApplicationsService.update(
+                id,
+                body,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            body: UpdateApplicationDto,
+            detail: {
+              summary: "Update an application",
+            },
+          },
+        )
+        .post(
+          "/:id/archive",
+          async ({ params: { id }, set, userId }) => {
+            try {
+              return await adminApplicationsService.archive(
+                id,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Archive an application",
+            },
+          },
+        )
+        .post(
+          "/:id/restore",
+          async ({ params: { id }, set, userId }) => {
+            try {
+              return await adminApplicationsService.restore(
+                id,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Restore an application",
+            },
+          },
+        )
+        .delete(
+          "/:id",
+          async ({ params: { id }, set, userId }) => {
+            try {
+              return await adminApplicationsService.deletePermanent(
+                id,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Permanently delete an archived application",
+            },
+          },
+        )
         .get(
           "/:id/clients",
-          ({ params: { id } }) => adminApplicationsService.listClients(id),
+          ({ params: { id }, query }) =>
+            adminApplicationsService.listClients(id, query),
           {
             beforeHandle: requirePermission(Permissions.AdminApplicationsRead),
+            query: ClientsQueryDto,
             detail: {
               summary: "List application clients",
             },
@@ -104,6 +187,88 @@ export const applicationsController = new Elysia({
             body: CreateApplicationClientDto,
             detail: {
               summary: "Create an application client",
+            },
+          },
+        )
+        .patch(
+          "/:id/clients/:clientId",
+          async ({ params: { id, clientId }, body, set, userId }) => {
+            try {
+              return await adminApplicationsService.updateClient(
+                id,
+                clientId,
+                body,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            body: UpdateApplicationClientDto,
+            detail: {
+              summary: "Update an application client",
+            },
+          },
+        )
+        .post(
+          "/:id/clients/:clientId/archive",
+          async ({ params: { id, clientId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.archiveClient(
+                id,
+                clientId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Archive an application client",
+            },
+          },
+        )
+        .post(
+          "/:id/clients/:clientId/restore",
+          async ({ params: { id, clientId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.restoreClient(
+                id,
+                clientId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Restore an application client",
+            },
+          },
+        )
+        .delete(
+          "/:id/clients/:clientId",
+          async ({ params: { id, clientId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.deleteClientPermanent(
+                id,
+                clientId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Permanently delete an archived application client",
             },
           },
         ),

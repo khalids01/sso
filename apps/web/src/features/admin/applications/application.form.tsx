@@ -20,38 +20,44 @@ import {
   type CreateApplicationInput,
 } from "./schema";
 
-type CreateApplicationFormProps = {
+type ApplicationFormProps = {
   isLoading: boolean;
-  onCreate: (input: CreateApplicationInput) => void;
-  onCreated: () => void;
+  onSubmit: (input: CreateApplicationInput) => void;
+  onSubmitted: () => void;
   resetKey: string;
+  initialValues?: CreateApplicationFormValues;
+  submitLabel?: string;
+  loadingLabel?: string;
 };
 
-export function CreateApplicationForm({
+export function ApplicationForm({
   isLoading,
-  onCreate,
-  onCreated,
+  onSubmit,
+  onSubmitted,
   resetKey,
-}: CreateApplicationFormProps) {
+  initialValues = createApplicationDefaults,
+  submitLabel = "Save application",
+  loadingLabel = "Saving...",
+}: ApplicationFormProps) {
   const form = useForm<
     CreateApplicationFormValues,
     unknown,
     CreateApplicationInput
   >({
     resolver: zodResolver(createApplicationSchema),
-    defaultValues: createApplicationDefaults,
+    defaultValues: initialValues,
   });
 
   useEffect(() => {
-    form.reset(createApplicationDefaults);
-  }, [form, resetKey]);
+    form.reset(initialValues);
+  }, [form, initialValues, resetKey]);
 
   return (
     <form
       className="grid gap-4 py-2"
       onSubmit={form.handleSubmit((input) => {
-        onCreate(input);
-        onCreated();
+        onSubmit(input);
+        onSubmitted();
       })}
     >
       <Field>
@@ -114,9 +120,29 @@ export function CreateApplicationForm({
 
       <DialogFooter>
         <Button disabled={isLoading} type="submit">
-          {isLoading ? "Creating..." : "Create application"}
+          {isLoading ? loadingLabel : submitLabel}
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+type CreateApplicationFormProps = {
+  isLoading: boolean;
+  onCreate: (input: CreateApplicationInput) => void;
+  onCreated: () => void;
+  resetKey: string;
+};
+
+export function CreateApplicationForm(props: CreateApplicationFormProps) {
+  return (
+    <ApplicationForm
+      isLoading={props.isLoading}
+      onSubmit={props.onCreate}
+      onSubmitted={props.onCreated}
+      resetKey={props.resetKey}
+      submitLabel="Create application"
+      loadingLabel="Creating..."
+    />
   );
 }

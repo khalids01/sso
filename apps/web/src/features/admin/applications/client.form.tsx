@@ -20,38 +20,44 @@ import {
   type CreateApplicationClientInput,
 } from "./schema";
 
-type CreateApplicationClientFormProps = {
+type ApplicationClientFormProps = {
   isLoading: boolean;
-  onCreate: (input: CreateApplicationClientInput) => void;
-  onCreated: () => void;
+  onSubmit: (input: CreateApplicationClientInput) => void;
+  onSubmitted: () => void;
   resetKey: string;
+  initialValues?: CreateApplicationClientFormValues;
+  submitLabel?: string;
+  loadingLabel?: string;
 };
 
-export function CreateApplicationClientForm({
+export function ApplicationClientForm({
   isLoading,
-  onCreate,
-  onCreated,
+  onSubmit,
+  onSubmitted,
   resetKey,
-}: CreateApplicationClientFormProps) {
+  initialValues = createApplicationClientDefaults,
+  submitLabel = "Save client",
+  loadingLabel = "Saving...",
+}: ApplicationClientFormProps) {
   const form = useForm<
     CreateApplicationClientFormValues,
     unknown,
     CreateApplicationClientInput
   >({
     resolver: zodResolver(createApplicationClientSchema),
-    defaultValues: createApplicationClientDefaults,
+    defaultValues: initialValues,
   });
 
   useEffect(() => {
-    form.reset(createApplicationClientDefaults);
-  }, [form, resetKey]);
+    form.reset(initialValues);
+  }, [form, initialValues, resetKey]);
 
   return (
     <form
       className="grid gap-4 py-2"
       onSubmit={form.handleSubmit((input) => {
-        onCreate(input);
-        onCreated();
+        onSubmit(input);
+        onSubmitted();
       })}
     >
       <Field>
@@ -118,9 +124,31 @@ export function CreateApplicationClientForm({
 
       <DialogFooter>
         <Button disabled={isLoading} type="submit">
-          {isLoading ? "Creating..." : "Create client"}
+          {isLoading ? loadingLabel : submitLabel}
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+type CreateApplicationClientFormProps = {
+  isLoading: boolean;
+  onCreate: (input: CreateApplicationClientInput) => void;
+  onCreated: () => void;
+  resetKey: string;
+};
+
+export function CreateApplicationClientForm(
+  props: CreateApplicationClientFormProps,
+) {
+  return (
+    <ApplicationClientForm
+      isLoading={props.isLoading}
+      onSubmit={props.onCreate}
+      onSubmitted={props.onCreated}
+      resetKey={props.resetKey}
+      submitLabel="Create client"
+      loadingLabel="Creating..."
+    />
   );
 }
