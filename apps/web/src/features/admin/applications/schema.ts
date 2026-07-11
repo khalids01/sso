@@ -13,33 +13,26 @@ const optionalTrimmedString = (max: number) =>
     .max(max)
     .transform((value) => value || undefined);
 
-const httpUrlSchema = (label: string) =>
-  z.string().trim().superRefine((value, ctx) => {
-    let url: URL;
-
-    try {
-      url = new URL(value);
-    } catch {
-      ctx.addIssue({
-        code: "custom",
-        message: `${label} must be a valid URL`,
-      });
-      return;
-    }
-
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      ctx.addIssue({
-        code: "custom",
-        message: `${label} must use http or https`,
-      });
-    }
-  });
-
-export function textLinesToList(value: string) {
-  return value
-    .split("\n")
+function trimValues(values: string[]) {
+  return values
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function getHttpUrlError(value: string) {
+  let url: URL;
+
+  try {
+    url = new URL(value.trim());
+  } catch {
+    return "must be a valid URL";
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return "must use http or https";
+  }
+
+  return undefined;
 }
 
 export const createApplicationDefaults: CreateApplicationFormValues = {
@@ -59,61 +52,77 @@ export const createApplicationSchema = z.object({
 export const createApplicationClientDefaults: CreateApplicationClientFormValues = {
   name: "",
   status: "active",
-  redirectUris: "",
-  allowedOrigins: "",
+  redirectUris: [""],
+  allowedOrigins: [""],
 };
 
 export const createApplicationClientSchema = z
   .object({
     name: z.string().trim().min(1, "Name is required").max(120),
     status: applicationStatusSchema.default("active"),
-    redirectUris: z
-      .string()
-      .trim()
-      .min(1, "At least one redirect URI is required"),
-    allowedOrigins: z.string(),
+    redirectUris: z.array(z.string()),
+    allowedOrigins: z.array(z.string()),
   })
   .superRefine((value, ctx) => {
-    for (const [index, redirectUri] of textLinesToList(value.redirectUris).entries()) {
-      const result = httpUrlSchema("Redirect URI").safeParse(redirectUri);
+    const redirectUris = trimValues(value.redirectUris);
 
-      if (!result.success) {
+    if (redirectUris.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["redirectUris", 0],
+        message: "At least one redirect URI is required",
+      });
+    }
+
+    for (const [index, redirectUri] of value.redirectUris.entries()) {
+      const trimmed = redirectUri.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      const urlError = getHttpUrlError(redirectUri);
+
+      if (urlError) {
         ctx.addIssue({
           code: "custom",
-          path: ["redirectUris"],
-          message: `Line ${index + 1}: ${result.error.issues[0]?.message}`,
+          path: ["redirectUris", index],
+          message: `Redirect URI ${index + 1} ${urlError}`,
         });
         continue;
       }
 
-      if (new URL(redirectUri).hash) {
+      if (new URL(redirectUri.trim()).hash) {
         ctx.addIssue({
           code: "custom",
-          path: ["redirectUris"],
-          message: `Line ${index + 1}: Redirect URI must not contain a fragment`,
+          path: ["redirectUris", index],
+          message: `Redirect URI ${index + 1} must not contain a fragment`,
         });
       }
     }
 
-    for (const [index, origin] of textLinesToList(value.allowedOrigins).entries()) {
-      const result = httpUrlSchema("Origin").safeParse(origin);
+    for (const [index, origin] of value.allowedOrigins.entries()) {
+      if (!origin.trim()) {
+        continue;
+      }
 
-      if (!result.success) {
+      const urlError = getHttpUrlError(origin);
+
+      if (urlError) {
         ctx.addIssue({
           code: "custom",
-          path: ["allowedOrigins"],
-          message: `Line ${index + 1}: ${result.error.issues[0]?.message}`,
+          path: ["allowedOrigins", index],
+          message: `Origin ${index + 1} ${urlError}`,
         });
       }
     }
   })
   .transform((value) => {
-    const allowedOrigins = textLinesToList(value.allowedOrigins);
+    const allowedOrigins = trimValues(value.allowedOrigins);
 
     return {
       name: value.name.trim(),
       status: value.status,
-      redirectUris: textLinesToList(value.redirectUris),
+      redirectUris: trimValues(value.redirectUris),
       allowedOrigins: allowedOrigins.length > 0 ? allowedOrigins : undefined,
     };
   });

@@ -869,8 +869,12 @@ function ClientEditDialog(props: {
         ? {
             name: props.value.client.name,
             status: props.value.client.status,
-            redirectUris: props.value.client.redirectUris.join("\n"),
-            allowedOrigins: props.value.client.allowedOrigins.join("\n"),
+            redirectUris: props.value.client.redirectUris.length
+              ? props.value.client.redirectUris
+              : [""],
+            allowedOrigins: props.value.client.allowedOrigins.length
+              ? props.value.client.allowedOrigins
+              : [""],
           }
         : undefined,
     [props.value],

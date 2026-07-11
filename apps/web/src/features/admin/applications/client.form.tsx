@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import {
+  Controller,
+  useForm,
+  type FieldError as HookFormFieldError,
+  type UseFormRegisterReturn,
+} from "react-hook-form";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -12,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   createApplicationClientDefaults,
   createApplicationClientSchema,
@@ -51,6 +56,19 @@ export function ApplicationClientForm({
   useEffect(() => {
     form.reset(initialValues);
   }, [form, initialValues, resetKey]);
+
+  const redirectUris = form.watch("redirectUris") ?? [""];
+  const allowedOrigins = form.watch("allowedOrigins") ?? [""];
+
+  function updateUrlList(
+    name: "redirectUris" | "allowedOrigins",
+    nextValue: string[],
+  ) {
+    form.setValue(name, nextValue, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }
 
   return (
     <form
@@ -96,31 +114,37 @@ export function ApplicationClientForm({
         )}
       />
 
-      <Field>
-        <FieldLabel htmlFor="redirect-uris">Redirect URIs</FieldLabel>
-        <Textarea
-          id="redirect-uris"
-          className="min-h-28 font-mono text-xs"
-          placeholder={
-            "https://app.example.com/auth/callback\nhttp://localhost:5002/auth/callback"
-          }
-          aria-invalid={Boolean(form.formState.errors.redirectUris)}
-          {...form.register("redirectUris")}
-        />
-        <FieldError errors={[form.formState.errors.redirectUris]} />
-      </Field>
+      <UrlInputList
+        label="Redirect URIs"
+        addLabel="Add redirect URI"
+        placeholder="https://app.example.com/auth/callback"
+        values={redirectUris}
+        errors={form.formState.errors.redirectUris}
+        register={(index) => form.register(`redirectUris.${index}`)}
+        onAdd={() => updateUrlList("redirectUris", [...redirectUris, ""])}
+        onRemove={(index) =>
+          updateUrlList(
+            "redirectUris",
+            redirectUris.filter((_, itemIndex) => itemIndex !== index),
+          )
+        }
+      />
 
-      <Field>
-        <FieldLabel htmlFor="allowed-origins">Allowed origins</FieldLabel>
-        <Textarea
-          id="allowed-origins"
-          className="min-h-24 font-mono text-xs"
-          placeholder={"https://app.example.com\nhttp://localhost:5002"}
-          aria-invalid={Boolean(form.formState.errors.allowedOrigins)}
-          {...form.register("allowedOrigins")}
-        />
-        <FieldError errors={[form.formState.errors.allowedOrigins]} />
-      </Field>
+      <UrlInputList
+        label="Allowed origins"
+        addLabel="Add origin"
+        placeholder="https://app.example.com"
+        values={allowedOrigins}
+        errors={form.formState.errors.allowedOrigins}
+        register={(index) => form.register(`allowedOrigins.${index}`)}
+        onAdd={() => updateUrlList("allowedOrigins", [...allowedOrigins, ""])}
+        onRemove={(index) =>
+          updateUrlList(
+            "allowedOrigins",
+            allowedOrigins.filter((_, itemIndex) => itemIndex !== index),
+          )
+        }
+      />
 
       <DialogFooter>
         <Button disabled={isLoading} type="submit">
@@ -129,6 +153,71 @@ export function ApplicationClientForm({
       </DialogFooter>
     </form>
   );
+}
+
+function UrlInputList(props: {
+  label: string;
+  addLabel: string;
+  placeholder: string;
+  values: string[];
+  errors: unknown;
+  register: (index: number) => UseFormRegisterReturn;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}) {
+  const canRemove = props.values.length > 1;
+
+  return (
+    <Field>
+      <div className="flex items-center justify-between gap-3">
+        <FieldLabel>{props.label}</FieldLabel>
+        <Button type="button" variant="outline" size="sm" onClick={props.onAdd}>
+          <Plus className="h-4 w-4" />
+          {props.addLabel}
+        </Button>
+      </div>
+
+      <div className="grid gap-2">
+        {props.values.map((_, index) => {
+          const fieldError = getArrayFieldError(props.errors, index);
+
+          return (
+            <div
+              key={`${props.label}-${index}-${props.values.length}`}
+              className="grid gap-1"
+            >
+              <div className="flex gap-2">
+                <Input
+                  className="font-mono text-xs"
+                  placeholder={props.placeholder}
+                  aria-invalid={Boolean(fieldError)}
+                  {...props.register(index)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={!canRemove}
+                  onClick={() => props.onRemove(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <FieldError errors={fieldError ? [fieldError] : []} />
+            </div>
+          );
+        })}
+      </div>
+    </Field>
+  );
+}
+
+function getArrayFieldError(errors: unknown, index: number) {
+  if (!Array.isArray(errors)) {
+    return undefined;
+  }
+
+  return errors[index] as HookFormFieldError | undefined;
 }
 
 type CreateApplicationClientFormProps = {
