@@ -33,6 +33,18 @@ export const queryKeys = {
           ...queryKeys.admin.applications.clientsRoot(applicationId),
           filter ?? "all",
         ] as const,
+      membersRoot: (applicationId: string) =>
+        [...queryKeys.admin.applications.all(), applicationId, "members"] as const,
+      members: (
+        applicationId: string,
+        filter?: "current" | "revoked",
+        search?: string,
+      ) =>
+        [
+          ...queryKeys.admin.applications.membersRoot(applicationId),
+          filter ?? "all",
+          search ?? "",
+        ] as const,
     },
     visitors: {
       overview: (params: {

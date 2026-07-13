@@ -1,4 +1,5 @@
 export type ApplicationStatus = "active" | "disabled" | "archived";
+export type ApplicationMemberStatus = "active" | "suspended" | "revoked";
 
 export type AdminApplication = {
   id: string;
@@ -36,4 +37,29 @@ export type ApplicationClient = {
 
 export type ApplicationClientsResponse = {
   items: ApplicationClient[];
+};
+
+export type ApplicationMember = {
+  id: string;
+  applicationId: string;
+  userId: string;
+  status: ApplicationMemberStatus;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+    archived: boolean;
+    banned: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplicationMembersResponse = {
+  items: ApplicationMember[];
+  total: number;
+  pages: number;
+  page: number;
+  limit: number;
 };

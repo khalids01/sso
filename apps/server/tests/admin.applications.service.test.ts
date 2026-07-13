@@ -64,6 +64,57 @@ const applicationClientUpdateMock = mock(async (args: any) => ({
   updatedAt: new Date("2026-07-10T08:11:00.000Z"),
 }));
 const applicationClientDeleteMock = mock(async () => null);
+const applicationMemberCountMock = mock(async () => 0);
+const applicationMemberFindManyMock = mock(async (): Promise<any> => []);
+const applicationMemberCreateMock = mock(async (args: any) => ({
+  id: "member-1",
+  applicationId: args.data.applicationId,
+  userId: args.data.userId,
+  status: args.data.status,
+  createdAt: new Date("2026-07-10T08:04:00.000Z"),
+  updatedAt: new Date("2026-07-10T08:05:00.000Z"),
+  user: {
+    id: args.data.userId,
+    name: "Khalid",
+    email: "khalid@example.com",
+    image: null,
+    archived: false,
+    banned: false,
+  },
+}));
+const applicationMemberUpdateMock = mock(async (args: any) => ({
+  id: args.where.id,
+  applicationId: args.where.applicationId,
+  userId: "user-1",
+  status: args.data.status,
+  createdAt: new Date("2026-07-10T08:04:00.000Z"),
+  updatedAt: new Date("2026-07-10T08:12:00.000Z"),
+  user: {
+    id: "user-1",
+    name: "Khalid",
+    email: "khalid@example.com",
+    image: null,
+    archived: false,
+    banned: false,
+  },
+}));
+const applicationMemberFindUniqueMock = mock(async () => ({
+  id: "member-1",
+  applicationId: "app-1",
+  userId: "user-1",
+  status: "revoked",
+  user: {
+    email: "khalid@example.com",
+  },
+}));
+const applicationMemberFindFirstMock = mock(async () => ({ id: "member-1" }));
+const applicationMemberDeleteMock = mock(async () => null);
+const userFindUniqueMock = mock(async () => ({
+  id: "user-1",
+  name: "Khalid",
+  email: "khalid@example.com",
+  archived: false,
+}));
 const activityEventCreateMock = mock(async () => null);
 
 mock.module("@db/server", () => ({
@@ -82,6 +133,18 @@ mock.module("@db/server", () => ({
       findUnique: applicationClientFindUniqueMock,
       update: applicationClientUpdateMock,
       delete: applicationClientDeleteMock,
+    },
+    applicationMember: {
+      count: applicationMemberCountMock,
+      findMany: applicationMemberFindManyMock,
+      create: applicationMemberCreateMock,
+      update: applicationMemberUpdateMock,
+      findUnique: applicationMemberFindUniqueMock,
+      findFirst: applicationMemberFindFirstMock,
+      delete: applicationMemberDeleteMock,
+    },
+    user: {
+      findUnique: userFindUniqueMock,
     },
     activityEvent: {
       create: activityEventCreateMock,
@@ -107,6 +170,14 @@ describe("AdminApplicationsService", () => {
     applicationClientFindUniqueMock.mockReset();
     applicationClientUpdateMock.mockClear();
     applicationClientDeleteMock.mockClear();
+    applicationMemberCountMock.mockReset();
+    applicationMemberFindManyMock.mockReset();
+    applicationMemberCreateMock.mockReset();
+    applicationMemberUpdateMock.mockClear();
+    applicationMemberFindUniqueMock.mockReset();
+    applicationMemberFindFirstMock.mockReset();
+    applicationMemberDeleteMock.mockClear();
+    userFindUniqueMock.mockReset();
     activityEventCreateMock.mockClear();
     applicationCountMock.mockResolvedValue(0);
     applicationFindManyMock.mockResolvedValue([]);
@@ -120,6 +191,40 @@ describe("AdminApplicationsService", () => {
       clientId: "sso_client_1",
       name: "Browser client",
       status: "archived",
+    });
+    applicationMemberCountMock.mockResolvedValue(0);
+    applicationMemberFindManyMock.mockResolvedValue([]);
+    applicationMemberCreateMock.mockImplementation(async (args: any) => ({
+      id: "member-1",
+      applicationId: args.data.applicationId,
+      userId: args.data.userId,
+      status: args.data.status,
+      createdAt: new Date("2026-07-10T08:04:00.000Z"),
+      updatedAt: new Date("2026-07-10T08:05:00.000Z"),
+      user: {
+        id: args.data.userId,
+        name: "Khalid",
+        email: "khalid@example.com",
+        image: null,
+        archived: false,
+        banned: false,
+      },
+    }));
+    applicationMemberFindUniqueMock.mockResolvedValue({
+      id: "member-1",
+      applicationId: "app-1",
+      userId: "user-1",
+      status: "revoked",
+      user: {
+        email: "khalid@example.com",
+      },
+    });
+    applicationMemberFindFirstMock.mockResolvedValue({ id: "member-1" });
+    userFindUniqueMock.mockResolvedValue({
+      id: "user-1",
+      name: "Khalid",
+      email: "khalid@example.com",
+      archived: false,
     });
   });
 
@@ -461,6 +566,213 @@ describe("AdminApplicationsService", () => {
       }),
     ).rejects.toBeInstanceOf(ApplicationsPolicyError);
     expect(applicationClientDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it("grants application access to an existing user", async () => {
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    const result = await adminApplicationsService.grantMember(
+      "app-1",
+      { userId: "user-1" },
+      { id: "owner-1" },
+    );
+
+    expect(userFindUniqueMock).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        archived: true,
+      },
+    });
+    expect(applicationMemberCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          applicationId: "app-1",
+          userId: "user-1",
+          status: "active",
+        },
+      }),
+    );
+    expect(result).toMatchObject({
+      id: "member-1",
+      status: "active",
+      user: { email: "khalid@example.com" },
+    });
+    expect(activityEventCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "application_member.granted",
+          actorUserId: "owner-1",
+        }),
+      }),
+    );
+  });
+
+  it("rejects duplicate application access grants", async () => {
+    applicationMemberCreateMock.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+        code: "P2002",
+        clientVersion: "test",
+      }),
+    );
+
+    const { adminApplicationsService, ApplicationsPolicyError } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await expect(
+      adminApplicationsService.grantMember(
+        "app-1",
+        { userId: "user-1" },
+        { id: "owner-1" },
+      ),
+    ).rejects.toBeInstanceOf(ApplicationsPolicyError);
+  });
+
+  it("lists current members as active and suspended", async () => {
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await adminApplicationsService.listMembers("app-1", {
+      page: 1,
+      limit: 20,
+      filter: "current",
+    });
+
+    expect(applicationMemberFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          applicationId: "app-1",
+          status: { in: ["active", "suspended"] },
+        },
+      }),
+    );
+  });
+
+  it("lists revoked members separately", async () => {
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await adminApplicationsService.listMembers("app-1", {
+      page: 1,
+      limit: 20,
+      filter: "revoked",
+    });
+
+    expect(applicationMemberFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          applicationId: "app-1",
+          status: "revoked",
+        },
+      }),
+    );
+  });
+
+  it("suspends, restores, and revokes application access", async () => {
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await adminApplicationsService.suspendMember("app-1", "member-1", {
+      id: "owner-1",
+    });
+    await adminApplicationsService.restoreMember("app-1", "member-1", {
+      id: "owner-1",
+    });
+    await adminApplicationsService.revokeMember("app-1", "member-1", {
+      id: "owner-1",
+    });
+
+    expect(applicationMemberUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: "suspended" } }),
+    );
+    expect(applicationMemberUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: "active" } }),
+    );
+    expect(applicationMemberUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: "revoked" } }),
+    );
+  });
+
+  it("permanently deletes revoked application memberships", async () => {
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await adminApplicationsService.deleteMemberPermanent(
+      "app-1",
+      "member-1",
+      { id: "owner-1" },
+    );
+
+    expect(applicationMemberDeleteMock).toHaveBeenCalledWith({
+      where: { id: "member-1", applicationId: "app-1" },
+    });
+  });
+
+  it("rejects permanent member delete for non-revoked records", async () => {
+    applicationMemberFindUniqueMock.mockResolvedValueOnce({
+      id: "member-1",
+      applicationId: "app-1",
+      userId: "user-1",
+      status: "active",
+      user: {
+        email: "khalid@example.com",
+      },
+    });
+
+    const { adminApplicationsService, ApplicationsPolicyError } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await expect(
+      adminApplicationsService.deleteMemberPermanent(
+        "app-1",
+        "member-1",
+        { id: "owner-1" },
+      ),
+    ).rejects.toBeInstanceOf(ApplicationsPolicyError);
+    expect(applicationMemberDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it("checks active application access for active members", async () => {
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await expect(
+      adminApplicationsService.canUserAccessApplication("user-1", "app-1"),
+    ).resolves.toBe(true);
+    expect(applicationMemberFindFirstMock).toHaveBeenCalledWith({
+      where: {
+        applicationId: "app-1",
+        userId: "user-1",
+        status: "active",
+        application: {
+          status: "active",
+        },
+      },
+      select: { id: true },
+    });
+  });
+
+  it("denies access when membership or application is not active", async () => {
+    applicationMemberFindFirstMock.mockResolvedValueOnce(null);
+
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await expect(
+      adminApplicationsService.canUserAccessApplication("user-1", "app-1"),
+    ).resolves.toBe(false);
   });
 
   it("rejects invalid redirect URI input", async () => {

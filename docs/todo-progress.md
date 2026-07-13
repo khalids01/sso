@@ -6,7 +6,7 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Next, design and add the application membership/access model so SSO can decide which identity users are allowed to sign into each registered application. Token issuance should still wait until application access decisions are modeled.
+Next, choose the first browser authentication protocol shape and plan the authorization-code flow with PKCE. Application access decisions are now modeled, but token issuance should still wait until the flow shape is explicit.
 
 ## Guardrails
 
@@ -35,15 +35,16 @@ Next, design and add the application membership/access model so SSO can decide w
 - [x] Add application/client lifecycle management UI and API for edit, archive, restore, and permanent delete.
 - [x] Add exact redirect URI and origin validation.
 - [x] Improve client redirect URI and allowed origin inputs with repeatable single-line rows and row-level validation.
+- [x] Split the applications management page into small local components and entity-specific CRUD modules.
 - [ ] Add client secret generation, rotation, and safe display behavior.
 - [ ] Add application branding fields for login and email flows.
 
 ## Application Access
 
-- [ ] Design user-to-application access/membership model.
+- [x] Design user-to-application access/membership model.
 - [ ] Add app-specific roles, scopes, or claims.
-- [ ] Add admin controls for granting, suspending, and revoking app access.
-- [ ] Add audit events for app access changes.
+- [x] Add admin controls for granting, suspending, and revoking app access.
+- [x] Add audit events for app access changes.
 
 ## Auth And Token Flow
 
@@ -63,7 +64,7 @@ Next, design and add the application membership/access model so SSO can decide w
 ## Tests And Rollout
 
 - [x] Add tests for application/client validation.
-- [ ] Add tests for app membership access decisions.
+- [x] Add tests for app membership access decisions.
 - [ ] Add tests for token issuance and revocation.
 - [ ] Add migration smoke tests using old production flow examples.
 - [ ] Add observability for failed login, invalid redirect, token exchange, and revocation events.

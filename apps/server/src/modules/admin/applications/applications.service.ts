@@ -1,8 +1,10 @@
-import prisma, { type Prisma } from "@db/server";
+import prisma, { Prisma } from "@db/server";
 import type {
+  ApplicationMembersQuery,
   ApplicationsQuery,
   ClientsQuery,
   CreateApplicationClientInput,
+  CreateApplicationMemberInput,
   CreateApplicationInput,
   UpdateApplicationClientInput,
   UpdateApplicationInput,
@@ -14,6 +16,7 @@ import {
 } from "./redirect-validation";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
+const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
 
 const applicationSelect = {
   id: true,
@@ -44,6 +47,25 @@ const clientSelect = {
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.ApplicationClientSelect;
+
+const memberSelect = {
+  id: true,
+  applicationId: true,
+  userId: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      archived: true,
+      banned: true,
+    },
+  },
+} satisfies Prisma.ApplicationMemberSelect;
 
 export type AdminApplicationsActor = {
   id?: string;
@@ -86,6 +108,16 @@ function normalizeStatus(status?: string) {
 
   if (!allowedStatuses.has(normalized)) {
     throw new ApplicationsPolicyError("Invalid application status");
+  }
+
+  return normalized;
+}
+
+function normalizeMemberStatus(status?: string) {
+  const normalized = status ?? "active";
+
+  if (!allowedMemberStatuses.has(normalized)) {
+    throw new ApplicationsPolicyError("Invalid application member status");
   }
 
   return normalized;
@@ -136,6 +168,33 @@ function mapClient(row: {
   };
 }
 
+function mapMember(row: {
+  id: string;
+  applicationId: string;
+  userId: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+    archived: boolean;
+    banned: boolean;
+  };
+}) {
+  return {
+    id: row.id,
+    applicationId: row.applicationId,
+    userId: row.userId,
+    status: row.status,
+    user: row.user,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
 function generateClientId() {
   return `sso_client_${crypto.randomUUID().replaceAll("-", "")}`;
 }
@@ -174,6 +233,20 @@ function applyLifecycleFilter(
 
   if (filter === "current") {
     where.status = { in: ["active", "disabled"] };
+  }
+}
+
+function applyMemberFilter(
+  where: Prisma.ApplicationMemberWhereInput,
+  filter?: "current" | "revoked",
+) {
+  if (filter === "revoked") {
+    where.status = "revoked";
+    return;
+  }
+
+  if (filter === "current") {
+    where.status = { in: ["active", "suspended"] };
   }
 }
 
@@ -399,6 +472,237 @@ export class AdminApplicationsService {
     };
   }
 
+  async listMembers(applicationId: string, query: ApplicationMembersQuery = {}) {
+    const { requestedPage, limit } = normalizePagination(query.page, query.limit);
+    const where: Prisma.ApplicationMemberWhereInput = { applicationId };
+    applyMemberFilter(where, query.filter);
+
+    if (query.search) {
+      where.user = {
+        OR: [
+          { name: { contains: query.search, mode: "insensitive" } },
+          { email: { contains: query.search, mode: "insensitive" } },
+        ],
+      };
+    }
+
+    const total = await prisma.applicationMember.count({ where });
+    const pages = Math.max(1, Math.ceil(total / limit));
+    const page = Math.min(requestedPage, pages);
+    const rows = await prisma.applicationMember.findMany({
+      where,
+      select: memberSelect,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      items: rows.map(mapMember),
+      total,
+      pages,
+      page,
+      limit,
+    };
+  }
+
+  async grantMember(
+    applicationId: string,
+    input: CreateApplicationMemberInput,
+    actor: AdminApplicationsActor,
+  ) {
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { id: true, name: true },
+    });
+
+    if (!application) {
+      throw new ApplicationsPolicyError("Application not found", 404);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: input.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        archived: true,
+      },
+    });
+
+    if (!user || user.archived) {
+      throw new ApplicationsPolicyError("User not found", 404);
+    }
+
+    try {
+      const member = await prisma.applicationMember.create({
+        data: {
+          applicationId,
+          userId: user.id,
+          status: normalizeMemberStatus(),
+        },
+        select: memberSelect,
+      });
+
+      await recordApplicationActivity({
+        type: "application_member.granted",
+        actorUserId: actor.id ?? null,
+        message: `Application access granted: ${user.email}`,
+        metadata: {
+          applicationId,
+          memberId: member.id,
+          userId: user.id,
+        },
+      });
+
+      return mapMember(member);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new ApplicationsPolicyError(
+          "User already has access to this application",
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  async suspendMember(
+    applicationId: string,
+    memberId: string,
+    actor: AdminApplicationsActor,
+  ) {
+    return this.setMemberStatus(
+      applicationId,
+      memberId,
+      "suspended",
+      actor,
+      "application_member.suspended",
+    );
+  }
+
+  async restoreMember(
+    applicationId: string,
+    memberId: string,
+    actor: AdminApplicationsActor,
+  ) {
+    return this.setMemberStatus(
+      applicationId,
+      memberId,
+      "active",
+      actor,
+      "application_member.restored",
+    );
+  }
+
+  async revokeMember(
+    applicationId: string,
+    memberId: string,
+    actor: AdminApplicationsActor,
+  ) {
+    return this.setMemberStatus(
+      applicationId,
+      memberId,
+      "revoked",
+      actor,
+      "application_member.revoked",
+    );
+  }
+
+  private async setMemberStatus(
+    applicationId: string,
+    id: string,
+    status: "active" | "suspended" | "revoked",
+    actor: AdminApplicationsActor,
+    type: string,
+  ) {
+    const member = await prisma.applicationMember.update({
+      where: { id, applicationId },
+      data: { status },
+      select: memberSelect,
+    });
+
+    await recordApplicationActivity({
+      type,
+      actorUserId: actor.id ?? null,
+      message: `Application access ${status}: ${member.user.email}`,
+      metadata: {
+        applicationId,
+        memberId: member.id,
+        userId: member.userId,
+      },
+    });
+
+    return mapMember(member);
+  }
+
+  async deleteMemberPermanent(
+    applicationId: string,
+    id: string,
+    actor: AdminApplicationsActor,
+  ) {
+    const member = await prisma.applicationMember.findUnique({
+      where: { id, applicationId },
+      select: {
+        id: true,
+        applicationId: true,
+        userId: true,
+        status: true,
+        user: {
+          select: {
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!member) {
+      throw new ApplicationsPolicyError("Application member not found", 404);
+    }
+
+    if (member.status !== "revoked") {
+      throw new ApplicationsPolicyError(
+        "Only revoked application memberships can be permanently deleted",
+      );
+    }
+
+    await prisma.applicationMember.delete({
+      where: { id, applicationId },
+    });
+
+    await recordApplicationActivity({
+      type: "application_member.deleted",
+      actorUserId: actor.id ?? null,
+      message: `Application access permanently deleted: ${member.user.email}`,
+      metadata: {
+        applicationId,
+        memberId: member.id,
+        userId: member.userId,
+      },
+    });
+
+    return { id: member.id, deleted: true };
+  }
+
+  async canUserAccessApplication(userId: string, applicationId: string) {
+    const member = await prisma.applicationMember.findFirst({
+      where: {
+        applicationId,
+        userId,
+        status: "active",
+        application: {
+          status: "active",
+        },
+      },
+      select: { id: true },
+    });
+
+    return Boolean(member);
+  }
+
   async createClient(
     applicationId: string,
     input: CreateApplicationClientInput,
@@ -578,3 +882,10 @@ export class AdminApplicationsService {
 }
 
 export const adminApplicationsService = new AdminApplicationsService();
+
+export function canUserAccessApplication(
+  userId: string,
+  applicationId: string,
+) {
+  return adminApplicationsService.canUserAccessApplication(userId, applicationId);
+}

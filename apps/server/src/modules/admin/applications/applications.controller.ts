@@ -8,9 +8,11 @@ import {
   type AdminApplicationsActor,
 } from "./applications.service";
 import {
+  ApplicationMembersQueryDto,
   ApplicationsQueryDto,
   ClientsQueryDto,
   CreateApplicationClientDto,
+  CreateApplicationMemberDto,
   CreateApplicationDto,
   UpdateApplicationClientDto,
   UpdateApplicationDto,
@@ -154,6 +156,119 @@ export const applicationsController = new Elysia({
             beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
             detail: {
               summary: "Permanently delete an archived application",
+            },
+          },
+        )
+        .get(
+          "/:id/members",
+          ({ params: { id }, query }) =>
+            adminApplicationsService.listMembers(id, query),
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsRead),
+            query: ApplicationMembersQueryDto,
+            detail: {
+              summary: "List application members",
+            },
+          },
+        )
+        .post(
+          "/:id/members",
+          async ({ params: { id }, body, set, userId }) => {
+            try {
+              return await adminApplicationsService.grantMember(
+                id,
+                body,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            body: CreateApplicationMemberDto,
+            detail: {
+              summary: "Grant application access to a user",
+            },
+          },
+        )
+        .post(
+          "/:id/members/:memberId/suspend",
+          async ({ params: { id, memberId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.suspendMember(
+                id,
+                memberId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Suspend application access",
+            },
+          },
+        )
+        .post(
+          "/:id/members/:memberId/restore",
+          async ({ params: { id, memberId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.restoreMember(
+                id,
+                memberId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Restore application access",
+            },
+          },
+        )
+        .post(
+          "/:id/members/:memberId/revoke",
+          async ({ params: { id, memberId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.revokeMember(
+                id,
+                memberId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Revoke application access",
+            },
+          },
+        )
+        .delete(
+          "/:id/members/:memberId",
+          async ({ params: { id, memberId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.deleteMemberPermanent(
+                id,
+                memberId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Permanently delete a revoked application membership",
             },
           },
         )

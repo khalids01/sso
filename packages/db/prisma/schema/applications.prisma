@@ -10,9 +10,27 @@ model Application {
   updatedAt   DateTime @updatedAt
 
   clients ApplicationClient[]
+  members ApplicationMember[]
 
   @@index([status])
   @@map("application")
+}
+
+model ApplicationMember {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        String      @default("active")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([applicationId, userId])
+  @@index([applicationId])
+  @@index([userId])
+  @@index([status])
+  @@map("application_member")
 }
 
 model ApplicationClient {

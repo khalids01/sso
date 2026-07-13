@@ -11,6 +11,11 @@ const ApplicationListFilterSchema = t.Union([
   t.Literal("archived"),
 ]);
 
+const ApplicationMemberFilterSchema = t.Union([
+  t.Literal("current"),
+  t.Literal("revoked"),
+]);
+
 export const ApplicationsQueryDto = t.Object({
   page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
   limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 20 })),
@@ -49,6 +54,17 @@ export const ClientsQueryDto = t.Object({
   filter: t.Optional(ApplicationListFilterSchema),
 });
 
+export const ApplicationMembersQueryDto = t.Object({
+  page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
+  limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 20 })),
+  filter: t.Optional(ApplicationMemberFilterSchema),
+  search: t.Optional(t.String()),
+});
+
+export const CreateApplicationMemberDto = t.Object({
+  userId: t.String({ minLength: 1 }),
+});
+
 export const UpdateApplicationClientDto = t.Object({
   name: t.Optional(t.String({ minLength: 1, maxLength: 120 })),
   clientType: t.Optional(t.String({ minLength: 1, maxLength: 40 })),
@@ -59,9 +75,13 @@ export const UpdateApplicationClientDto = t.Object({
 
 export type ApplicationsQuery = typeof ApplicationsQueryDto.static;
 export type ClientsQuery = typeof ClientsQueryDto.static;
+export type ApplicationMembersQuery =
+  typeof ApplicationMembersQueryDto.static;
 export type CreateApplicationInput = typeof CreateApplicationDto.static;
 export type CreateApplicationClientInput =
   typeof CreateApplicationClientDto.static;
+export type CreateApplicationMemberInput =
+  typeof CreateApplicationMemberDto.static;
 export type UpdateApplicationInput = typeof UpdateApplicationDto.static;
 export type UpdateApplicationClientInput =
   typeof UpdateApplicationClientDto.static;
