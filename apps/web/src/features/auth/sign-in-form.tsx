@@ -15,8 +15,20 @@ export default function SignInForm() {
       email: "",
     },
     onSubmit: async ({ value }) => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const isOAuthRequest =
+        searchParams.has("client_id") &&
+        searchParams.has("sig") &&
+        searchParams.has("exp");
+      const oauthQuery = isOAuthRequest
+        ? window.location.search.slice(1)
+        : undefined;
+      const callbackURL = oauthQuery
+        ? `${window.location.origin}/authorize?${oauthQuery}`
+        : undefined;
       const { error } = await client.auth["magic-link"].login.post({
         email: value.email,
+        callbackURL,
       });
 
       if (error) {

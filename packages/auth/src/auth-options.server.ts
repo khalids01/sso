@@ -20,6 +20,26 @@ function getUserIdFromPolarSubscription(
 }
 
 export const authOptions = {
+  disabledPaths: [
+    "/oauth2/token",
+    "/oauth2/userinfo",
+    "/oauth2/introspect",
+    "/oauth2/revoke",
+    "/oauth2/end-session",
+    "/oauth2/register",
+    "/oauth2/create-client",
+    "/oauth2/get-client",
+    "/oauth2/get-clients",
+    "/oauth2/update-client",
+    "/oauth2/delete-client",
+    "/oauth2/client/rotate-secret",
+    "/oauth2/get-consent",
+    "/oauth2/get-consents",
+    "/oauth2/update-consent",
+    "/oauth2/delete-consent",
+    "/.well-known/openid-configuration",
+    "/.well-known/oauth-authorization-server",
+  ],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -29,6 +49,7 @@ export const authOptions = {
     max: 100,
   },
   session: {
+    storeSessionInDatabase: true,
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // refresh active sessions daily
     cookieCache: {

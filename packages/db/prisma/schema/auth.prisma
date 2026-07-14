@@ -21,6 +21,7 @@ model User {
   rbacRoles              RbacUserRole[]
   rbacPermissionOverrides RbacUserPermissionOverride[]
   applicationMemberships  ApplicationMember[]
+  oauthConsents            OAuthConsent[]
 
   // Polar Integration
   polarCustomerId    String?

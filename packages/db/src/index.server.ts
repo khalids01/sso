@@ -13,3 +13,4 @@ export {
 export { default } from "./client.server";
 export { default as prisma } from "./client.server";
 export * from "./session-revocation.server";
+export * from "./application-access.server";

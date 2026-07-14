@@ -53,6 +53,28 @@ The same identity can be:
 7. Tokens include app audience, subject, expiry, and app-specific claims.
 8. Admins can revoke app sessions/access from the SSO control plane.
 
+## First Browser Protocol
+
+The first browser protocol is an OIDC-shaped OAuth authorization-code flow for
+trusted public clients. The initial supported request requires `response_type=code`,
+`scope=openid`, client state, and PKCE using `S256`. Optional prompts, extra
+scopes, refresh tokens, client credentials, and client secrets are not supported.
+
+Better Auth's OAuth Provider `1.4.18` owns authorization request signing,
+exact redirect matching, continuation, and short-lived authorization-code
+storage. Its OAuth client model is mapped onto `ApplicationClient`, so the admin
+application registry remains authoritative. SSO adds a server-side continuation
+guard that requires the user, application, client, and application membership to
+all be active before a code is returned.
+
+The token, userinfo, introspection, revocation, logout, discovery, registration,
+and provider client-management endpoints remain disabled. JWT signing and JWKS
+storage will be introduced with the token-exchange slice.
+
+Better Auth remains pinned at `1.4.18` for this slice. The local signed-query and
+membership continuation guard mitigates the known older continuation weakness,
+but upgrading Better Auth remains a production-readiness task.
+
 ## Legacy Migration Notes
 
 The old production SSO proves the required integrations: client token validation, login/register, social auth, password reset, and client-branded flows. Its behavior should guide migration, but the new implementation should avoid:

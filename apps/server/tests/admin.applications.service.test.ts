@@ -465,6 +465,14 @@ describe("AdminApplicationsService", () => {
           clientId: expect.stringMatching(/^sso_client_[a-f0-9]{32}$/),
           clientType: "public",
           status: "active",
+          oauthDisabled: false,
+          skipConsent: true,
+          scopes: ["openid"],
+          tokenEndpointAuthMethod: "none",
+          grantTypes: ["authorization_code"],
+          responseTypes: ["code"],
+          public: true,
+          metadata: { applicationId: "app-1" },
           redirectUris: ["https://app.example.com/callback"],
           allowedOrigins: ["https://app.example.com"],
         }),
@@ -504,6 +512,7 @@ describe("AdminApplicationsService", () => {
         data: expect.objectContaining({
           name: "Updated client",
           status: "disabled",
+          oauthDisabled: true,
           redirectUris: ["https://app.example.com/next"],
           allowedOrigins: ["https://app.example.com"],
         }),
@@ -524,10 +533,14 @@ describe("AdminApplicationsService", () => {
     });
 
     expect(applicationClientUpdateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: "archived" } }),
+      expect.objectContaining({
+        data: { status: "archived", oauthDisabled: true },
+      }),
     );
     expect(applicationClientUpdateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: "active" } }),
+      expect.objectContaining({
+        data: { status: "active", oauthDisabled: false },
+      }),
     );
   });
 

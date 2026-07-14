@@ -2,7 +2,7 @@
 
 Centralized identity, access control, and SSO management for internal and customer-facing applications.
 
-SSO is being built as the new control plane for company authentication. The current app already provides the platform foundation: Better Auth sessions, RBAC, owner/admin controls, user management, invitations, activity logs, visitor analytics, rate limits, Redis-backed caches, and a TanStack admin UI. The next product layer will add application/client management and app-scoped authentication flows.
+SSO is being built as the new control plane for company authentication. The current app provides Better Auth sessions, RBAC, owner/admin controls, application and client management, application memberships, invitations, activity logs, visitor analytics, rate limits, Redis-backed caches, and a TanStack admin UI. Browser authorization request handling now uses an authorization-code foundation with PKCE; token exchange remains intentionally disabled until JWT and JWKS work is complete.
 
 ## Stack
 

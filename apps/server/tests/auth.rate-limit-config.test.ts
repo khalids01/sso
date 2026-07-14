@@ -27,4 +27,35 @@ describe("auth rate-limit config", () => {
       /magicLink\(\{\s*rateLimit:\s*\{\s*window:\s*60,\s*max:\s*5,\s*\}/s,
     );
   });
+
+  it("keeps OAuth token and provider-management paths disabled", async () => {
+    const authConfigPath = new URL(
+      "../../../packages/auth/src/auth-options.server.ts",
+      import.meta.url,
+    );
+    const source = await Bun.file(authConfigPath).text();
+    const disabledPaths = source.match(/disabledPaths:\s*\[([\s\S]*?)\]/)?.[1];
+
+    expect(disabledPaths).toBeDefined();
+    for (const path of [
+      "/oauth2/token",
+      "/oauth2/userinfo",
+      "/oauth2/introspect",
+      "/oauth2/revoke",
+      "/oauth2/register",
+      "/oauth2/create-client",
+      "/.well-known/openid-configuration",
+    ]) {
+      expect(disabledPaths).toContain(`"${path}"`);
+    }
+
+    for (const path of [
+      "/oauth2/authorize",
+      "/oauth2/public-client",
+      "/oauth2/continue",
+      "/oauth2/consent",
+    ]) {
+      expect(disabledPaths).not.toContain(`"${path}"`);
+    }
+  });
 });

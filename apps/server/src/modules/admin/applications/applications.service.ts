@@ -712,6 +712,7 @@ export class AdminApplicationsService {
       redirectUris: input.redirectUris,
       allowedOrigins: input.allowedOrigins ?? [],
     });
+    const status = normalizeStatus(input.status);
 
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
@@ -728,7 +729,16 @@ export class AdminApplicationsService {
         clientId: generateClientId(),
         name: input.name.trim(),
         clientType: input.clientType?.trim() || "public",
-        status: normalizeStatus(input.status),
+        status,
+        oauthDisabled: status !== "active",
+        skipConsent: true,
+        enableEndSession: false,
+        scopes: ["openid"],
+        tokenEndpointAuthMethod: "none",
+        grantTypes: ["authorization_code"],
+        responseTypes: ["code"],
+        public: true,
+        metadata: { applicationId },
         redirectUris: redirectUris ?? [],
         allowedOrigins: allowedOrigins ?? [],
       },
@@ -764,7 +774,9 @@ export class AdminApplicationsService {
       data.clientType = input.clientType.trim() || "public";
     }
     if (input.status !== undefined) {
-      data.status = normalizeStatus(input.status);
+      const status = normalizeStatus(input.status);
+      data.status = status;
+      data.oauthDisabled = status !== "active";
     }
     if (redirectUris !== undefined) {
       data.redirectUris = redirectUris;
@@ -826,7 +838,7 @@ export class AdminApplicationsService {
   ) {
     const client = await prisma.applicationClient.update({
       where: { id, applicationId },
-      data: { status },
+      data: { status, oauthDisabled: status !== "active" },
       select: clientSelect,
     });
 

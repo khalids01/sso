@@ -34,19 +34,46 @@ model ApplicationMember {
 }
 
 model ApplicationClient {
-  id             String      @id @default(cuid())
-  applicationId  String
-  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  clientId       String      @unique
-  name           String
-  clientType     String      @default("public")
-  status         String      @default("active")
-  redirectUris   String[]
-  allowedOrigins String[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                      String      @id @default(cuid())
+  applicationId           String
+  application             Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  clientId                String      @unique
+  name                    String
+  clientType              String      @default("public")
+  status                  String      @default("active")
+  oauthDisabled           Boolean     @default(false)
+  skipConsent             Boolean     @default(true)
+  enableEndSession        Boolean     @default(false)
+  scopes                  String[]    @default(["openid"])
+  tokenEndpointAuthMethod String      @default("none")
+  grantTypes              String[]    @default(["authorization_code"])
+  responseTypes           String[]    @default(["code"])
+  public                  Boolean     @default(true)
+  metadata                Json?
+  redirectUris            String[]
+  allowedOrigins          String[]
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  oauthConsents OAuthConsent[]
 
   @@index([applicationId])
   @@index([status])
   @@map("application_client")
+}
+
+model OAuthConsent {
+  id          String             @id @default(cuid())
+  clientId    String
+  client      ApplicationClient  @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  userId      String?
+  user        User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referenceId String?
+  scopes      String[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([clientId])
+  @@index([userId])
+  @@map("oauth_consent")
 }

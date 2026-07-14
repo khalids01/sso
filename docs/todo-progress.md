@@ -6,7 +6,10 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Next, choose the first browser authentication protocol shape and plan the authorization-code flow with PKCE. Application access decisions are now modeled, but token issuance should still wait until the flow shape is explicit.
+Apply the OAuth authorization-foundation migration through the normal migration
+workflow, then implement the token-exchange slice with JWT signing, audience and
+expiry claims, JWKS, and membership rechecks. Token issuance must remain disabled
+until those decisions and tests are complete.
 
 ## Guardrails
 
@@ -48,7 +51,11 @@ Next, choose the first browser authentication protocol shape and plan the author
 
 ## Auth And Token Flow
 
-- [ ] Choose the first supported protocol shape for browser apps.
+- [x] Choose an OIDC-shaped authorization-code flow for trusted public browser clients.
+- [x] Add Better Auth OAuth Provider `1.4.18` authorization and signed continuation foundation.
+- [x] Require `openid`, state, and PKCE `S256`; reject optional prompts and scopes.
+- [x] Preserve authorization requests through magic-link login and enforce active application membership before returning a code.
+- [x] Keep token, userinfo, introspection, revocation, discovery, registration, and provider client-management endpoints disabled.
 - [ ] Implement authorization-code flow with PKCE.
 - [ ] Issue app-scoped access tokens with audience and expiry.
 - [ ] Add userinfo or profile endpoint for client apps.
@@ -68,3 +75,21 @@ Next, choose the first browser authentication protocol shape and plan the author
 - [ ] Add tests for token issuance and revocation.
 - [ ] Add migration smoke tests using old production flow examples.
 - [ ] Add observability for failed login, invalid redirect, token exchange, and revocation events.
+
+## Latest Verification
+
+- Server tests: `172 pass`, `0 fail`.
+- OAuth Provider runtime initialization succeeded.
+- Disabled token, userinfo, registration, and discovery endpoints return `404`.
+- Forged signed continuation data returns `invalid_signature` before access lookup.
+- `bun run check-types` and the web production build pass.
+- `git diff --check` passes.
+- Web and email now resolve a single React `19.2.5` runtime, fixing the admin
+  applications page hook-context crash introduced by the dependency refresh.
+
+## Version Risk
+
+- Better Auth remains at `1.4.18` by explicit decision.
+- `@better-auth/oauth-provider` is pinned to the matching `1.4.18` release.
+- The authorization continuation has an SSO-owned server guard, but upgrading
+  Better Auth remains required before treating the provider as production-ready.
