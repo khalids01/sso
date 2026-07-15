@@ -12,8 +12,10 @@ import {
   passwordSignInSchema,
   type PasswordSignInValues,
 } from "./sign-in-schema";
+import { useHydrated } from "./use-hydrated";
 
 export function PasswordSignInForm() {
+  const hydrated = useHydrated();
   const form = useForm<PasswordSignInValues>({
     resolver: zodResolver(passwordSignInSchema),
     defaultValues: { email: "", password: "" },
@@ -40,13 +42,19 @@ export function PasswordSignInForm() {
   });
 
   return (
-    <form className="space-y-4" onSubmit={onSubmit} noValidate>
+    <form
+      aria-label="Password sign in"
+      className="space-y-4"
+      onSubmit={onSubmit}
+      noValidate
+    >
       <Field>
         <FieldLabel htmlFor="password-email">Email</FieldLabel>
         <Input
           id="password-email"
           type="email"
           autoComplete="email"
+          disabled={!hydrated}
           aria-invalid={Boolean(form.formState.errors.email)}
           {...form.register("email")}
         />
@@ -59,13 +67,18 @@ export function PasswordSignInForm() {
           id="password"
           type="password"
           autoComplete="current-password"
+          disabled={!hydrated}
           aria-invalid={Boolean(form.formState.errors.password)}
           {...form.register("password")}
         />
         <FieldError errors={[form.formState.errors.password]} />
       </Field>
 
-      <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
+      <Button
+        className="w-full"
+        type="submit"
+        disabled={!hydrated || form.formState.isSubmitting}
+      >
         {form.formState.isSubmitting ? "Signing in..." : "Sign in with password"}
       </Button>
     </form>

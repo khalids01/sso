@@ -21,10 +21,19 @@ setup("provision and authenticate the selected E2E actor", async ({ page }) => {
 
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Welcome Back" })).toBeVisible();
-  await page.getByLabel("Email", { exact: true }).first().fill(e2eEnv.E2E_ACTOR_EMAIL);
-  await page.getByLabel("Password", { exact: true }).fill(e2eEnv.E2E_ACTOR_PASSWORD);
-  await page.getByRole("button", { name: "Sign in with password" }).click();
-  await page.waitForURL(/\/dashboard(?:\?.*)?$/);
+  const passwordForm = page.getByRole("form", { name: "Password sign in" });
+  const emailInput = passwordForm.getByLabel("Email", { exact: true });
+  const passwordInput = passwordForm.getByLabel("Password", { exact: true });
+
+  await emailInput.fill(e2eEnv.E2E_ACTOR_EMAIL);
+  await passwordInput.fill(e2eEnv.E2E_ACTOR_PASSWORD);
+  await expect(emailInput).toHaveValue(e2eEnv.E2E_ACTOR_EMAIL);
+  await expect(passwordInput).toHaveValue(e2eEnv.E2E_ACTOR_PASSWORD);
+
+  await Promise.all([
+    page.waitForURL(/\/dashboard(?:\?.*)?$/),
+    passwordForm.getByRole("button", { name: "Sign in with password" }).click(),
+  ]);
 
   const response = await page.request.get(`${e2eEnv.E2E_API_ORIGIN}/session/context`);
   expect(response.ok()).toBeTruthy();

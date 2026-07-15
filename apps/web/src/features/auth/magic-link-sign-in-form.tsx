@@ -9,8 +9,10 @@ import { client } from "@/lib/client";
 
 import { getAuthCallbackURL } from "./auth-callback";
 import { emailSchema, type EmailSignInValues } from "./sign-in-schema";
+import { useHydrated } from "./use-hydrated";
 
 export function MagicLinkSignInForm() {
+  const hydrated = useHydrated();
   const form = useForm<EmailSignInValues>({
     resolver: zodResolver(emailSchema),
     defaultValues: { email: "" },
@@ -32,7 +34,12 @@ export function MagicLinkSignInForm() {
   });
 
   return (
-    <form className="space-y-4" onSubmit={onSubmit} noValidate>
+    <form
+      aria-label="Magic link sign in"
+      className="space-y-4"
+      onSubmit={onSubmit}
+      noValidate
+    >
       <Field>
         <FieldLabel htmlFor="magic-email">Email</FieldLabel>
         <Input
@@ -40,6 +47,7 @@ export function MagicLinkSignInForm() {
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
+          disabled={!hydrated}
           aria-invalid={Boolean(form.formState.errors.email)}
           {...form.register("email")}
         />
@@ -50,7 +58,7 @@ export function MagicLinkSignInForm() {
         className="w-full"
         type="submit"
         variant="outline"
-        disabled={form.formState.isSubmitting}
+        disabled={!hydrated || form.formState.isSubmitting}
       >
         {form.formState.isSubmitting ? "Sending..." : "Send magic link"}
       </Button>

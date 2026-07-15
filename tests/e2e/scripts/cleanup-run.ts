@@ -11,13 +11,27 @@ if (!requestedRunId) {
 
 process.env.E2E_RUN_ID = requestedRunId;
 
-const [{ assertE2ESafety }, { cleanupRunOwnedResources }] = await Promise.all([
+const [
+  { assertE2ESafety },
+  { cleanupRunOwnedResources },
+  { disconnectActorLockRedis, releaseActorLock },
+  { readRunState, removeRunState },
+] = await Promise.all([
   import("../helpers/safety"),
   import("../helpers/cleanup"),
+  import("../helpers/actor-lock"),
+  import("../helpers/run-state"),
 ]);
 
 assertE2ESafety();
-const result = await cleanupRunOwnedResources();
-console.log(
-  `Cleaned run ${requestedRunId}: ${result.applications} applications, ${result.clients} clients, ${result.memberships} memberships`,
-);
+const state = readRunState();
+try {
+  const result = await cleanupRunOwnedResources();
+  console.log(
+    `Cleaned run ${requestedRunId}: ${result.applications} applications, ${result.clients} clients, ${result.memberships} memberships`,
+  );
+} finally {
+  await releaseActorLock(state.lockToken);
+  await disconnectActorLockRedis();
+  removeRunState();
+}

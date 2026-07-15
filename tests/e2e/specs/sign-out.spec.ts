@@ -5,9 +5,12 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 test("sign out invalidates a fresh UI session and protects private routes", async ({ page }) => {
   await page.goto("/login");
-  await page.getByLabel("Email", { exact: true }).first().fill(e2eEnv.E2E_ACTOR_EMAIL);
-  await page.getByLabel("Password", { exact: true }).fill(e2eEnv.E2E_ACTOR_PASSWORD);
-  await page.getByRole("button", { name: "Sign in with password" }).click();
+  const passwordForm = page.getByRole("form", { name: "Password sign in" });
+  await passwordForm.getByLabel("Email", { exact: true }).fill(e2eEnv.E2E_ACTOR_EMAIL);
+  await passwordForm
+    .getByLabel("Password", { exact: true })
+    .fill(e2eEnv.E2E_ACTOR_PASSWORD);
+  await passwordForm.getByRole("button", { name: "Sign in with password" }).click();
   await page.waitForURL(/\/dashboard$/);
 
   await page.getByRole("button", { name: "User menu" }).click();
