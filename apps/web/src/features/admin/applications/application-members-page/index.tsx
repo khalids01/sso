@@ -27,12 +27,20 @@ import type {
 import { ApplicationMembersList } from "./components/application-members-list";
 import { GrantAccessDialog } from "./components/grant-access-dialog";
 import { MemberViewDialog } from "./components/member-view-dialog";
+import { useSession } from "@/providers/session-provider";
+import { Permissions } from "@rbac";
+import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 export function ApplicationMembersPage({
   applicationId,
 }: {
   applicationId: string;
 }) {
+  const { session } = useSession();
+  const canManage = sessionHasPermission(
+    session?.permissions ?? [],
+    Permissions.AdminApplicationsManage,
+  );
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<MemberFilter>("current");
   const [grantOpen, setGrantOpen] = useState(false);
@@ -115,15 +123,17 @@ export function ApplicationMembersPage({
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          <Button
-            size="sm"
-            className="gap-2"
-            disabled={isArchived}
-            onClick={() => setGrantOpen(true)}
-          >
-            <UserPlus className="h-4 w-4" />
-            Grant access
-          </Button>
+          {canManage ? (
+            <Button
+              size="sm"
+              className="gap-2"
+              disabled={isArchived}
+              onClick={() => setGrantOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              Grant access
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -137,6 +147,7 @@ export function ApplicationMembersPage({
       <ApplicationMembersList
         application={application}
         filter={filter}
+        canManage={canManage}
         onView={setViewMember}
         onLifecycle={setPendingAction}
       />

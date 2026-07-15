@@ -42,6 +42,11 @@ lerna-debug.log*
 # Testing
 coverage
 .nyc_output
+tests/e2e/.env
+tests/e2e/.state
+tests/e2e/blob-report
+tests/e2e/playwright-report
+tests/e2e/test-results
 
 # Misc
 *.tgz

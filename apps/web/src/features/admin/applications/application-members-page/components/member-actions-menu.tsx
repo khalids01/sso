@@ -14,6 +14,7 @@ export function MemberActionsMenu(props: {
   application: AdminApplication;
   member: ApplicationMember;
   filter: MemberFilter;
+  canManage: boolean;
   onView: () => void;
   onLifecycle: (action: PendingAction) => void;
 }) {
@@ -22,14 +23,15 @@ export function MemberActionsMenu(props: {
       <DropdownMenuTrigger
         render={
           <Button variant="ghost" size="icon-sm">
+            <span className="sr-only">Actions for {props.member.user.email}</span>
             <EllipsisVertical className="h-4 w-4" />
           </Button>
         }
       />
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem onClick={props.onView}>View</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {props.filter === "current" ? (
+        {props.canManage ? <DropdownMenuSeparator /> : null}
+        {props.canManage && props.filter === "current" ? (
           <>
             {props.member.status === "active" ? (
               <DropdownMenuItem
@@ -69,7 +71,7 @@ export function MemberActionsMenu(props: {
               Revoke
             </DropdownMenuItem>
           </>
-        ) : (
+        ) : props.canManage ? (
           <>
             <DropdownMenuItem
               onClick={() =>
@@ -95,7 +97,7 @@ export function MemberActionsMenu(props: {
               Permanent delete
             </DropdownMenuItem>
           </>
-        )}
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -43,6 +43,13 @@ export const authOptions = {
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  emailAndPassword: {
+    enabled: env.ENABLE_PASSWORD_AUTH,
+    disableSignUp: true,
+    requireEmailVerification: true,
+    minPasswordLength: 15,
+    maxPasswordLength: 128,
+  },
   rateLimit: {
     enabled: true,
     window: 10,

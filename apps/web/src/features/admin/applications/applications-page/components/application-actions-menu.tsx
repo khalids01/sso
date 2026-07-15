@@ -14,6 +14,7 @@ import type { LifecycleFilter, PendingAction } from "../../page-types";
 export function ApplicationActionsMenu(props: {
   application: AdminApplication;
   filter: LifecycleFilter;
+  canManage: boolean;
   onView: () => void;
   onEdit: () => void;
   onLifecycle: (action: PendingAction) => void;
@@ -25,6 +26,7 @@ export function ApplicationActionsMenu(props: {
           <Button
             variant="ghost"
             size="icon-sm"
+            aria-label={`Actions for ${props.application.name}`}
             onClick={(event) => event.stopPropagation()}
           >
             <EllipsisVertical className="h-4 w-4" />
@@ -33,7 +35,9 @@ export function ApplicationActionsMenu(props: {
       />
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={props.onView}>View</DropdownMenuItem>
-        <DropdownMenuItem onClick={props.onEdit}>Edit</DropdownMenuItem>
+        {props.canManage ? (
+          <DropdownMenuItem onClick={props.onEdit}>Edit</DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           render={
             <Link
@@ -54,7 +58,7 @@ export function ApplicationActionsMenu(props: {
         >
           Manage members
         </DropdownMenuItem>
-        {props.filter === "current" ? (
+        {props.canManage && props.filter === "current" ? (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -69,7 +73,7 @@ export function ApplicationActionsMenu(props: {
               Archive
             </DropdownMenuItem>
           </>
-        ) : (
+        ) : props.canManage ? (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -94,7 +98,7 @@ export function ApplicationActionsMenu(props: {
               Permanent delete
             </DropdownMenuItem>
           </>
-        )}
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

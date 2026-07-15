@@ -15,6 +15,7 @@ export function ClientActionsMenu(props: {
   client: ApplicationClient;
   filter: LifecycleFilter;
   canEdit: boolean;
+  canManage: boolean;
   onView: () => void;
   onEdit: () => void;
   onLifecycle: (action: PendingAction) => void;
@@ -24,6 +25,7 @@ export function ClientActionsMenu(props: {
       <DropdownMenuTrigger
         render={
           <Button variant="ghost" size="icon-sm">
+            <span className="sr-only">Actions for {props.client.name}</span>
             <EllipsisVertical className="h-4 w-4" />
           </Button>
         }
@@ -33,8 +35,8 @@ export function ClientActionsMenu(props: {
         {props.canEdit ? (
           <DropdownMenuItem onClick={props.onEdit}>Edit</DropdownMenuItem>
         ) : null}
-        <DropdownMenuSeparator />
-        {props.filter === "current" ? (
+        {props.canManage ? <DropdownMenuSeparator /> : null}
+        {props.canManage && props.filter === "current" ? (
           <DropdownMenuItem
             variant="destructive"
             onClick={() =>
@@ -47,7 +49,7 @@ export function ClientActionsMenu(props: {
           >
             Archive
           </DropdownMenuItem>
-        ) : (
+        ) : props.canManage ? (
           <>
             <DropdownMenuItem
               onClick={() =>
@@ -73,7 +75,7 @@ export function ClientActionsMenu(props: {
               Permanent delete
             </DropdownMenuItem>
           </>
-        )}
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

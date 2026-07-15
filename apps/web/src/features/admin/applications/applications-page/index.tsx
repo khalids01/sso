@@ -21,8 +21,16 @@ import {
   showMutationError,
 } from "../lifecycle";
 import type { LifecycleFilter, PendingAction } from "../page-types";
+import { useSession } from "@/providers/session-provider";
+import { Permissions } from "@rbac";
+import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 export function AdminApplicationsPage() {
+  const { session } = useSession();
+  const canManage = sessionHasPermission(
+    session?.permissions ?? [],
+    Permissions.AdminApplicationsManage,
+  );
   const queryClient = useQueryClient();
   const { viewMode, setViewMode } = useApplicationsViewStore();
   const [filter, setFilter] = useState<LifecycleFilter>("current");
@@ -106,10 +114,12 @@ export function AdminApplicationsPage() {
             />
             Refresh
           </Button>
-          <CreateApplicationDialog
-            isLoading={createApplicationMutation.isPending}
-            onCreate={(input) => createApplicationMutation.mutate(input)}
-          />
+          {canManage ? (
+            <CreateApplicationDialog
+              isLoading={createApplicationMutation.isPending}
+              onCreate={(input) => createApplicationMutation.mutate(input)}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -140,6 +150,7 @@ export function AdminApplicationsPage() {
               application={application}
               filter={filter}
               viewMode={viewMode}
+              canManage={canManage}
               onView={() => setViewApplication(application)}
               onEdit={() => setEditApplication(application)}
               onLifecycle={setPendingAction}

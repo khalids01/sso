@@ -103,6 +103,7 @@ export default function UserMenu() {
         render={
           <Button
             variant="outline"
+            aria-label="User menu"
             className="h-10 w-10 shrink-0 rounded-md"
           >
             <User className="size-5" />

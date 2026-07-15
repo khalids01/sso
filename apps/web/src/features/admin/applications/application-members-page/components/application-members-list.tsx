@@ -14,6 +14,7 @@ import { MemberStatusBadge } from "../../components/ui-controls";
 export function ApplicationMembersList(props: {
   application: AdminApplication;
   filter: MemberFilter;
+  canManage: boolean;
   onView: (member: ApplicationMember) => void;
   onLifecycle: (action: PendingAction) => void;
 }) {
@@ -72,6 +73,7 @@ export function ApplicationMembersList(props: {
       {items.map((item) => (
         <div
           key={item.id}
+          aria-label={`Member ${item.user.email}`}
           className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(180px,1fr)_minmax(220px,1fr)_auto_auto]"
         >
           <div className="min-w-0">
@@ -93,6 +95,7 @@ export function ApplicationMembersList(props: {
             application={props.application}
             member={item}
             filter={props.filter}
+            canManage={props.canManage}
             onView={() => props.onView(item)}
             onLifecycle={props.onLifecycle}
           />

@@ -15,6 +15,7 @@ export function ApplicationClientsList(props: {
   application: AdminApplication;
   filter: LifecycleFilter;
   canEdit: boolean;
+  canManage: boolean;
   onView: (client: ApplicationClient) => void;
   onEdit: (client: ApplicationClient) => void;
   onLifecycle: (action: PendingAction) => void;
@@ -68,6 +69,7 @@ export function ApplicationClientsList(props: {
       {items.map((item) => (
         <div
           key={item.id}
+          aria-label={`Client ${item.name}`}
           className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(180px,1fr)_minmax(220px,1fr)_auto_auto]"
         >
           <div className="min-w-0">
@@ -88,6 +90,7 @@ export function ApplicationClientsList(props: {
             client={item}
             filter={props.filter}
             canEdit={props.canEdit}
+            canManage={props.canManage}
             onView={() => props.onView(item)}
             onEdit={() => props.onEdit(item)}
             onLifecycle={props.onLifecycle}

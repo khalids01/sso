@@ -31,12 +31,20 @@ import type {
 import { ClientEditDialog } from "./components/client-edit-dialog";
 import { ClientViewDialog } from "./components/client-view-dialog";
 import { CreateClientDialog } from "./components/create-client-dialog";
+import { useSession } from "@/providers/session-provider";
+import { Permissions } from "@rbac";
+import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 export function ApplicationClientsPage({
   applicationId,
 }: {
   applicationId: string;
 }) {
+  const { session } = useSession();
+  const canManage = sessionHasPermission(
+    session?.permissions ?? [],
+    Permissions.AdminApplicationsManage,
+  );
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<LifecycleFilter>("current");
   const [createFor, setCreateFor] = useState<AdminApplication | null>(null);
@@ -133,15 +141,17 @@ export function ApplicationClientsPage({
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          <Button
-            size="sm"
-            className="gap-2"
-            disabled={isArchived}
-            onClick={() => setCreateFor(application)}
-          >
-            <Plus className="h-4 w-4" />
-            Create client
-          </Button>
+          {canManage ? (
+            <Button
+              size="sm"
+              className="gap-2"
+              disabled={isArchived}
+              onClick={() => setCreateFor(application)}
+            >
+              <Plus className="h-4 w-4" />
+              Create client
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -152,7 +162,8 @@ export function ApplicationClientsPage({
       <ApplicationClientsList
         application={application}
         filter={filter}
-        canEdit={!isArchived}
+        canEdit={canManage && !isArchived}
+        canManage={canManage}
         onView={setViewClient}
         onEdit={(client) => setEditClient({ application, client })}
         onLifecycle={setPendingAction}

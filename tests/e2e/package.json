@@ -1,0 +1,30 @@
+{
+  "name": "@sso/e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:unit": "bun test ./unit",
+    "report": "playwright show-report",
+    "cleanup": "bun run scripts/cleanup-run.ts",
+    "install:browsers": "playwright install chromium",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@db": "workspace:*",
+    "@env": "workspace:*",
+    "@redis": "workspace:*",
+    "@rbac": "workspace:*",
+    "better-auth": "^1.4.18",
+    "dotenv": "^17.3.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/bun": "^1.3.9",
+    "typescript": "^6.0.2"
+  }
+}

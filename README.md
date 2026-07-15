@@ -111,6 +111,20 @@ sso/
 - `bun run db:migrate`: run Prisma migrations
 - `bun run db:seed`: seed RBAC defaults
 - `bun run db:studio`: open Prisma Studio
+- `bun e2e`: run the guarded Chromium browser suite for the selected actor role
+- `bun e2e:headed`: watch the browser execute the E2E suite
+- `bun e2e:ui`: open Playwright's interactive test UI
+
+## Browser E2E Tests
+
+Playwright lives in the isolated `tests/e2e` workspace. It authenticates through
+the visible password form, derives expected behavior from the actor's effective
+session permissions, uses uniquely prefixed records, and cleans only run-owned
+data. Password login is disabled by default and must be enabled explicitly in
+both server and web environments.
+
+See [`tests/e2e/README.md`](tests/e2e/README.md) for safe local/staging setup,
+role-selected commands, live debugging, artifacts, and interrupted-run cleanup.
 
 ## Product Direction
 

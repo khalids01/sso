@@ -8,6 +8,7 @@ export function ApplicationItem(props: {
   application: AdminApplication;
   filter: LifecycleFilter;
   viewMode: "list" | "grid";
+  canManage: boolean;
   onView: () => void;
   onEdit: () => void;
   onLifecycle: (action: PendingAction) => void;
@@ -16,6 +17,7 @@ export function ApplicationItem(props: {
 
   return (
     <div
+      aria-label={`Application ${application.name}`}
       className={cn(
         "rounded-md border bg-background",
         viewMode === "list" &&
@@ -30,6 +32,7 @@ export function ApplicationItem(props: {
           <ApplicationActionsMenu
             application={application}
             filter={props.filter}
+            canManage={props.canManage}
             onView={props.onView}
             onEdit={props.onEdit}
             onLifecycle={props.onLifecycle}

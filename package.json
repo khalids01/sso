@@ -9,7 +9,8 @@
   "workspaces": {
     "packages": [
       "apps/*",
-      "packages/*"
+      "packages/*",
+      "tests/*"
     ],
     "catalog": {
       "dotenv": "^17.3.1",
@@ -33,7 +34,14 @@
     "db:reset": "turbo -F @db db:reset",
     "db:migrate": "turbo -F @db db:migrate",
     "db:seed": "bun --cwd packages/db --env-file ../../apps/server/.env db:seed",
-    "make-owner": "bun run packages/db/scripts/make-owner.ts"
+    "make-owner": "bun run packages/db/scripts/make-owner.ts",
+    "e2e": "bun --cwd tests/e2e test",
+    "e2e:headed": "bun --cwd tests/e2e test:headed",
+    "e2e:ui": "bun --cwd tests/e2e test:ui",
+    "e2e:debug": "bun --cwd tests/e2e test:debug",
+    "e2e:report": "bun --cwd tests/e2e report",
+    "e2e:cleanup": "bun --cwd tests/e2e cleanup",
+    "e2e:install": "bun --cwd tests/e2e install:browsers"
   },
   "dependencies": {
     "@env": "workspace:*",

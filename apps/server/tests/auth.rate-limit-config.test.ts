@@ -28,6 +28,18 @@ describe("auth rate-limit config", () => {
     );
   });
 
+  it("keeps password authentication gated and password signup disabled", async () => {
+    const authConfigPath = new URL(
+      "../../../packages/auth/src/auth-options.server.ts",
+      import.meta.url,
+    );
+    const source = await Bun.file(authConfigPath).text();
+
+    expect(source).toMatch(
+      /emailAndPassword:\s*\{\s*enabled:\s*env\.ENABLE_PASSWORD_AUTH,\s*disableSignUp:\s*true,\s*requireEmailVerification:\s*true,\s*minPasswordLength:\s*15,\s*maxPasswordLength:\s*128/s,
+    );
+  });
+
   it("keeps OAuth token and provider-management paths disabled", async () => {
     const authConfigPath = new URL(
       "../../../packages/auth/src/auth-options.server.ts",

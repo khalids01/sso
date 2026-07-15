@@ -11,6 +11,10 @@ export const env = createEnv({
   },
   client: {
     VITE_SERVER_URL: z.url(),
+    VITE_ENABLE_PASSWORD_AUTH: z
+      .string()
+      .default("false")
+      .transform((value) => value === "true"),
     VITE_ENABLE_POLAR: z
       .string()
       .default("true")

@@ -6,10 +6,10 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Apply the OAuth authorization-foundation migration through the normal migration
-workflow, then implement the token-exchange slice with JWT signing, audience and
-expiry claims, JWKS, and membership rechecks. Token issuance must remain disabled
-until those decisions and tests are complete.
+Configure dedicated allowlisted local E2E identities and run the new Playwright
+suite as admin and user. After browser verification, apply the OAuth
+authorization-foundation migration through the normal migration workflow, then
+continue the token-exchange slice. Token issuance remains disabled.
 
 ## Guardrails
 
@@ -77,15 +77,22 @@ until those decisions and tests are complete.
 - [ ] Add tests for token issuance and revocation.
 - [ ] Add migration smoke tests using old production flow examples.
 - [ ] Add observability for failed login, invalid redirect, token exchange, and revocation events.
+- [x] Add guarded permission-driven Playwright infrastructure for local and staging.
+- [x] Add visible password-login coverage and the Applications admin lifecycle journey.
+- [ ] Complete the first real local Playwright run with dedicated allowlisted identities.
 
 ## Latest Verification
 
-- Server tests: `175 pass`, `0 fail`.
+- Server tests: `176 pass`, `0 fail`.
 - OAuth Provider runtime initialization succeeded.
 - Disabled token, userinfo, registration, and discovery endpoints return `404`.
 - Forged signed continuation data returns `invalid_signature` before access lookup.
 - `bun run check-types` and the web production build pass.
 - `git diff --check` passes.
+- Password login remains environment-gated with password signup disabled.
+- Playwright discovers setup, cleanup, permission, application lifecycle, and sign-out tests.
+- E2E helper tests pass (`3 pass`, `0 fail`), Chromium launches successfully,
+  and the web client/SSR production build passes.
 - Web and email now resolve a single React `19.2.5` runtime, fixing the admin
   applications page hook-context crash introduced by the dependency refresh.
 - Application detail, clients, and members routes build for client and SSR;
