@@ -24,6 +24,8 @@ export const queryKeys = {
     },
     applications: {
       all: () => ["admin-applications"] as const,
+      detail: (applicationId: string) =>
+        [...queryKeys.admin.applications.all(), applicationId, "detail"] as const,
       list: (filter?: "current" | "archived") =>
         [...queryKeys.admin.applications.all(), "list", filter ?? "all"] as const,
       clientsRoot: (applicationId: string) =>

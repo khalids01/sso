@@ -10,6 +10,7 @@ export type AdminApplication = {
   logoUrl: string | null;
   homepageUrl: string | null;
   clientCount: number;
+  memberCount: number;
   createdAt: string;
   updatedAt: string;
 };

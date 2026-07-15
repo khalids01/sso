@@ -155,7 +155,9 @@ function AdminLayout() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visibleNavItems.map((item) => {
-                    const isActive = location.pathname === item.url;
+                    const isActive =
+                      location.pathname === item.url ||
+                      location.pathname.startsWith(`${item.url}/`);
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton

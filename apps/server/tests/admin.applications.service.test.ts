@@ -28,7 +28,7 @@ const applicationUpdateMock = mock(async (args: any) => ({
   homepageUrl: args.data.homepageUrl ?? null,
   createdAt: new Date("2026-07-10T08:00:00.000Z"),
   updatedAt: new Date("2026-07-10T08:10:00.000Z"),
-  _count: { clients: 0 },
+  _count: { clients: 0, members: 0 },
 }));
 const applicationDeleteMock = mock(async () => null);
 const applicationClientFindManyMock = mock(async (): Promise<any> => []);
@@ -228,7 +228,7 @@ describe("AdminApplicationsService", () => {
     });
   });
 
-  it("lists applications newest first with client counts", async () => {
+  it("lists applications newest first with client and member counts", async () => {
     applicationCountMock.mockResolvedValueOnce(1);
     applicationFindManyMock.mockResolvedValueOnce([
       {
@@ -241,7 +241,7 @@ describe("AdminApplicationsService", () => {
         homepageUrl: null,
         createdAt: new Date("2026-07-10T08:00:00.000Z"),
         updatedAt: new Date("2026-07-10T08:01:00.000Z"),
-        _count: { clients: 2 },
+        _count: { clients: 2, members: 3 },
       },
     ]);
 
@@ -266,6 +266,7 @@ describe("AdminApplicationsService", () => {
         _count: {
           select: {
             clients: true,
+            members: true,
           },
         },
       },
@@ -276,7 +277,55 @@ describe("AdminApplicationsService", () => {
     expect(result.items[0]).toMatchObject({
       slug: "dashboard",
       clientCount: 2,
+      memberCount: 3,
       createdAt: "2026-07-10T08:00:00.000Z",
+    });
+  });
+
+  it("gets an application by id with relation counts", async () => {
+    applicationFindUniqueMock.mockResolvedValueOnce({
+      id: "app-1",
+      slug: "dashboard",
+      name: "Dashboard",
+      description: null,
+      status: "active",
+      logoUrl: null,
+      homepageUrl: null,
+      createdAt: new Date("2026-07-10T08:00:00.000Z"),
+      updatedAt: new Date("2026-07-10T08:01:00.000Z"),
+      _count: { clients: 2, members: 3 },
+    });
+
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    const result = await adminApplicationsService.getById("app-1");
+
+    expect(applicationFindUniqueMock).toHaveBeenCalledWith({
+      where: { id: "app-1" },
+      select: expect.objectContaining({
+        _count: { select: { clients: true, members: true } },
+      }),
+    });
+    expect(result).toMatchObject({
+      id: "app-1",
+      clientCount: 2,
+      memberCount: 3,
+    });
+  });
+
+  it("returns not found when getting an unknown application", async () => {
+    applicationFindUniqueMock.mockResolvedValueOnce(null);
+
+    const { adminApplicationsService, ApplicationsPolicyError } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await expect(adminApplicationsService.getById("missing")).rejects.toMatchObject({
+      name: ApplicationsPolicyError.name,
+      status: 404,
+      message: "Application not found",
     });
   });
 

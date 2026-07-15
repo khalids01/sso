@@ -2,7 +2,7 @@ import type {
   AdminApplication,
   ApplicationClient,
   ApplicationMember,
-} from "../types";
+} from "./types";
 
 export type LifecycleFilter = "current" | "archived";
 export type MemberFilter = "current" | "revoked";

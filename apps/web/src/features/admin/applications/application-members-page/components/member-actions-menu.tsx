@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { AdminApplication, ApplicationMember } from "../../types";
-import type { MemberFilter, PendingAction } from "../page-types";
+import type { MemberFilter, PendingAction } from "../../page-types";
 
 export function MemberActionsMenu(props: {
   application: AdminApplication;

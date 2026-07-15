@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { ApplicationClient } from "../../types";
-import { InfoGrid } from "./info-grid";
+import { InfoGrid } from "../../components/info-grid";
 
 export function ClientViewDialog({
   client,

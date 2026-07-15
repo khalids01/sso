@@ -39,6 +39,8 @@ until those decisions and tests are complete.
 - [x] Add exact redirect URI and origin validation.
 - [x] Improve client redirect URI and allowed origin inputs with repeatable single-line rows and row-level validation.
 - [x] Split the applications management page into small local components and entity-specific CRUD modules.
+- [x] Replace nested application accordions with a flat registry and dedicated
+  client/member management pages with direct, refresh-safe URLs.
 - [ ] Add client secret generation, rotation, and safe display behavior.
 - [ ] Add application branding fields for login and email flows.
 
@@ -78,7 +80,7 @@ until those decisions and tests are complete.
 
 ## Latest Verification
 
-- Server tests: `172 pass`, `0 fail`.
+- Server tests: `175 pass`, `0 fail`.
 - OAuth Provider runtime initialization succeeded.
 - Disabled token, userinfo, registration, and discovery endpoints return `404`.
 - Forged signed continuation data returns `invalid_signature` before access lookup.
@@ -86,6 +88,8 @@ until those decisions and tests are complete.
 - `git diff --check` passes.
 - Web and email now resolve a single React `19.2.5` runtime, fixing the admin
   applications page hook-context crash introduced by the dependency refresh.
+- Application detail, clients, and members routes build for client and SSR;
+  unauthenticated direct-route smoke tests correctly redirect to `/login`.
 
 ## Version Risk
 

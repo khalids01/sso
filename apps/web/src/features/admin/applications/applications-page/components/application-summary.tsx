@@ -1,7 +1,8 @@
 import { AppWindow } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import type { AdminApplication } from "../../types";
-import { StatusBadge } from "./ui-controls";
+import { StatusBadge } from "../../components/ui-controls";
 
 export function ApplicationSummary({
   application,
@@ -15,7 +16,7 @@ export function ApplicationSummary({
       className={cn(
         "grid min-w-0 flex-1 gap-3 text-left",
         viewMode === "list"
-          ? "md:grid-cols-[minmax(220px,1fr)_160px_120px_120px]"
+          ? "md:grid-cols-[minmax(220px,1fr)_140px_110px_110px_120px]"
           : "grid-cols-1",
       )}
     >
@@ -33,9 +34,20 @@ export function ApplicationSummary({
       <div>
         <StatusBadge status={application.status} />
       </div>
-      <div className="text-xs text-muted-foreground">
+      <Link
+        to="/admin/applications/$applicationId/clients"
+        params={{ applicationId: application.id }}
+        className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+      >
         {application.clientCount} clients
-      </div>
+      </Link>
+      <Link
+        to="/admin/applications/$applicationId/members"
+        params={{ applicationId: application.id }}
+        className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+      >
+        {application.memberCount} members
+      </Link>
       <div className="text-xs text-muted-foreground">
         {new Date(application.createdAt).toLocaleDateString()}
       </div>

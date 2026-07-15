@@ -2,7 +2,7 @@ import { Grid2X2, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ApplicationMemberStatus, ApplicationStatus } from "../types";
-import type { LifecycleFilter, MemberFilter } from "./page-types";
+import type { LifecycleFilter, MemberFilter } from "../page-types";
 
 const statusVariant: Record<
   ApplicationStatus | ApplicationMemberStatus,

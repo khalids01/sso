@@ -31,6 +31,7 @@ const applicationSelect = {
   _count: {
     select: {
       clients: true,
+      members: true,
     },
   },
 } satisfies Prisma.ApplicationSelect;
@@ -133,7 +134,7 @@ function mapApplication(row: {
   homepageUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
-  _count?: { clients: number };
+  _count?: { clients: number; members: number };
 }) {
   return {
     id: row.id,
@@ -144,6 +145,7 @@ function mapApplication(row: {
     logoUrl: row.logoUrl,
     homepageUrl: row.homepageUrl,
     clientCount: row._count?.clients ?? 0,
+    memberCount: row._count?.members ?? 0,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -307,6 +309,19 @@ export class AdminApplicationsService {
       page,
       limit,
     };
+  }
+
+  async getById(id: string) {
+    const application = await prisma.application.findUnique({
+      where: { id },
+      select: applicationSelect,
+    });
+
+    if (!application) {
+      throw new ApplicationsPolicyError("Application not found", 404);
+    }
+
+    return mapApplication(application);
   }
 
   async create(input: CreateApplicationInput, actor: AdminApplicationsActor) {

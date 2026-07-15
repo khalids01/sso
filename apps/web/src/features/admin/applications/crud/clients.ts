@@ -1,6 +1,6 @@
 import { client } from "@/lib/client";
-import type { CreateApplicationClientInput } from "../../schema";
-import type { ApplicationClient } from "../../types";
+import type { CreateApplicationClientInput } from "../schema";
+import type { ApplicationClient } from "../types";
 
 export type CreateClientInput = {
   applicationId: string;

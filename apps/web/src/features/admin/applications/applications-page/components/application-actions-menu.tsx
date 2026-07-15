@@ -1,4 +1,5 @@
 import { EllipsisVertical } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,14 +9,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { AdminApplication } from "../../types";
-import type { LifecycleFilter, PendingAction } from "../page-types";
+import type { LifecycleFilter, PendingAction } from "../../page-types";
 
 export function ApplicationActionsMenu(props: {
   application: AdminApplication;
   filter: LifecycleFilter;
   onView: () => void;
   onEdit: () => void;
-  onCreateClient: () => void;
   onLifecycle: (action: PendingAction) => void;
 }) {
   return (
@@ -34,11 +34,28 @@ export function ApplicationActionsMenu(props: {
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={props.onView}>View</DropdownMenuItem>
         <DropdownMenuItem onClick={props.onEdit}>Edit</DropdownMenuItem>
+        <DropdownMenuItem
+          render={
+            <Link
+              to="/admin/applications/$applicationId/clients"
+              params={{ applicationId: props.application.id }}
+            />
+          }
+        >
+          Manage clients
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          render={
+            <Link
+              to="/admin/applications/$applicationId/members"
+              params={{ applicationId: props.application.id }}
+            />
+          }
+        >
+          Manage members
+        </DropdownMenuItem>
         {props.filter === "current" ? (
           <>
-            <DropdownMenuItem onClick={props.onCreateClient}>
-              Create new client
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"

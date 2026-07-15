@@ -7,13 +7,14 @@ import type {
   ApplicationClient,
   ApplicationClientsResponse,
 } from "../../types";
-import type { LifecycleFilter, PendingAction } from "../page-types";
+import type { LifecycleFilter, PendingAction } from "../../page-types";
 import { ClientActionsMenu } from "./client-actions-menu";
-import { StatusBadge, UrlList } from "./ui-controls";
+import { StatusBadge, UrlList } from "../../components/ui-controls";
 
 export function ApplicationClientsList(props: {
   application: AdminApplication;
   filter: LifecycleFilter;
+  canEdit: boolean;
   onView: (client: ApplicationClient) => void;
   onEdit: (client: ApplicationClient) => void;
   onLifecycle: (action: PendingAction) => void;
@@ -42,6 +43,14 @@ export function ApplicationClientsList(props: {
     return (
       <div className="py-4 text-sm text-muted-foreground">
         Loading clients...
+      </div>
+    );
+  }
+
+  if (clientsQuery.isError) {
+    return (
+      <div className="rounded-md border px-4 py-6 text-center text-sm text-destructive">
+        Failed to load clients.
       </div>
     );
   }
@@ -78,6 +87,7 @@ export function ApplicationClientsList(props: {
             application={props.application}
             client={item}
             filter={props.filter}
+            canEdit={props.canEdit}
             onView={() => props.onView(item)}
             onEdit={() => props.onEdit(item)}
             onLifecycle={props.onLifecycle}

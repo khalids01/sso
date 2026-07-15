@@ -1,5 +1,5 @@
 import { client } from "@/lib/client";
-import type { ApplicationMember } from "../../types";
+import type { ApplicationMember } from "../types";
 
 export type GrantMemberInput = {
   applicationId: string;

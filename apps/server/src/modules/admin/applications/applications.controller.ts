@@ -81,6 +81,22 @@ export const applicationsController = new Elysia({
             },
           },
         )
+        .get(
+          "/:id",
+          async ({ params: { id }, set }) => {
+            try {
+              return await adminApplicationsService.getById(id);
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsRead),
+            detail: {
+              summary: "Get an application",
+            },
+          },
+        )
         .patch(
           "/:id",
           async ({ params: { id }, body, set, userId }) => {

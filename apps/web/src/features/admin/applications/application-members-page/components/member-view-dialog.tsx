@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { ApplicationMember } from "../../types";
-import { InfoGrid } from "./info-grid";
+import { InfoGrid } from "../../components/info-grid";
 
 export function MemberViewDialog({
   member,

@@ -8,12 +8,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { AdminApplication, ApplicationClient } from "../../types";
-import type { LifecycleFilter, PendingAction } from "../page-types";
+import type { LifecycleFilter, PendingAction } from "../../page-types";
 
 export function ClientActionsMenu(props: {
   application: AdminApplication;
   client: ApplicationClient;
   filter: LifecycleFilter;
+  canEdit: boolean;
   onView: () => void;
   onEdit: () => void;
   onLifecycle: (action: PendingAction) => void;
@@ -29,7 +30,9 @@ export function ClientActionsMenu(props: {
       />
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem onClick={props.onView}>View</DropdownMenuItem>
-        <DropdownMenuItem onClick={props.onEdit}>Edit</DropdownMenuItem>
+        {props.canEdit ? (
+          <DropdownMenuItem onClick={props.onEdit}>Edit</DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         {props.filter === "current" ? (
           <DropdownMenuItem

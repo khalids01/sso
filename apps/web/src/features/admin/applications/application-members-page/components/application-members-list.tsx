@@ -7,9 +7,9 @@ import type {
   ApplicationMember,
   ApplicationMembersResponse,
 } from "../../types";
-import type { MemberFilter, PendingAction } from "../page-types";
+import type { MemberFilter, PendingAction } from "../../page-types";
 import { MemberActionsMenu } from "./member-actions-menu";
-import { MemberStatusBadge } from "./ui-controls";
+import { MemberStatusBadge } from "../../components/ui-controls";
 
 export function ApplicationMembersList(props: {
   application: AdminApplication;
@@ -47,6 +47,14 @@ export function ApplicationMembersList(props: {
     return (
       <div className="py-4 text-sm text-muted-foreground">
         Loading members...
+      </div>
+    );
+  }
+
+  if (membersQuery.isError) {
+    return (
+      <div className="rounded-md border px-4 py-6 text-center text-sm text-destructive">
+        Failed to load members.
       </div>
     );
   }

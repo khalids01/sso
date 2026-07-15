@@ -33,6 +33,8 @@ import { Route as ProtectedAccountRouteImport } from './routes/_protected/accoun
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AdminRolesRoleIdRouteImport } from './routes/admin/roles/$roleId'
+import { Route as AdminApplicationsApplicationIdMembersRouteImport } from './routes/admin/applications_/$applicationId/members'
+import { Route as AdminApplicationsApplicationIdClientsRouteImport } from './routes/admin/applications_/$applicationId/clients'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -153,6 +155,18 @@ const AdminRolesRoleIdRoute = AdminRolesRoleIdRouteImport.update({
   path: '/$roleId',
   getParentRoute: () => AdminRolesRoute,
 } as any)
+const AdminApplicationsApplicationIdMembersRoute =
+  AdminApplicationsApplicationIdMembersRouteImport.update({
+    id: '/applications_/$applicationId/members',
+    path: '/applications/$applicationId/members',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminApplicationsApplicationIdClientsRoute =
+  AdminApplicationsApplicationIdClientsRouteImport.update({
+    id: '/applications_/$applicationId/clients',
+    path: '/applications/$applicationId/clients',
+    getParentRoute: () => AdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
@@ -178,6 +192,8 @@ export interface FileRoutesByFullPath {
   '/payment/success': typeof PaymentSuccessRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
+  '/admin/applications/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
+  '/admin/applications/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -202,6 +218,8 @@ export interface FileRoutesByTo {
   '/payment/success': typeof PaymentSuccessRoute
   '/admin': typeof AdminIndexRoute
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
+  '/admin/applications/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
+  '/admin/applications/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -229,6 +247,8 @@ export interface FileRoutesById {
   '/_public/': typeof PublicIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
+  '/admin/applications_/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
+  '/admin/applications_/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -256,6 +276,8 @@ export interface FileRouteTypes {
     | '/payment/success'
     | '/admin/'
     | '/admin/roles/$roleId'
+    | '/admin/applications/$applicationId/clients'
+    | '/admin/applications/$applicationId/members'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -280,6 +302,8 @@ export interface FileRouteTypes {
     | '/payment/success'
     | '/admin'
     | '/admin/roles/$roleId'
+    | '/admin/applications/$applicationId/clients'
+    | '/admin/applications/$applicationId/members'
   id:
     | '__root__'
     | '/_protected'
@@ -306,6 +330,8 @@ export interface FileRouteTypes {
     | '/_public/'
     | '/admin/'
     | '/admin/roles/$roleId'
+    | '/admin/applications_/$applicationId/clients'
+    | '/admin/applications_/$applicationId/members'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -490,6 +516,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRolesRoleIdRouteImport
       parentRoute: typeof AdminRolesRoute
     }
+    '/admin/applications_/$applicationId/members': {
+      id: '/admin/applications_/$applicationId/members'
+      path: '/applications/$applicationId/members'
+      fullPath: '/admin/applications/$applicationId/members'
+      preLoaderRoute: typeof AdminApplicationsApplicationIdMembersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/applications_/$applicationId/clients': {
+      id: '/admin/applications_/$applicationId/clients'
+      path: '/applications/$applicationId/clients'
+      fullPath: '/admin/applications/$applicationId/clients'
+      preLoaderRoute: typeof AdminApplicationsApplicationIdClientsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -534,6 +574,8 @@ interface AdminRouteChildren {
   AdminVisitorsRoute: typeof AdminVisitorsRoute
   AdminWebhooksRoute: typeof AdminWebhooksRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminApplicationsApplicationIdClientsRoute: typeof AdminApplicationsApplicationIdClientsRoute
+  AdminApplicationsApplicationIdMembersRoute: typeof AdminApplicationsApplicationIdMembersRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -547,6 +589,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminVisitorsRoute: AdminVisitorsRoute,
   AdminWebhooksRoute: AdminWebhooksRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminApplicationsApplicationIdClientsRoute:
+    AdminApplicationsApplicationIdClientsRoute,
+  AdminApplicationsApplicationIdMembersRoute:
+    AdminApplicationsApplicationIdMembersRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

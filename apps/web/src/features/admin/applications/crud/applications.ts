@@ -1,5 +1,5 @@
 import { client } from "@/lib/client";
-import type { AdminApplication, ApplicationStatus } from "../../types";
+import type { AdminApplication, ApplicationStatus } from "../types";
 
 export type UpdateApplicationInput = {
   id: string;
@@ -10,6 +10,27 @@ export type UpdateApplicationInput = {
     status?: ApplicationStatus;
   };
 };
+
+export class ApplicationRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
+    super(message);
+    this.name = "ApplicationRequestError";
+  }
+}
+
+export async function getApplication(id: string) {
+  const { data, error } = await client.admin.applications({ id }).get();
+  if (error) {
+    throw new ApplicationRequestError(
+      "Failed to load application",
+      "status" in error ? Number(error.status) : undefined,
+    );
+  }
+  return data as AdminApplication;
+}
 
 export async function createApplication(input: {
   name: string;
