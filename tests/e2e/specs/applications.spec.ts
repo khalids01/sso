@@ -29,7 +29,7 @@ async function createClient(page: Page, name: string) {
   await dialog.getByPlaceholder("https://app.example.com/auth/callback").fill(
     `https://${e2eEnv.runId}.example.test/auth/callback`,
   );
-  await dialog.getByPlaceholder("https://app.example.com").fill(
+  await dialog.getByPlaceholder("https://app.example.com", { exact: true }).fill(
     `https://${e2eEnv.runId}.example.test`,
   );
   await dialog.getByRole("button", { name: "Create client" }).click();

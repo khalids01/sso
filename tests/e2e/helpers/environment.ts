@@ -15,6 +15,11 @@ const booleanString = z
   .default("false")
   .transform((value) => value === "true");
 
+const enabledBooleanString = z
+  .enum(["true", "false"])
+  .default("true")
+  .transform((value) => value === "true");
+
 const commaSeparated = z
   .string()
   .default("")
@@ -54,6 +59,7 @@ const schema = z.object({
   E2E_ALLOWED_REDIS_HOSTS: commaSeparated,
   E2E_RUN_ID: z.string().optional(),
   E2E_SLOW_MO: z.coerce.number().int().min(0).max(5_000).default(0),
+  E2E_SHOW_CURSOR: enabledBooleanString,
 });
 
 const parsed = schema.parse(process.env);

@@ -39,6 +39,7 @@ export function ApplicationActionsMenu(props: {
           <DropdownMenuItem onClick={props.onEdit}>Edit</DropdownMenuItem>
         ) : null}
         <DropdownMenuItem
+          nativeButton={false}
           render={
             <Link
               to="/admin/applications/$applicationId/clients"
@@ -49,6 +50,7 @@ export function ApplicationActionsMenu(props: {
           Manage clients
         </DropdownMenuItem>
         <DropdownMenuItem
+          nativeButton={false}
           render={
             <Link
               to="/admin/applications/$applicationId/members"

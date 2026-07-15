@@ -17,6 +17,7 @@ export function ApplicationManagementHeader({
       <Button
         variant="ghost"
         className="-ml-3 gap-2"
+        nativeButton={false}
         render={<Link to="/admin/applications" />}
       >
         <ArrowLeft className="h-4 w-4" />

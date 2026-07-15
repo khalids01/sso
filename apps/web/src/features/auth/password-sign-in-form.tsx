@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 
@@ -12,7 +13,6 @@ import {
   passwordSignInSchema,
   type PasswordSignInValues,
 } from "./sign-in-schema";
-import { useHydrated } from "./use-hydrated";
 
 export function PasswordSignInForm() {
   const hydrated = useHydrated();

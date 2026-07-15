@@ -58,7 +58,9 @@ bun e2e:ui
 bun e2e:debug
 ```
 
-Set `E2E_SLOW_MO=300` to slow visible actions. On failure, Playwright retains a
+Set `E2E_SLOW_MO=300` to slow visible actions. A red pointer and click ripple are
+included in headed runs and recorded videos by default; set
+`E2E_SHOW_CURSOR=false` to hide them. On failure, Playwright retains a
 screenshot, video, trace, browser console errors, failed requests, and an HTML
 report. Open the report with:
 

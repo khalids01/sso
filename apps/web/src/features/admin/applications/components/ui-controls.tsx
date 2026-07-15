@@ -26,7 +26,6 @@ export function SegmentedFilter({
     <div className="inline-flex rounded-md border bg-background p-1">
       <Button
         type="button"
-        aria-label="List view"
         size="sm"
         variant={value === "current" ? "secondary" : "ghost"}
         onClick={() => onChange("current")}
@@ -35,7 +34,6 @@ export function SegmentedFilter({
       </Button>
       <Button
         type="button"
-        aria-label="Grid view"
         size="sm"
         variant={value === "archived" ? "secondary" : "ghost"}
         onClick={() => onChange("archived")}
@@ -86,6 +84,7 @@ export function ViewModeToggle({
     <div className="inline-flex rounded-md border bg-background p-1">
       <Button
         type="button"
+        aria-label="List view"
         size="icon-sm"
         variant={value === "list" ? "secondary" : "ghost"}
         onClick={() => onChange("list")}
@@ -94,6 +93,7 @@ export function ViewModeToggle({
       </Button>
       <Button
         type="button"
+        aria-label="Grid view"
         size="icon-sm"
         variant={value === "grid" ? "secondary" : "ghost"}
         onClick={() => onChange("grid")}

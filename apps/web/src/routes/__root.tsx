@@ -9,6 +9,7 @@ import { TanstackQueryProvider } from "@/providers/tanstack-query";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { getRootSession } from "@/features/user/lib/get-root-session";
 import { VisitorTracker } from "@/features/visitors/visitor-tracker";
+import { useHydrated } from "@/hooks/use-hydrated";
 import type { ClientSessionResult } from "@auth/client";
 
 
@@ -43,14 +44,14 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootDocument() {
-
+  const hydrated = useHydrated();
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body inert={hydrated ? undefined : true}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TanstackQueryProvider>
             <Outlet />
