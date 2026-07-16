@@ -14,6 +14,9 @@ export type RunState = {
     memberId: string;
     clientId: string;
     redirectUri: string;
+    revocationMemberId: string;
+    revocationUserId: string;
+    revocationSubject: string;
   };
 };
 

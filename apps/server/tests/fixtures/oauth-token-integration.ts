@@ -300,6 +300,7 @@ try {
       scope: payload.scope,
       applicationId: payload.application_id,
       membershipId: payload.membership_id,
+      authorizationVersion: payload.authorization_version,
       hasPlatformPermissions: "permissions" in payload || "roles" in payload,
     },
     idClaims: {

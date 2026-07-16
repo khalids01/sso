@@ -1,9 +1,13 @@
-import { createRouter as createTanStackRouter } from "@tanstack/react-router";
+import {
+  createRouter as createTanStackRouter,
+  defaultParseSearch,
+} from "@tanstack/react-router";
 
 import Loader from "./components/loader";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 import type { RouterAppContext } from "./routes/__root";
+import { stringifyRepeatedSearchParams } from "./lib/search-params";
 
 export const getRouter = () => {
   const router = createTanStackRouter({
@@ -13,6 +17,8 @@ export const getRouter = () => {
     context: {} satisfies RouterAppContext,
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: () => <div>Not Found</div>,
+    parseSearch: defaultParseSearch,
+    stringifySearch: stringifyRepeatedSearchParams,
     Wrap: ({ children }) => <>{children}</>,
   });
   return router;

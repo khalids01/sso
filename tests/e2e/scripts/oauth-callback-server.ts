@@ -1,4 +1,4 @@
-const port = Number(new URL(process.env.E2E_CALLBACK_ORIGIN ?? "http://127.0.0.1:5010").port || 5010);
+const port = Number(process.env.E2E_CALLBACK_LISTEN_PORT ?? 5010);
 
 const callbackPage = `<!doctype html>
 <html lang="en">
@@ -17,10 +17,12 @@ const callbackPage = `<!doctype html>
   </body>
 </html>`;
 
+const revocationEvents = new Map<string, string>();
+
 Bun.serve({
   hostname: "127.0.0.1",
   port,
-  fetch(request) {
+  async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === "/health") return new Response("OK");
     if (url.pathname === "/callback") {
@@ -31,6 +33,24 @@ Bun.serve({
           "referrer-policy": "no-referrer",
         },
       });
+    }
+    if (url.pathname === "/revocations" && request.method === "POST") {
+      const eventId = request.headers.get("x-sso-event-id");
+      if (!eventId || request.headers.get("content-type") !== "application/jwt") {
+        return new Response("Invalid event", { status: 400 });
+      }
+      revocationEvents.set(eventId, await request.text());
+      return new Response(null, { status: 204 });
+    }
+    if (url.pathname === "/revocations" && request.method === "GET") {
+      return Response.json(
+        Array.from(revocationEvents, ([eventId, token]) => ({ eventId, token })),
+        { headers: { "cache-control": "no-store" } },
+      );
+    }
+    if (url.pathname === "/revocations" && request.method === "DELETE") {
+      revocationEvents.clear();
+      return new Response(null, { status: 204 });
     }
     return new Response("Not Found", { status: 404 });
   },

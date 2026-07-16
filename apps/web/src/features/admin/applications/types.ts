@@ -45,6 +45,7 @@ export type ApplicationMember = {
   applicationId: string;
   userId: string;
   status: ApplicationMemberStatus;
+  authorizationVersion: number;
   user: {
     id: string;
     name: string;
@@ -55,6 +56,28 @@ export type ApplicationMember = {
   };
   createdAt: string;
   updatedAt: string;
+};
+
+export type ApplicationRevocationEndpoint = {
+  id: string;
+  applicationId: string;
+  url: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplicationRevocationDelivery = {
+  id: string;
+  eventType: string;
+  reason: string;
+  status: string;
+  attemptCount: number;
+  nextAttemptAt: string;
+  deliveredAt: string | null;
+  lastHttpStatus: number | null;
+  lastErrorCode: string | null;
+  createdAt: string;
 };
 
 export type ApplicationMembersResponse = {

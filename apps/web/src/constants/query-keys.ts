@@ -47,6 +47,10 @@ export const queryKeys = {
           filter ?? "all",
           search ?? "",
         ] as const,
+      revocation: (applicationId: string) =>
+        [...queryKeys.admin.applications.all(), applicationId, "revocation"] as const,
+      revocationDeliveries: (applicationId: string) =>
+        [...queryKeys.admin.applications.revocation(applicationId), "deliveries"] as const,
     },
     visitors: {
       overview: (params: {

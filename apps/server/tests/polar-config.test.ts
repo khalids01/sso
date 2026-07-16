@@ -71,4 +71,18 @@ describe("Polar config", () => {
     expect(result.stderr).toContain("POLAR_WEBHOOK_SECRET");
     expect(result.stderr).toContain("POLAR_SUCCESS_URL");
   });
+
+  it("refuses local application webhook delivery in production", async () => {
+    const result = await runEnvImport({
+      ...baseEnv,
+      NODE_ENV: "production",
+      ENABLE_POLAR: "false",
+      ALLOW_LOCAL_APPLICATION_WEBHOOKS: "true",
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain(
+      "ALLOW_LOCAL_APPLICATION_WEBHOOKS cannot be enabled in production",
+    );
+  });
 });

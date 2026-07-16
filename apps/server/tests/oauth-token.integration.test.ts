@@ -36,6 +36,7 @@ describe("OAuth authorization-code token exchange", () => {
         scope: "openid",
         applicationId: expect.any(String),
         membershipId: expect.any(String),
+        authorizationVersion: 1,
         hasPlatformPermissions: false,
       },
       idClaims: {

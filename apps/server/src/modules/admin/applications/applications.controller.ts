@@ -14,8 +14,10 @@ import {
   CreateApplicationClientDto,
   CreateApplicationMemberDto,
   CreateApplicationDto,
+  RevocationDeliveriesQueryDto,
   UpdateApplicationClientDto,
   UpdateApplicationDto,
+  UpdateRevocationEndpointDto,
 } from "./applications.dto";
 
 function getActor(ctx: { userId?: string }): AdminApplicationsActor {
@@ -401,6 +403,62 @@ export const applicationsController = new Elysia({
             detail: {
               summary: "Permanently delete an archived application client",
             },
+          },
+        )
+        .get(
+          "/:id/revocation",
+          ({ params: { id } }) =>
+            adminApplicationsService.getRevocationEndpoint(id),
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsRead),
+            detail: { summary: "Get the application revocation endpoint" },
+          },
+        )
+        .put(
+          "/:id/revocation",
+          async ({ params: { id }, body, set, userId }) => {
+            try {
+              return await adminApplicationsService.updateRevocationEndpoint(
+                id,
+                body,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            body: UpdateRevocationEndpointDto,
+            detail: { summary: "Configure the application revocation endpoint" },
+          },
+        )
+        .get(
+          "/:id/revocation/deliveries",
+          ({ params: { id }, query }) =>
+            adminApplicationsService.listRevocationDeliveries(id, query.limit),
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsRead),
+            query: RevocationDeliveriesQueryDto,
+            detail: { summary: "List application revocation deliveries" },
+          },
+        )
+        .post(
+          "/:id/revocation/deliveries/:deliveryId/retry",
+          async ({ params: { id, deliveryId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.retryRevocationDelivery(
+                id,
+                deliveryId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: { summary: "Retry a dead-lettered revocation delivery" },
           },
         ),
   );

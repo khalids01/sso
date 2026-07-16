@@ -5,7 +5,10 @@ import { getUserSessionRbac } from "../../db/src/rbac/session.server";
 import { betterAuth } from "better-auth";
 
 import { authOptions } from "./auth-options.server";
-import { applicationAuthorizationGuard } from "./lib/application-authorization.server";
+import {
+  applicationAuthorizationGuard,
+  shouldRedirectToAuthorizationUI,
+} from "./lib/application-authorization.server";
 import { hashOAuthToken } from "./lib/oauth-token.server";
 
 export const auth = betterAuth({
@@ -54,7 +57,8 @@ export const auth = betterAuth({
       },
       postLogin: {
         page: `${env.CORS_ORIGIN}/authorize`,
-        shouldRedirect: () => true,
+        shouldRedirect: ({ headers }) =>
+          shouldRedirectToAuthorizationUI(headers, env.CORS_ORIGIN),
         consentReferenceId: () => undefined,
       },
     }),

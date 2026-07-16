@@ -124,8 +124,21 @@ sso/
 Playwright lives in the isolated `tests/e2e` workspace. It authenticates through
 the visible password form, derives expected behavior from the actor's effective
 session permissions, uses uniquely prefixed records, and cleans only run-owned
-data. Password login is disabled by default and must be enabled explicitly in
-both server and web environments.
+data. It also verifies signed application revocation delivery through the
+callback harness. Password login is disabled by default and must be enabled
+explicitly in both server and web environments.
+
+Application revocation delivery is also disabled by default:
+
+```env
+ENABLE_APPLICATION_REVOCATION_DELIVERY=false
+ALLOW_LOCAL_APPLICATION_WEBHOOKS=false
+```
+
+The first flag starts the durable delivery worker. The second is only for local
+E2E loopback receivers and is rejected in production. See
+[`docs/application-revocation-webhooks.md`](docs/application-revocation-webhooks.md)
+for the application backend contract.
 
 See [`tests/e2e/README.md`](tests/e2e/README.md) for safe local/staging setup,
 role-selected commands, live debugging, artifacts, and interrupted-run cleanup.

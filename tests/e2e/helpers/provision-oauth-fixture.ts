@@ -2,11 +2,13 @@ import { randomBytes } from "node:crypto";
 import { e2eEnv } from "./environment";
 import { updateRunState } from "./run-state";
 
-export async function provisionOAuthFixture(actorId: string) {
+export async function provisionOAuthFixture(actorId: string, revocationUserId: string) {
   const { default: prisma } = await import("../../../packages/db/src/client.server");
   const slug = `${e2eEnv.runPrefix}oauth`;
   const clientId = `sso_client_${randomBytes(18).toString("base64url")}`;
   const redirectUri = `${e2eEnv.E2E_CALLBACK_ORIGIN}/callback`;
+  const actorSubject = randomBytes(32).toString("base64url");
+  const revocationSubject = randomBytes(32).toString("base64url");
 
   try {
     const application = await prisma.application.create({
@@ -34,32 +36,41 @@ export async function provisionOAuthFixture(actorId: string) {
           },
         },
         members: {
-          create: { userId: actorId, status: "active" },
+          create: [
+            { userId: actorId, status: "active" },
+            { userId: revocationUserId, status: "active" },
+          ],
         },
         subjects: {
-          create: {
-            userId: actorId,
-            subject: randomBytes(32).toString("base64url"),
-          },
+          create: [
+            { userId: actorId, subject: actorSubject },
+            { userId: revocationUserId, subject: revocationSubject },
+          ],
         },
       },
       select: {
         id: true,
         clients: { select: { id: true, clientId: true } },
-        members: { select: { id: true } },
+        members: { select: { id: true, userId: true } },
       },
     });
     const client = application.clients[0]!;
-    const member = application.members[0]!;
+    const member = application.members.find((item) => item.userId === actorId)!;
+    const revocationMember = application.members.find(
+      (item) => item.userId === revocationUserId,
+    )!;
     updateRunState((state) => {
       state.applicationIds.push(application.id);
       state.clientIds.push(client.id);
-      state.membershipIds.push(member.id);
+      state.membershipIds.push(member.id, revocationMember.id);
       state.oauthFixture = {
         applicationId: application.id,
         memberId: member.id,
         clientId: client.clientId,
         redirectUri,
+        revocationMemberId: revocationMember.id,
+        revocationUserId,
+        revocationSubject,
       };
     });
   } finally {

@@ -53,16 +53,21 @@ export function assertE2ESafety() {
   refuseProduction(e2eEnv.E2E_WEB_ORIGIN);
   refuseProduction(e2eEnv.E2E_API_ORIGIN);
   refuseProduction(e2eEnv.E2E_CALLBACK_ORIGIN);
-  requireLoopback(e2eEnv.E2E_CALLBACK_ORIGIN, "E2E_CALLBACK_ORIGIN");
 
   if (e2eEnv.E2E_TARGET === "local") {
     requireLoopback(e2eEnv.E2E_WEB_ORIGIN, "E2E_WEB_ORIGIN");
     requireLoopback(e2eEnv.E2E_API_ORIGIN, "E2E_API_ORIGIN");
+    requireLoopback(e2eEnv.E2E_CALLBACK_ORIGIN, "E2E_CALLBACK_ORIGIN");
     return;
   }
 
   requireExact(e2eEnv.E2E_WEB_ORIGIN, e2eEnv.E2E_ALLOWED_WEB_ORIGINS, "Web origin");
   requireExact(e2eEnv.E2E_API_ORIGIN, e2eEnv.E2E_ALLOWED_API_ORIGINS, "API origin");
+  requireExact(
+    e2eEnv.E2E_CALLBACK_ORIGIN,
+    e2eEnv.E2E_ALLOWED_CALLBACK_ORIGINS,
+    "Callback origin",
+  );
   requireServiceHost(
     e2eEnv.E2E_DATABASE_URL || undefined,
     e2eEnv.E2E_ALLOWED_DATABASE_HOSTS,

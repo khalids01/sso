@@ -75,7 +75,8 @@ OAuth errors and cannot reuse a consumed code. Better Auth's built-in token and
 generic session-JWT endpoints remain disabled.
 
 Tokens use stable configured issuer metadata, pairwise application subjects, and
-ten-minute RS256 signatures. Access tokens are application-audienced; ID tokens
+ten-minute RS256 signatures. Access tokens are application-audienced and carry
+the membership's monotonic `authorization_version`; ID tokens
 are client-audienced and preserve the authorization nonce. Public keys are
 published at `/api/auth/jwks` with stable key IDs and cache headers. Private keys
 are encrypted at rest, rotate every 30 days, and remain publicly verifiable for a
@@ -87,6 +88,23 @@ receive only `code` and `state`; tokens do not pass through browser URLs or the
 web frontend. Userinfo, introspection, revocation, logout, discovery,
 registration, and provider client-management endpoints remain deferred.
 
+Applications verify tokens locally and do not call SSO during normal requests.
+Each application can configure one revocation webhook. Membership suspension or
+revocation and platform user ban/archive create an application-specific durable
+outbox event in the same database transaction as the state change, version bump,
+and audit event. Global user changes fan out with a different pairwise subject
+for every application. Application disable/archive emits an application-wide
+event. Restoration increments the version again, so previously issued tokens
+cannot become current.
+
+The delivery worker signs each event as a short-lived RS256 JWT using the same
+JWKS. Events are application-audienced, idempotent by stable `jti`, and contain
+only the pairwise subject and application/membership revocation context. Workers
+claim rows with database leases and `FOR UPDATE SKIP LOCKED`, reject redirects
+and unsafe destinations, retry transient failures for 24 hours, and dead-letter
+terminal failures. Delivery is deployment-gated and defaults off. See
+`docs/application-revocation-webhooks.md` for the receiver contract.
+
 Better Auth and its OAuth Provider are exactly version-matched at stable
 `1.6.23`. The SSO-owned signed-query, membership, token, audience, and endpoint
 guards remain in place instead of broadening the protocol to upstream defaults.
@@ -96,10 +114,11 @@ and derives audiences from the code-bound application and client. See
 `docs/better-auth-1.6.23-audit.md` for the compatibility, schema, and dependency
 review.
 
-Issuance remains disabled until an explicitly allowlisted staging deployment
-passes both role journeys. The next protocol slice is application-local session
-revocation events and authenticated introspection for sensitive operations;
-social-provider migration remains separate.
+Issuance and revocation delivery remain disabled until an explicitly allowlisted
+staging deployment passes both role journeys. Authenticated introspection remains
+deferred until a real sensitive-client contract requires it. Production client
+inventory and pilot selection come next; social-provider migration remains a
+separate slice.
 
 ## Legacy Migration Notes
 

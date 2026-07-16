@@ -20,6 +20,14 @@ export const env = createEnv({
       .string()
       .default("false")
       .transform((value) => value === "true"),
+    ENABLE_APPLICATION_REVOCATION_DELIVERY: z
+      .string()
+      .default("false")
+      .transform((value) => value === "true"),
+    ALLOW_LOCAL_APPLICATION_WEBHOOKS: z
+      .string()
+      .default("false")
+      .transform((value) => value === "true"),
     POLAR_ACCESS_TOKEN: z.string().optional(),
     POLAR_WEBHOOK_SECRET: z.string().optional(),
     POLAR_SUCCESS_URL: z.string().url().optional(),
@@ -82,4 +90,10 @@ export function getRequiredPolarEnv(): PolarEnv {
 
 if (env.ENABLE_POLAR) {
   getRequiredPolarEnv();
+}
+
+if (env.NODE_ENV === "production" && env.ALLOW_LOCAL_APPLICATION_WEBHOOKS) {
+  throw new Error(
+    "ALLOW_LOCAL_APPLICATION_WEBHOOKS cannot be enabled in production",
+  );
 }

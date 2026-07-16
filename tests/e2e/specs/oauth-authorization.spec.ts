@@ -92,6 +92,7 @@ test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) =>
       scope: "openid",
       application_id: fixture.applicationId,
       membership_id: fixture.memberId,
+      authorization_version: 1,
     });
     expect(access.payload).not.toHaveProperty("permissions");
     expect(access.payload).not.toHaveProperty("roles");

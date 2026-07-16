@@ -10,10 +10,14 @@ const sessionDeleteManyMock = mock(async () => ({ count: 0 }));
 const userFindManyMock = mock(async () => []);
 const userCountMock = mock(async () => 0);
 const userFindUniqueMock = mock(async (): Promise<any> => null);
+const userFindUniqueOrThrowMock = mock(async (): Promise<any> => ({ banned: false, archived: false }));
 const userUpdateMock = mock(async (): Promise<any> => null);
 const userDeleteMock = mock(async (): Promise<any> => null);
 const invitationCreateMock = mock(async () => ({ id: "invitation-1" }));
 const activityRecordMock = mock(async () => null);
+const activityEventCreateMock = mock(async () => null);
+const applicationMemberFindManyMock = mock(async () => []);
+const applicationMemberUpdateManyMock = mock(async () => ({ count: 0 }));
 const adminActor = {
   id: "admin-1",
   permissions: new Set(RolePermissionMap[Roles.PlatformAdmin]),
@@ -75,12 +79,12 @@ const sampleRbacRoles = [
   },
 ];
 
-mock.module("@db/server", () => ({
-  default: {
+const usersDbMock: any = {
     user: {
       findMany: userFindManyMock,
       count: userCountMock,
       findUnique: userFindUniqueMock,
+      findUniqueOrThrow: userFindUniqueOrThrowMock,
       update: userUpdateMock,
       delete: userDeleteMock,
     },
@@ -96,7 +100,20 @@ mock.module("@db/server", () => ({
     rbacRole: {
       findUnique: rbacRoleFindUniqueMock,
     },
-  },
+    applicationMember: {
+      findMany: applicationMemberFindManyMock,
+      updateMany: applicationMemberUpdateManyMock,
+    },
+    activityEvent: {
+      create: activityEventCreateMock,
+    },
+};
+usersDbMock.$transaction = mock(
+  async (callback: (tx: typeof usersDbMock) => unknown) => callback(usersDbMock),
+);
+
+mock.module("@db/server", () => ({
+  default: usersDbMock,
   Prisma,
 }));
 
@@ -138,6 +155,12 @@ mock.module("../src/rbac/assignments.ts", () => ({
 }));
 
 beforeEach(() => {
+  activityEventCreateMock.mockClear();
+  applicationMemberFindManyMock.mockReset();
+  applicationMemberFindManyMock.mockResolvedValue([]);
+  applicationMemberUpdateManyMock.mockClear();
+  userFindUniqueOrThrowMock.mockReset();
+  userFindUniqueOrThrowMock.mockResolvedValue({ banned: false, archived: false });
   sessionFindManyMock.mockResolvedValue([]);
   sessionFindUniqueMock.mockResolvedValue(null);
   sessionDeleteMock.mockResolvedValue(null);
@@ -505,24 +528,28 @@ describe("UsersService", () => {
     await usersService.banUser("user-1", "spam", adminActor);
     await usersService.unbanUser("user-1", adminActor);
 
-    expect(activityRecordMock).toHaveBeenNthCalledWith(1, {
-      type: "user.banned",
-      actorUserId: "admin-1",
-      targetUserId: "user-1",
-      severity: "warning",
-      message: "User One was banned",
-      metadata: {
-        email: "user@example.com",
-        reason: "spam",
+    expect(activityEventCreateMock).toHaveBeenNthCalledWith(1, {
+      data: {
+        type: "user.banned",
+        actorUserId: "admin-1",
+        targetUserId: "user-1",
+        severity: "warning",
+        message: "User One was banned",
+        metadata: {
+          email: "user@example.com",
+          reason: "spam",
+        },
       },
     });
-    expect(activityRecordMock).toHaveBeenNthCalledWith(2, {
-      type: "user.unbanned",
-      actorUserId: "admin-1",
-      targetUserId: "user-1",
-      message: "User One was unbanned",
-      metadata: {
-        email: "user@example.com",
+    expect(activityEventCreateMock).toHaveBeenNthCalledWith(2, {
+      data: {
+        type: "user.unbanned",
+        actorUserId: "admin-1",
+        targetUserId: "user-1",
+        message: "User One was unbanned",
+        metadata: {
+          email: "user@example.com",
+        },
       },
     });
   });

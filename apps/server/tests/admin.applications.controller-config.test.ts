@@ -18,4 +18,25 @@ describe("applications controller config", () => {
     );
     expect(detailRoute).toContain("adminApplicationsService.getById(id)");
   });
+
+  it("keeps revocation reads and mutations behind application permissions", async () => {
+    const controllerPath = new URL(
+      "../src/modules/admin/applications/applications.controller.ts",
+      import.meta.url,
+    );
+    const source = await Bun.file(controllerPath).text();
+    const start = source.indexOf('.get(\n          "/:id/revocation"');
+    const routes = source.slice(start);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(routes).toContain(
+      "requirePermission(Permissions.AdminApplicationsRead)",
+    );
+    expect(routes).toContain(
+      "requirePermission(Permissions.AdminApplicationsManage)",
+    );
+    expect(routes).toContain("updateRevocationEndpoint");
+    expect(routes).toContain("listRevocationDeliveries");
+    expect(routes).toContain("retryRevocationDelivery");
+  });
 });

@@ -9,12 +9,20 @@ import type {
   CreateApplicationInput,
   UpdateApplicationClientInput,
   UpdateApplicationInput,
+  UpdateRevocationEndpointInput,
 } from "./applications.dto";
 import {
   ApplicationUrlValidationError,
   normalizeOrigins,
   normalizeRedirectUris,
 } from "./redirect-validation";
+import {
+  assertSafeRevocationDestination,
+  enqueueApplicationRevocation,
+  enqueueMemberRevocation,
+  REVOCATION_DELIVERY_TTL_MS,
+} from "../../application-revocation/revocation.service";
+import { env } from "@env/server";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
@@ -55,6 +63,7 @@ const memberSelect = {
   applicationId: true,
   userId: true,
   status: true,
+  authorizationVersion: true,
   createdAt: true,
   updatedAt: true,
   user: {
@@ -180,6 +189,7 @@ function mapMember(row: {
   applicationId: string;
   userId: string;
   status: string;
+  authorizationVersion: number;
   createdAt: Date;
   updatedAt: Date;
   user: {
@@ -196,6 +206,7 @@ function mapMember(row: {
     applicationId: row.applicationId,
     userId: row.userId,
     status: row.status,
+    authorizationVersion: row.authorizationVersion,
     user: row.user,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -391,17 +402,38 @@ export class AdminApplicationsService {
       data.homepageUrl = input.homepageUrl;
     }
 
-    const application = await prisma.application.update({
-      where: { id },
-      data,
-      select: applicationSelect,
-    });
-
-    await recordApplicationActivity({
-      type: "application.updated",
-      actorUserId: actor.id ?? null,
-      message: `Application updated: ${application.name}`,
-      metadata: { applicationId: application.id, slug: application.slug },
+    const application = await prisma.$transaction(async (tx) => {
+      const current = await tx.application.findUniqueOrThrow({
+        where: { id },
+        select: { status: true },
+      });
+      const updated = await tx.application.update({
+        where: { id },
+        data,
+        select: applicationSelect,
+      });
+      if (input.status && input.status !== current.status) {
+        await tx.applicationMember.updateMany({
+          where: { applicationId: id },
+          data: { authorizationVersion: { increment: 1 } },
+        });
+        if (input.status === "disabled" || input.status === "archived") {
+          await enqueueApplicationRevocation(tx, {
+            applicationId: id,
+            reason: input.status === "disabled" ? "application_disabled" : "application_archived",
+            effectiveAt: new Date(),
+          });
+        }
+      }
+      await tx.activityEvent.create({
+        data: {
+          type: "application.updated",
+          actorUserId: actor.id ?? null,
+          message: `Application updated: ${updated.name}`,
+          metadata: { applicationId: updated.id, slug: updated.slug },
+        },
+      });
+      return updated;
     });
 
     return mapApplication(application);
@@ -421,17 +453,38 @@ export class AdminApplicationsService {
     actor: AdminApplicationsActor,
     type: string,
   ) {
-    const application = await prisma.application.update({
-      where: { id },
-      data: { status },
-      select: applicationSelect,
-    });
-
-    await recordApplicationActivity({
-      type,
-      actorUserId: actor.id ?? null,
-      message: `Application ${status === "archived" ? "archived" : "restored"}: ${application.name}`,
-      metadata: { applicationId: application.id, slug: application.slug },
+    const application = await prisma.$transaction(async (tx) => {
+      const current = await tx.application.findUniqueOrThrow({
+        where: { id },
+        select: { status: true },
+      });
+      const updated = await tx.application.update({
+        where: { id },
+        data: { status },
+        select: applicationSelect,
+      });
+      if (current.status !== status) {
+        await tx.applicationMember.updateMany({
+          where: { applicationId: id },
+          data: { authorizationVersion: { increment: 1 } },
+        });
+        if (status === "archived") {
+          await enqueueApplicationRevocation(tx, {
+            applicationId: id,
+            reason: "application_archived",
+            effectiveAt: new Date(),
+          });
+        }
+      }
+      await tx.activityEvent.create({
+        data: {
+          type,
+          actorUserId: actor.id ?? null,
+          message: `Application ${status === "archived" ? "archived" : "restored"}: ${updated.name}`,
+          metadata: { applicationId: updated.id, slug: updated.slug },
+        },
+      });
+      return updated;
     });
 
     return mapApplication(application);
@@ -653,21 +706,54 @@ export class AdminApplicationsService {
     actor: AdminApplicationsActor,
     type: string,
   ) {
-    const member = await prisma.applicationMember.update({
-      where: { id, applicationId },
-      data: { status },
-      select: memberSelect,
-    });
+    const member = await prisma.$transaction(async (tx) => {
+      const current = await tx.applicationMember.findUnique({
+        where: { id, applicationId },
+        select: {
+          status: true,
+          userId: true,
+        },
+      });
+      if (!current) throw new ApplicationsPolicyError("Application member not found", 404);
 
-    await recordApplicationActivity({
-      type,
-      actorUserId: actor.id ?? null,
-      message: `Application access ${status}: ${member.user.email}`,
-      metadata: {
-        applicationId,
-        memberId: member.id,
-        userId: member.userId,
-      },
+      const updated = await tx.applicationMember.update({
+        where: { id, applicationId },
+        data: {
+          status,
+          ...(current.status === status
+            ? {}
+            : { authorizationVersion: { increment: 1 } }),
+        },
+        select: memberSelect,
+      });
+      if (current.status !== status && (status === "suspended" || status === "revoked")) {
+        const subject = await tx.applicationSubject.findUniqueOrThrow({
+          where: { applicationId_userId: { applicationId, userId: updated.userId } },
+          select: { subject: true },
+        });
+        await enqueueMemberRevocation(tx, {
+          applicationId,
+          membershipId: updated.id,
+          subject: subject.subject,
+          authorizationVersion: updated.authorizationVersion,
+          reason: status === "suspended" ? "membership_suspended" : "membership_revoked",
+          effectiveAt: new Date(),
+        });
+      }
+      await tx.activityEvent.create({
+        data: {
+          type,
+          actorUserId: actor.id ?? null,
+          message: `Application access ${status}: ${updated.user.email}`,
+          metadata: {
+            applicationId,
+            memberId: updated.id,
+            userId: updated.userId,
+            authorizationVersion: updated.authorizationVersion,
+          },
+        },
+      });
+      return updated;
     });
 
     return mapMember(member);
@@ -735,6 +821,131 @@ export class AdminApplicationsService {
     });
 
     return Boolean(member);
+  }
+
+  async getRevocationEndpoint(applicationId: string) {
+    await prisma.application.findUniqueOrThrow({
+      where: { id: applicationId },
+      select: { id: true },
+    });
+    const endpoint = await prisma.applicationRevocationEndpoint.findUnique({
+      where: { applicationId },
+    });
+    return endpoint
+      ? {
+          id: endpoint.id,
+          applicationId: endpoint.applicationId,
+          url: endpoint.url,
+          enabled: endpoint.enabled,
+          createdAt: endpoint.createdAt.toISOString(),
+          updatedAt: endpoint.updatedAt.toISOString(),
+        }
+      : null;
+  }
+
+  async updateRevocationEndpoint(
+    applicationId: string,
+    input: UpdateRevocationEndpointInput,
+    actor: AdminApplicationsActor,
+  ) {
+    const url = await assertSafeRevocationDestination(input.url, {
+      allowLocal: env.ALLOW_LOCAL_APPLICATION_WEBHOOKS,
+    });
+    const endpoint = await prisma.$transaction(async (tx) => {
+      await tx.application.findUniqueOrThrow({
+        where: { id: applicationId },
+        select: { id: true },
+      });
+      const updated = await tx.applicationRevocationEndpoint.upsert({
+        where: { applicationId },
+        create: { applicationId, url, enabled: input.enabled },
+        update: { url, enabled: input.enabled },
+      });
+      await tx.activityEvent.create({
+        data: {
+          type: "application.revocation_endpoint_updated",
+          actorUserId: actor.id ?? null,
+          message: "Application revocation endpoint updated",
+          metadata: {
+            applicationId,
+            endpointId: updated.id,
+            enabled: updated.enabled,
+            origin: new URL(updated.url).origin,
+          },
+        },
+      });
+      return updated;
+    });
+    return {
+      ...endpoint,
+      createdAt: endpoint.createdAt.toISOString(),
+      updatedAt: endpoint.updatedAt.toISOString(),
+    };
+  }
+
+  async listRevocationDeliveries(applicationId: string, limit = 25) {
+    const rows = await prisma.applicationRevocationDelivery.findMany({
+      where: { applicationId },
+      orderBy: { createdAt: "desc" },
+      take: Math.min(Math.max(limit, 1), 100),
+      select: {
+        id: true,
+        eventType: true,
+        reason: true,
+        status: true,
+        attemptCount: true,
+        nextAttemptAt: true,
+        deliveredAt: true,
+        lastHttpStatus: true,
+        lastErrorCode: true,
+        createdAt: true,
+      },
+    });
+    return rows.map((row) => ({
+      ...row,
+      nextAttemptAt: row.nextAttemptAt.toISOString(),
+      deliveredAt: row.deliveredAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
+  async retryRevocationDelivery(
+    applicationId: string,
+    deliveryId: string,
+    actor: AdminApplicationsActor,
+  ) {
+    const delivery = await prisma.$transaction(async (tx) => {
+      const current = await tx.applicationRevocationDelivery.findUnique({
+        where: { id: deliveryId, applicationId },
+        select: { id: true, status: true },
+      });
+      if (!current) throw new ApplicationsPolicyError("Revocation delivery not found", 404);
+      if (current.status !== "dead") {
+        throw new ApplicationsPolicyError("Only dead-lettered deliveries can be retried");
+      }
+      const now = new Date();
+      const updated = await tx.applicationRevocationDelivery.update({
+        where: { id: current.id },
+        data: {
+          status: "pending",
+          nextAttemptAt: now,
+          deadlineAt: new Date(now.getTime() + REVOCATION_DELIVERY_TTL_MS),
+          leaseUntil: null,
+          lastHttpStatus: null,
+          lastErrorCode: null,
+        },
+      });
+      await tx.activityEvent.create({
+        data: {
+          type: "application.revocation_delivery_retried",
+          actorUserId: actor.id ?? null,
+          message: "Application revocation delivery queued for retry",
+          metadata: { applicationId, deliveryId },
+        },
+      });
+      return updated;
+    });
+    return { id: delivery.id, status: delivery.status };
   }
 
   async createClient(

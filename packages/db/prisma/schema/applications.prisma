@@ -9,29 +9,81 @@ model Application {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  clients ApplicationClient[]
-  members ApplicationMember[]
-  subjects ApplicationSubject[]
+  clients              ApplicationClient[]
+  members              ApplicationMember[]
+  subjects             ApplicationSubject[]
+  revocationEndpoint   ApplicationRevocationEndpoint?
+  revocationDeliveries ApplicationRevocationDelivery[]
 
   @@index([status])
   @@map("application")
 }
 
 model ApplicationMember {
-  id            String      @id @default(cuid())
-  applicationId String
-  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status        String      @default("active")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id                   String      @id @default(cuid())
+  applicationId        String
+  application          Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  userId               String
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status               String      @default("active")
+  authorizationVersion Int         @default(1)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  revocationDeliveries ApplicationRevocationDelivery[]
 
   @@unique([applicationId, userId])
   @@index([applicationId])
   @@index([userId])
   @@index([status])
   @@map("application_member")
+}
+
+model ApplicationRevocationEndpoint {
+  id            String      @id @default(cuid())
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  url           String
+  enabled       Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  deliveries ApplicationRevocationDelivery[]
+
+  @@index([enabled])
+  @@map("application_revocation_endpoint")
+}
+
+model ApplicationRevocationDelivery {
+  id                   String                         @id @default(cuid())
+  applicationId        String
+  application          Application                    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  endpointId           String?
+  endpoint             ApplicationRevocationEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
+  membershipId         String?
+  membership           ApplicationMember?             @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  destinationUrl       String
+  eventType            String                         @default("application.access.revoked")
+  reason               String
+  subject              String?
+  authorizationVersion Int?
+  effectiveAt          DateTime
+  status               String                         @default("pending")
+  attemptCount         Int                            @default(0)
+  nextAttemptAt        DateTime                       @default(now())
+  leaseUntil           DateTime?
+  deadlineAt           DateTime
+  deliveredAt          DateTime?
+  lastHttpStatus       Int?
+  lastErrorCode        String?
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([applicationId, createdAt])
+  @@index([endpointId])
+  @@index([membershipId])
+  @@map("application_revocation_delivery")
 }
 
 model ApplicationSubject {
@@ -79,15 +131,15 @@ model ApplicationClient {
 }
 
 model OAuthConsent {
-  id          String             @id @default(cuid())
+  id          String            @id @default(cuid())
   clientId    String
-  client      ApplicationClient  @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  client      ApplicationClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
   userId      String?
-  user        User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   referenceId String?
   scopes      String[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@index([clientId])
   @@index([userId])

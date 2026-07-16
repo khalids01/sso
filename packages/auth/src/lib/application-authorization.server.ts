@@ -13,6 +13,13 @@ const pkceS256ChallengePattern = /^[A-Za-z0-9_-]{43}$/;
 
 type AuthorizationQuery = Record<string, unknown>;
 
+export function shouldRedirectToAuthorizationUI(
+  headers: Headers,
+  webOrigin: string,
+) {
+  return headers.get("origin") !== new URL(webOrigin).origin;
+}
+
 export function validateAuthorizationQuery(query: AuthorizationQuery) {
   if (typeof query.state !== "string" || !query.state.trim()) {
     throw new APIError("BAD_REQUEST", {

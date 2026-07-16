@@ -1,4 +1,4 @@
-import prisma from "@db/server";
+import prisma, { type Prisma } from "@db/server";
 import { getRoleIdBySlug } from "@db/server/rbac/assignments";
 import { isAssignableRoleSlug } from "@db/server/rbac/roles";
 import {
@@ -23,6 +23,7 @@ import {
   isOwnerRole,
 } from "@/rbac/policies/owner.policy";
 import { assignUserRoleAndInvalidate } from "@/rbac/assignments";
+import { enqueueMemberRevocation } from "../../application-revocation/revocation.service";
 
 const adminUserSelect = {
   id: true,
@@ -119,6 +120,61 @@ async function getAdminTargetUser(id: string) {
     user.rbacRoles[0]?.role.slug ?? Roles.PlatformUser;
 
   return { id: user.id, roleSlug: roleSlug as RoleSlug };
+}
+
+async function invalidateUserApplicationAccess(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  reason: "user_banned" | "user_archived",
+) {
+  const memberships = await tx.applicationMember.findMany({
+    where: { userId, status: "active" },
+    select: {
+      id: true,
+      applicationId: true,
+      authorizationVersion: true,
+      application: {
+        select: {
+          subjects: {
+            where: { userId },
+            select: { subject: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  const effectiveAt = new Date();
+  for (const membership of memberships) {
+    const updated = await tx.applicationMember.update({
+      where: { id: membership.id },
+      data: { authorizationVersion: { increment: 1 } },
+      select: { authorizationVersion: true },
+    });
+    const subject = membership.application.subjects[0]?.subject;
+    if (!subject) {
+      throw new Error("Application subject missing for active membership");
+    }
+    await enqueueMemberRevocation(tx, {
+      applicationId: membership.applicationId,
+      membershipId: membership.id,
+      subject,
+      authorizationVersion: updated.authorizationVersion,
+      reason,
+      effectiveAt,
+    });
+  }
+}
+
+async function restoreUserApplicationAccessVersion(
+  tx: Prisma.TransactionClient,
+  userId: string,
+) {
+  await tx.applicationMember.updateMany({
+    where: { userId, status: "active" },
+    data: { authorizationVersion: { increment: 1 } },
+  });
 }
 
 async function assertCanUpdateUser(args: {
@@ -349,42 +405,57 @@ export class UsersService {
       action: "ban",
     });
 
-    const user = await prisma.user.update({
-      where: { id },
-      data: { banned: true, banReason: reason },
-      select: adminUserSelect,
-    });
-
-    await activityService.record({
-      type: "user.banned",
-      actorUserId: actor.id,
-      targetUserId: id,
-      severity: "warning",
-      message: `${user.name} was banned`,
-      metadata: {
-        email: user.email,
-        reason: reason ?? null,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id },
+        select: { banned: true },
+      });
+      const updated = await tx.user.update({
+        where: { id },
+        data: { banned: true, banReason: reason },
+        select: adminUserSelect,
+      });
+      if (!current.banned) {
+        await invalidateUserApplicationAccess(tx, id, "user_banned");
+      }
+      await tx.activityEvent.create({
+        data: {
+          type: "user.banned",
+          actorUserId: actor.id,
+          targetUserId: id,
+          severity: "warning",
+          message: `${updated.name} was banned`,
+          metadata: { email: updated.email, reason: reason ?? null },
+        },
+      });
+      return updated;
     });
 
     return mapAdminUser(user);
   }
 
   async unbanUser(id: string, actor: AdminActor) {
-    const user = await prisma.user.update({
-      where: { id },
-      data: { banned: false, banReason: null },
-      select: adminUserSelect,
-    });
-
-    await activityService.record({
-      type: "user.unbanned",
-      actorUserId: actor.id,
-      targetUserId: id,
-      message: `${user.name} was unbanned`,
-      metadata: {
-        email: user.email,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id },
+        select: { banned: true },
+      });
+      const updated = await tx.user.update({
+        where: { id },
+        data: { banned: false, banReason: null },
+        select: adminUserSelect,
+      });
+      if (current.banned) await restoreUserApplicationAccessVersion(tx, id);
+      await tx.activityEvent.create({
+        data: {
+          type: "user.unbanned",
+          actorUserId: actor.id,
+          targetUserId: id,
+          message: `${updated.name} was unbanned`,
+          metadata: { email: updated.email },
+        },
+      });
+      return updated;
     });
 
     return mapAdminUser(user);
@@ -397,41 +468,57 @@ export class UsersService {
       action: "archive",
     });
 
-    const user = await prisma.user.update({
-      where: { id },
-      data: { archived: true },
-      select: adminUserSelect,
-    });
-
-    await activityService.record({
-      type: "user.archived",
-      actorUserId: actor.id,
-      targetUserId: id,
-      severity: "warning",
-      message: `${user.name} was archived`,
-      metadata: {
-        email: user.email,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id },
+        select: { archived: true },
+      });
+      const updated = await tx.user.update({
+        where: { id },
+        data: { archived: true },
+        select: adminUserSelect,
+      });
+      if (!current.archived) {
+        await invalidateUserApplicationAccess(tx, id, "user_archived");
+      }
+      await tx.activityEvent.create({
+        data: {
+          type: "user.archived",
+          actorUserId: actor.id,
+          targetUserId: id,
+          severity: "warning",
+          message: `${updated.name} was archived`,
+          metadata: { email: updated.email },
+        },
+      });
+      return updated;
     });
 
     return mapAdminUser(user);
   }
 
   async restoreUser(id: string, actor: AdminActor) {
-    const user = await prisma.user.update({
-      where: { id },
-      data: { archived: false },
-      select: adminUserSelect,
-    });
-
-    await activityService.record({
-      type: "user.restored",
-      actorUserId: actor.id,
-      targetUserId: id,
-      message: `${user.name} was restored`,
-      metadata: {
-        email: user.email,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id },
+        select: { archived: true },
+      });
+      const updated = await tx.user.update({
+        where: { id },
+        data: { archived: false },
+        select: adminUserSelect,
+      });
+      if (current.archived) await restoreUserApplicationAccessVersion(tx, id);
+      await tx.activityEvent.create({
+        data: {
+          type: "user.restored",
+          actorUserId: actor.id,
+          targetUserId: id,
+          message: `${updated.name} was restored`,
+          metadata: { email: updated.email },
+        },
+      });
+      return updated;
     });
 
     return mapAdminUser(user);

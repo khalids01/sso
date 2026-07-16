@@ -9,7 +9,9 @@ The suite also starts an isolated loopback callback server. Setup provisions a
 run-owned public client with that exact callback and origin, and the browser
 drives the real authorization UI before exchanging the captured code. The
 fixture validates both JWTs against the API JWKS and clears the code and token
-values after each journey. No production callback route is added.
+values after each journey. It also receives signed application revocation events,
+verifies their application audience and pairwise subject, and simulates
+idempotent local-session deletion. No production callback route is added.
 
 ## First-time setup
 
@@ -76,10 +78,12 @@ bun e2e:report
 
 ## Staging and recovery
 
-Staging requires `E2E_TARGET=staging`, exact web/API/database/Redis allowlists,
-direct staging service URLs for provisioning and cleanup, and the explicit
-mutation acknowledgement. Staging mode never starts local processes and refuses
-known production origins or cross-origin redirects.
+Staging requires `E2E_TARGET=staging`, exact
+web/API/callback/database/Redis allowlists, direct staging service URLs for
+provisioning and cleanup, and the explicit mutation acknowledgement. Expose the
+local callback listener through an approved temporary HTTPS tunnel so the
+staging API can deliver the webhook. Staging mode never starts product processes
+and refuses known production origins or unapproved redirects.
 
 Set `SSO_ISSUER` to the exact staging API issuer and follow the complete
 deployment, verification, and rollback procedure in

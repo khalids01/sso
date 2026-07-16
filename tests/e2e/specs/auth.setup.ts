@@ -19,7 +19,7 @@ setup("provision and authenticate the selected E2E actor", async ({ page }) => {
   });
 
   const identities = await provisionE2EIdentities();
-  await provisionOAuthFixture(identities.actorId);
+  await provisionOAuthFixture(identities.actorId, identities.memberId);
 
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Welcome Back" })).toBeVisible();

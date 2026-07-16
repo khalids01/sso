@@ -9,6 +9,7 @@ import { enforceRateLimit } from "./modules/rate-limit/rate-limit.service";
 import { startVisitorFlushWorker } from "./modules/visitors/visitors.service";
 import { securityHeadersPlugin } from "./plugins/security-headers";
 import { oauthTokenController } from "./modules/oauth/oauth-token.controller";
+import { startApplicationRevocationWorker } from "./modules/application-revocation/revocation.service";
 
 const shouldLogRequests = env.NODE_ENV === "development";
 const port = env.PORT;
@@ -22,6 +23,7 @@ const docsPlugin =
 await connectRedis();
 console.log("Redis is ready");
 startVisitorFlushWorker();
+startApplicationRevocationWorker();
 
 const server = new Elysia()
   .use(securityHeadersPlugin({ production: env.NODE_ENV === "production" }))

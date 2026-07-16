@@ -199,6 +199,7 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
               select: {
                 id: true,
                 status: true,
+                authorizationVersion: true,
                 user: {
                   select: {
                     id: true,
@@ -286,6 +287,7 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
             scope: "openid",
             application_id: client.application.id,
             membership_id: member.id,
+            authorization_version: member.authorizationVersion,
           },
         },
       }),

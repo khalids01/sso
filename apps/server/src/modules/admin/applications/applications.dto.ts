@@ -73,6 +73,15 @@ export const UpdateApplicationClientDto = t.Object({
   allowedOrigins: t.Optional(t.Array(t.String({ minLength: 1 }))),
 });
 
+export const UpdateRevocationEndpointDto = t.Object({
+  url: t.String({ minLength: 1, maxLength: 2_048 }),
+  enabled: t.Boolean(),
+});
+
+export const RevocationDeliveriesQueryDto = t.Object({
+  limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 25 })),
+});
+
 export type ApplicationsQuery = typeof ApplicationsQueryDto.static;
 export type ClientsQuery = typeof ClientsQueryDto.static;
 export type ApplicationMembersQuery =
@@ -85,3 +94,5 @@ export type CreateApplicationMemberInput =
 export type UpdateApplicationInput = typeof UpdateApplicationDto.static;
 export type UpdateApplicationClientInput =
   typeof UpdateApplicationClientDto.static;
+export type UpdateRevocationEndpointInput =
+  typeof UpdateRevocationEndpointDto.static;

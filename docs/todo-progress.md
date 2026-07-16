@@ -6,13 +6,13 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Deploy the disabled-by-default upgraded build to an explicitly allowlisted
-staging environment and run both guarded role journeys there. After that gate,
-implement signed application-specific revocation events, application-local
-session invalidation, and authenticated introspection for sensitive backend
-operations. Inventory the deployment-provided active production client names
-and origins before selecting a migration pilot. Google migration remains a
-separate later slice; Facebook and Apple follow after it.
+Deploy the disabled-by-default issuance and application revocation build to an
+explicitly allowlisted staging environment and run both guarded role journeys
+there through an approved HTTPS callback tunnel. After that gate, inventory the
+deployment-provided active production client names, origins, profile needs, and
+revocation latency before selecting a migration pilot. Authenticated
+introspection remains deferred until a real sensitive-client contract requires
+it. Google migration remains a separate later slice; Facebook and Apple follow.
 
 ## Guardrails
 
@@ -53,6 +53,9 @@ separate later slice; Facebook and Apple follow after it.
 - [ ] Add app-specific roles, scopes, or claims.
 - [x] Add admin controls for granting, suspending, and revoking app access.
 - [x] Add audit events for app access changes.
+- [x] Add monotonic membership authorization versions to tokens and lifecycle changes.
+- [x] Add application-specific signed revocation events and durable delivery outbox.
+- [x] Add guarded webhook configuration, delivery status, retry, and dead-letter UI/API.
 
 ## Auth And Token Flow
 
@@ -66,7 +69,8 @@ separate later slice; Facebook and Apple follow after it.
 - [x] Issue pairwise, app-scoped RS256 access and ID tokens with ten-minute expiry.
 - [x] Publish rotating public signing keys through a cacheable JWKS endpoint.
 - [ ] Add userinfo or profile endpoint for client apps.
-- [ ] Add token revocation or introspection only when a client contract requires it.
+- [x] Add pushed application-local session revocation without per-request SSO calls.
+- [ ] Add authenticated introspection only when a sensitive client contract requires it.
 
 ## Migration
 
@@ -81,16 +85,17 @@ separate later slice; Facebook and Apple follow after it.
 - [x] Add tests for application/client validation.
 - [x] Add tests for app membership access decisions.
 - [x] Add unit, integration, concurrency, CORS, disabled-flag, JWT/JWKS, and browser tests for token issuance.
-- [ ] Add revocation tests when revocation is implemented.
+- [x] Add unit, integration, concurrency, SSRF, retry, JWT/JWKS, and browser revocation tests.
 - [ ] Add migration smoke tests using old production flow examples.
-- [ ] Add observability for failed login, invalid redirect, token exchange, and revocation events.
+- [x] Add sanitized observability for application revocation delivery outcomes.
+- [ ] Complete observability review for failed login and invalid redirects.
 - [x] Add guarded permission-driven Playwright infrastructure for local and staging.
 - [x] Add visible password-login coverage and the Applications admin lifecycle journey.
 - [x] Complete real local Playwright runs with dedicated allowlisted admin and user identities.
 
 ## Latest Verification
 
-- Server tests: `186 pass`, `0 fail` across 45 files.
+- Server tests: `196 pass`, `0 fail` across 47 files.
 - OAuth Provider runtime initialization succeeded.
 - Better Auth's built-in token endpoint and generic session-JWT endpoint return
   `404`; the SSO token endpoint also returns `404` while its deployment flag is off.
@@ -99,22 +104,23 @@ separate later slice; Facebook and Apple follow after it.
 - `git diff --check` passes.
 - Password login remains environment-gated with password signup disabled.
 - Playwright discovers setup, cleanup, permission, application lifecycle, and sign-out tests.
-- E2E helper tests pass (`3 pass`, `0 fail`), Chromium launches successfully,
+- E2E helper tests pass (`5 pass`, `0 fail`), Chromium launches successfully,
   and the web client/SSR production build passes.
 - Web and email now resolve a single React `19.2.5` runtime, fixing the admin
   applications page hook-context crash introduced by the dependency refresh.
 - Application detail, clients, and members routes build for client and SSR;
   unauthenticated direct-route smoke tests correctly redirect to `/login`.
-- Local `platform.admin` E2E verification passes: `6 passed`, `0 failed`,
-  including the real callback, exchange, JWT/JWKS validation, and replay rejection.
-- Local `platform.user` E2E verification passes: `5 passed`, `1 skipped`,
+- Local `platform.admin` E2E verification passes: `7 passed`, `0 failed`,
+  including the real callback, exchange, JWT/JWKS validation, replay rejection,
+  webhook configuration, signed pairwise delivery, and idempotent invalidation.
+- Local `platform.user` E2E verification passes: `6 passed`, `1 skipped`,
   `0 failed`. Visible password login and the real `platform.user` session pass;
   admin navigation is absent, the direct admin route redirects to `/dashboard`,
   and the authenticated applications API returns `403`. The application
   lifecycle is explicitly skipped as not applicable, while the same OAuth/JWKS
   journey succeeds independently of platform RBAC. Sign-out, protected-route
   redirects, run-owned cleanup, and actor-lock release pass.
-- Prisma reports all 18 migrations applied to the local loopback PostgreSQL
+- Prisma reports all 19 migrations applied to the local loopback PostgreSQL
   database; the schema is up to date.
 - Full TypeScript checks, Prisma validation/generation, server and web client/SSR
   builds, E2E helper tests, and the final diff whitespace check pass.
@@ -128,6 +134,12 @@ separate later slice; Facebook and Apple follow after it.
   existing issuance coverage verifies signatures, claims, replay rejection,
   pairwise-subject stability, retired-key publication policy, and no refresh or
   platform claims.
+- Application revocation coverage verifies transactional version/outbox changes,
+  global-ban fan-out with isolated pairwise subjects, application-wide events,
+  concurrent lease claiming, retries, terminal failures, deadline expiry, and
+  restoration without reviving old tokens.
+- The production web build preserves Better Auth's repeated signed continuation
+  parameters and completes post-login only from the exact configured web origin.
 - `bun audit` was run and is not clean. The stable 1.6.x OAuth Provider advisory
   is mitigated by disabled upstream token/refresh endpoints, fixed code-bound
   audiences, and explicit `resource` rejection. Other pre-existing findings are
@@ -140,5 +152,5 @@ separate later slice; Facebook and Apple follow after it.
 - Stable 1.6.x is affected by `GHSA-p2fr-6hmx-4528`. The affected Better Auth
   token behavior is disabled and regression-tested at our boundary. Upgrade to
   the first patched stable release when available.
-- Staging verification remains a release gate. Production issuance and legacy
-  client migration remain disabled.
+- Staging verification remains a release gate. Production issuance, revocation
+  delivery, and legacy client migration remain disabled.

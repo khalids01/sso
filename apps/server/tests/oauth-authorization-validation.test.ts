@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { validateAuthorizationQuery } from "../../../packages/auth/src/lib/application-authorization.server";
+import {
+  shouldRedirectToAuthorizationUI,
+  validateAuthorizationQuery,
+} from "../../../packages/auth/src/lib/application-authorization.server";
 
 const validQuery = {
   state: "state-1",
@@ -102,5 +105,25 @@ describe("OAuth authorization request validation", () => {
       status: 400,
       body: { error: "invalid_signature" },
     });
+  });
+});
+
+describe("OAuth authorization UI continuation", () => {
+  it("redirects initial navigation and completes only from the exact web origin", () => {
+    expect(
+      shouldRedirectToAuthorizationUI(new Headers(), "https://sso.example.com"),
+    ).toBe(true);
+    expect(
+      shouldRedirectToAuthorizationUI(
+        new Headers({ origin: "https://other.example.com" }),
+        "https://sso.example.com",
+      ),
+    ).toBe(true);
+    expect(
+      shouldRedirectToAuthorizationUI(
+        new Headers({ origin: "https://sso.example.com" }),
+        "https://sso.example.com/path",
+      ),
+    ).toBe(false);
   });
 });

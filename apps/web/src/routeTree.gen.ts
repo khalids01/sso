@@ -33,6 +33,7 @@ import { Route as ProtectedAccountRouteImport } from './routes/_protected/accoun
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AdminRolesRoleIdRouteImport } from './routes/admin/roles/$roleId'
+import { Route as AdminApplicationsApplicationIdRevocationRouteImport } from './routes/admin/applications_/$applicationId/revocation'
 import { Route as AdminApplicationsApplicationIdMembersRouteImport } from './routes/admin/applications_/$applicationId/members'
 import { Route as AdminApplicationsApplicationIdClientsRouteImport } from './routes/admin/applications_/$applicationId/clients'
 
@@ -155,6 +156,12 @@ const AdminRolesRoleIdRoute = AdminRolesRoleIdRouteImport.update({
   path: '/$roleId',
   getParentRoute: () => AdminRolesRoute,
 } as any)
+const AdminApplicationsApplicationIdRevocationRoute =
+  AdminApplicationsApplicationIdRevocationRouteImport.update({
+    id: '/applications_/$applicationId/revocation',
+    path: '/applications/$applicationId/revocation',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminApplicationsApplicationIdMembersRoute =
   AdminApplicationsApplicationIdMembersRouteImport.update({
     id: '/applications_/$applicationId/members',
@@ -194,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/admin/applications/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
   '/admin/applications/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
+  '/admin/applications/$applicationId/revocation': typeof AdminApplicationsApplicationIdRevocationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -220,6 +228,7 @@ export interface FileRoutesByTo {
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/admin/applications/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
   '/admin/applications/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
+  '/admin/applications/$applicationId/revocation': typeof AdminApplicationsApplicationIdRevocationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -249,6 +258,7 @@ export interface FileRoutesById {
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/admin/applications_/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
   '/admin/applications_/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
+  '/admin/applications_/$applicationId/revocation': typeof AdminApplicationsApplicationIdRevocationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/admin/roles/$roleId'
     | '/admin/applications/$applicationId/clients'
     | '/admin/applications/$applicationId/members'
+    | '/admin/applications/$applicationId/revocation'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/admin/roles/$roleId'
     | '/admin/applications/$applicationId/clients'
     | '/admin/applications/$applicationId/members'
+    | '/admin/applications/$applicationId/revocation'
   id:
     | '__root__'
     | '/_protected'
@@ -332,6 +344,7 @@ export interface FileRouteTypes {
     | '/admin/roles/$roleId'
     | '/admin/applications_/$applicationId/clients'
     | '/admin/applications_/$applicationId/members'
+    | '/admin/applications_/$applicationId/revocation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -516,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRolesRoleIdRouteImport
       parentRoute: typeof AdminRolesRoute
     }
+    '/admin/applications_/$applicationId/revocation': {
+      id: '/admin/applications_/$applicationId/revocation'
+      path: '/applications/$applicationId/revocation'
+      fullPath: '/admin/applications/$applicationId/revocation'
+      preLoaderRoute: typeof AdminApplicationsApplicationIdRevocationRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/applications_/$applicationId/members': {
       id: '/admin/applications_/$applicationId/members'
       path: '/applications/$applicationId/members'
@@ -576,6 +596,7 @@ interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AdminApplicationsApplicationIdClientsRoute: typeof AdminApplicationsApplicationIdClientsRoute
   AdminApplicationsApplicationIdMembersRoute: typeof AdminApplicationsApplicationIdMembersRoute
+  AdminApplicationsApplicationIdRevocationRoute: typeof AdminApplicationsApplicationIdRevocationRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -593,6 +614,8 @@ const AdminRouteChildren: AdminRouteChildren = {
     AdminApplicationsApplicationIdClientsRoute,
   AdminApplicationsApplicationIdMembersRoute:
     AdminApplicationsApplicationIdMembersRoute,
+  AdminApplicationsApplicationIdRevocationRoute:
+    AdminApplicationsApplicationIdRevocationRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

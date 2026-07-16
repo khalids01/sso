@@ -87,6 +87,7 @@ const applicationMemberUpdateMock = mock(async (args: any) => ({
   applicationId: args.where.applicationId,
   userId: "user-1",
   status: args.data.status,
+  authorizationVersion: args.data.authorizationVersion ? 2 : 1,
   createdAt: new Date("2026-07-10T08:04:00.000Z"),
   updatedAt: new Date("2026-07-10T08:12:00.000Z"),
   user: {
@@ -108,8 +109,12 @@ const applicationMemberFindUniqueMock = mock(async () => ({
   },
 }));
 const applicationMemberFindFirstMock = mock(async () => ({ id: "member-1" }));
+const applicationMemberUpdateManyMock = mock(async () => ({ count: 0 }));
 const applicationMemberDeleteMock = mock(async () => null);
 const applicationSubjectUpsertMock = mock(async () => ({ id: "subject-1" }));
+const applicationSubjectFindUniqueOrThrowMock = mock(async () => ({ subject: "pairwise-subject" }));
+const revocationEndpointFindFirstMock = mock(async () => null);
+const revocationDeliveryCreateMock = mock(async () => ({ id: "delivery-1" }));
 const userFindUniqueMock = mock(async () => ({
   id: "user-1",
   name: "Khalid",
@@ -124,6 +129,7 @@ const dbMock: any = {
       findMany: applicationFindManyMock,
       create: applicationCreateMock,
       findUnique: applicationFindUniqueMock,
+      findUniqueOrThrow: applicationFindUniqueMock,
       update: applicationUpdateMock,
       delete: applicationDeleteMock,
     },
@@ -139,12 +145,20 @@ const dbMock: any = {
       findMany: applicationMemberFindManyMock,
       create: applicationMemberCreateMock,
       update: applicationMemberUpdateMock,
+      updateMany: applicationMemberUpdateManyMock,
       findUnique: applicationMemberFindUniqueMock,
       findFirst: applicationMemberFindFirstMock,
       delete: applicationMemberDeleteMock,
     },
     applicationSubject: {
       upsert: applicationSubjectUpsertMock,
+      findUniqueOrThrow: applicationSubjectFindUniqueOrThrowMock,
+    },
+    applicationRevocationEndpoint: {
+      findFirst: revocationEndpointFindFirstMock,
+    },
+    applicationRevocationDelivery: {
+      create: revocationDeliveryCreateMock,
     },
     user: {
       findUnique: userFindUniqueMock,
@@ -185,8 +199,12 @@ describe("AdminApplicationsService", () => {
     applicationMemberUpdateMock.mockClear();
     applicationMemberFindUniqueMock.mockReset();
     applicationMemberFindFirstMock.mockReset();
+    applicationMemberUpdateManyMock.mockClear();
     applicationMemberDeleteMock.mockClear();
     applicationSubjectUpsertMock.mockClear();
+    applicationSubjectFindUniqueOrThrowMock.mockClear();
+    revocationEndpointFindFirstMock.mockReset();
+    revocationEndpointFindFirstMock.mockResolvedValue(null);
     userFindUniqueMock.mockReset();
     activityEventCreateMock.mockClear();
     applicationCountMock.mockResolvedValue(0);
@@ -209,6 +227,7 @@ describe("AdminApplicationsService", () => {
       applicationId: args.data.applicationId,
       userId: args.data.userId,
       status: args.data.status,
+      authorizationVersion: 1,
       createdAt: new Date("2026-07-10T08:04:00.000Z"),
       updatedAt: new Date("2026-07-10T08:05:00.000Z"),
       user: {
@@ -225,6 +244,7 @@ describe("AdminApplicationsService", () => {
       applicationId: "app-1",
       userId: "user-1",
       status: "revoked",
+      authorizationVersion: 1,
       user: {
         email: "khalid@example.com",
       },
@@ -763,13 +783,13 @@ describe("AdminApplicationsService", () => {
     });
 
     expect(applicationMemberUpdateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: "suspended" } }),
+      expect.objectContaining({ data: expect.objectContaining({ status: "suspended" }) }),
     );
     expect(applicationMemberUpdateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: "active" } }),
+      expect.objectContaining({ data: expect.objectContaining({ status: "active" }) }),
     );
     expect(applicationMemberUpdateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: "revoked" } }),
+      expect.objectContaining({ data: expect.objectContaining({ status: "revoked" }) }),
     );
   });
 

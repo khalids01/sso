@@ -4,19 +4,28 @@ import { assertE2ESafety } from "./helpers/safety";
 
 assertE2ESafety();
 
+const localApiPort = new URL(e2eEnv.E2E_API_ORIGIN).port || "80";
+const localWebPort = new URL(e2eEnv.E2E_WEB_ORIGIN).port || "80";
+
 const localWebServers = [
   {
-    command: "bun run dev:server",
+    command:
+      `PORT=${localApiPort} BETTER_AUTH_URL=${e2eEnv.E2E_API_ORIGIN} ` +
+      `SSO_ISSUER=${e2eEnv.SSO_ISSUER} CORS_ORIGIN=${e2eEnv.E2E_WEB_ORIGIN} ` +
+      "ENABLE_PASSWORD_AUTH=true ALLOW_LOCAL_APPLICATION_WEBHOOKS=true " +
+      "ENABLE_APPLICATION_REVOCATION_DELIVERY=true bun run tests/e2e/scripts/start-local-api.ts",
     cwd: e2eEnv.repoRoot,
     url: e2eEnv.E2E_API_ORIGIN,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   {
-    command: "bun run dev:web",
+    command:
+      `PORT=${localWebPort} VITE_SERVER_URL=${e2eEnv.E2E_API_ORIGIN} ` +
+      "VITE_ENABLE_PASSWORD_AUTH=true bun run tests/e2e/scripts/start-local-web.ts",
     cwd: e2eEnv.repoRoot,
     url: `${e2eEnv.E2E_WEB_ORIGIN}/login`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 ];
