@@ -81,6 +81,10 @@ direct staging service URLs for provisioning and cleanup, and the explicit
 mutation acknowledgement. Staging mode never starts local processes and refuses
 known production origins or cross-origin redirects.
 
+Set `SSO_ISSUER` to the exact staging API issuer and follow the complete
+deployment, verification, and rollback procedure in
+[`docs/staging-oauth-runbook.md`](../../docs/staging-oauth-runbook.md).
+
 If a run is interrupted before teardown, recover only that run's prefixed data:
 
 ```bash

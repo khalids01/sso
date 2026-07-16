@@ -90,6 +90,35 @@ describe("auth rate-limit config", () => {
     expect(authSource).toContain("disableSettingJwtHeader: true");
     expect(authSource).toContain("rotationInterval: 60 * 60 * 24 * 30");
     expect(authSource).toContain("gracePeriod: 60 * 60 * 24");
+    expect(authSource).toContain("oauthAuthServerConfig: true");
+    expect(authSource).toContain("openidConfig: true");
     expect(controllerSource).toContain("env.ENABLE_OAUTH_TOKEN_ISSUANCE");
+  });
+
+  it("pins matched stable Better Auth packages", async () => {
+    const repoRoot = new URL("../../..", import.meta.url);
+    const files = [
+      "package.json",
+      "packages/auth/package.json",
+      "apps/server/package.json",
+      "apps/web/package.json",
+      "tests/e2e/package.json",
+    ];
+
+    for (const file of files) {
+      const manifest = await Bun.file(new URL(file, repoRoot)).json() as {
+        dependencies?: Record<string, string>;
+        workspaces?: { catalog?: Record<string, string> };
+      };
+      const betterAuth =
+        manifest.dependencies?.["better-auth"] ??
+        manifest.workspaces?.catalog?.["better-auth"];
+      expect(betterAuth).toBe("1.6.23");
+      if (manifest.dependencies?.["@better-auth/oauth-provider"]) {
+        expect(manifest.dependencies["@better-auth/oauth-provider"]).toBe(
+          "1.6.23",
+        );
+      }
+    }
   });
 });

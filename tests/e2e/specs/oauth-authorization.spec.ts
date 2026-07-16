@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-test("authorize an application and exchange a single-use PKCE code", async ({ page }) => {
+test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) => {
   const fixture = readRunState().oauthFixture;
   if (!fixture) throw new Error("OAuth E2E fixture was not provisioned");
 

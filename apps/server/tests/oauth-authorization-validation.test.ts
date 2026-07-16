@@ -32,6 +32,15 @@ describe("OAuth authorization request validation", () => {
     ).toThrow();
   });
 
+  it("rejects client-controlled resource indicators", () => {
+    expect(() =>
+      validateAuthorizationQuery({
+        ...validQuery,
+        resource: "https://resource.example.test",
+      }),
+    ).toThrow();
+  });
+
   it("requires an exact S256 PKCE challenge shape", () => {
     expect(() =>
       validateAuthorizationQuery({

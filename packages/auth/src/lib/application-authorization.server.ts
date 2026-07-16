@@ -35,6 +35,16 @@ export function validateAuthorizationQuery(query: AuthorizationQuery) {
     });
   }
 
+  // Resource indicators are intentionally outside the first protocol. Access
+  // token audiences are derived from the registered application, never from a
+  // client-controlled authorization or token parameter.
+  if (query.resource !== undefined) {
+    throw new APIError("BAD_REQUEST", {
+      error: "invalid_request",
+      error_description: "resource is not supported",
+    });
+  }
+
   if (
     query.code_challenge_method !== "S256" ||
     typeof query.code_challenge !== "string" ||

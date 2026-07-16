@@ -33,6 +33,10 @@ async function createCode(codeVerifier: string, expiresAt = new Date(Date.now() 
         type: "authorization_code",
         userId,
         sessionId,
+        // Better Auth 1.6.x persists the original authentication time with
+        // authorization codes. The SSO parser must remain forward-compatible
+        // with that payload while deriving claims from the live session.
+        authTime: new Date().toISOString(),
         query: {
           client_id: clientId,
           redirect_uri: redirectUri,
@@ -142,6 +146,26 @@ try {
     issuer: env.SSO_ISSUER,
     audience: clientId,
   });
+
+  const resourceVerifier = verifier();
+  const resourceCode = await createCode(resourceVerifier);
+  const resourceIndicator = await oauthTokenController.handle(
+    new Request("http://localhost:5001/api/auth/oauth2/token", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        origin,
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: clientId,
+        code: resourceCode,
+        redirect_uri: redirectUri,
+        code_verifier: resourceVerifier,
+        resource: "https://resource.example.test",
+      }),
+    }),
+  );
 
   const concurrentVerifier = verifier();
   const concurrentCode = await createCode(concurrentVerifier);
@@ -284,6 +308,7 @@ try {
       nonce: idPayload.nonce,
     },
     refreshTokenPresent: Boolean(tokens.refresh_token),
+    resourceIndicator: resourceIndicator.status,
     concurrent: concurrent.map((response) => response.status).sort(),
     wrongVerifier: wrongVerifier.status,
     afterWrongVerifier: afterWrongVerifier.status,

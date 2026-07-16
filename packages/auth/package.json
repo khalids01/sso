@@ -16,14 +16,14 @@
     "typescript": "^6.0.2"
   },
   "dependencies": {
-    "@better-auth/oauth-provider": "1.4.18",
+    "@better-auth/oauth-provider": "1.6.23",
     "@db": "workspace:*",
     "@rbac": "workspace:*",
     "@email": "workspace:*",
     "@env": "workspace:*",
     "@polar-sh/better-auth": "^1.8.1",
     "@polar-sh/sdk": "^0.43.1",
-    "better-auth": "^1.4.18",
+    "better-auth": "1.6.23",
     "dotenv": "^17.3.1",
     "nodemailer": "^8.0.4",
     "zod": "^4.3.6"

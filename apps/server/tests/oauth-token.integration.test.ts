@@ -44,6 +44,7 @@ describe("OAuth authorization-code token exchange", () => {
         nonce: "nonce-1",
       },
       refreshTokenPresent: false,
+      resourceIndicator: 400,
       concurrent: [200, 400],
       wrongVerifier: 400,
       afterWrongVerifier: 400,

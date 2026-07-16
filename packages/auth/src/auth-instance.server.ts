@@ -34,6 +34,12 @@ export const auth = betterAuth({
       allowDynamicClientRegistration: false,
       allowUnauthenticatedClientRegistration: false,
       disableJwtPlugin: false,
+      // Discovery remains intentionally disabled until the complete provider
+      // surface is approved for production.
+      silenceWarnings: {
+        oauthAuthServerConfig: true,
+        openidConfig: true,
+      },
       storeTokens: {
         hash: (token) => hashOAuthToken(token),
       },

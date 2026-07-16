@@ -138,4 +138,8 @@ The old production SSO remains the behavioral reference for existing app integra
 - Identity users can exist without access to the SSO admin app.
 - Client applications will have their own registrations, redirect URIs, secrets, memberships, app roles, and app-scoped tokens.
 
-See `docs/plan.md`, `docs/architecture.md`, and `docs/todo-progress.md` for the working plan.
+See `docs/plan.md`, `docs/architecture.md`, and `docs/todo-progress.md` for the
+working plan. Upgrade-specific decisions are recorded in
+`docs/better-auth-1.6.23-audit.md`, the legacy protocol in
+`docs/legacy-client-contracts.md`, and staging verification in
+`docs/staging-oauth-runbook.md`.

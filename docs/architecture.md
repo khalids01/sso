@@ -60,7 +60,7 @@ trusted public clients. The initial supported request requires `response_type=co
 `scope=openid`, client state, and PKCE using `S256`. Optional prompts, extra
 scopes, refresh tokens, client credentials, and client secrets are not supported.
 
-Better Auth's OAuth Provider `1.4.18` owns authorization request signing,
+Better Auth's OAuth Provider `1.6.23` owns authorization request signing,
 exact redirect matching, continuation, and short-lived authorization-code
 storage. Its OAuth client model is mapped onto `ApplicationClient`, so the admin
 application registry remains authoritative. SSO adds a server-side continuation
@@ -87,9 +87,19 @@ receive only `code` and `state`; tokens do not pass through browser URLs or the
 web frontend. Userinfo, introspection, revocation, logout, discovery,
 registration, and provider client-management endpoints remain deferred.
 
-Better Auth remains pinned at `1.4.18` for this slice. The local signed-query and
-membership continuation guard mitigates the known older continuation weakness,
-but upgrading Better Auth remains a production-readiness task.
+Better Auth and its OAuth Provider are exactly version-matched at stable
+`1.6.23`. The SSO-owned signed-query, membership, token, audience, and endpoint
+guards remain in place instead of broadening the protocol to upstream defaults.
+The stable line's resource-indicator advisory is not reachable through the
+disabled Better Auth token/refresh paths; the SSO endpoint rejects `resource`
+and derives audiences from the code-bound application and client. See
+`docs/better-auth-1.6.23-audit.md` for the compatibility, schema, and dependency
+review.
+
+Issuance remains disabled until an explicitly allowlisted staging deployment
+passes both role journeys. The next protocol slice is application-local session
+revocation events and authenticated introspection for sensitive operations;
+social-provider migration remains separate.
 
 ## Legacy Migration Notes
 

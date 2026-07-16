@@ -6,11 +6,13 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Verify the gated token flow in staging, inventory the old production SSO's real
-client and token contracts, and select a small allowlisted migration pilot. Keep
-production issuance disabled until the issuer, callback/origin allowlists,
-migration, and JWKS behavior are verified in that environment. Plan Google
-login as the next separate provider slice; Facebook and Apple follow later.
+Deploy the disabled-by-default upgraded build to an explicitly allowlisted
+staging environment and run both guarded role journeys there. After that gate,
+implement signed application-specific revocation events, application-local
+session invalidation, and authenticated introspection for sensitive backend
+operations. Inventory the deployment-provided active production client names
+and origins before selecting a migration pilot. Google migration remains a
+separate later slice; Facebook and Apple follow after it.
 
 ## Guardrails
 
@@ -55,7 +57,8 @@ login as the next separate provider slice; Facebook and Apple follow later.
 ## Auth And Token Flow
 
 - [x] Choose an OIDC-shaped authorization-code flow for trusted public browser clients.
-- [x] Add Better Auth OAuth Provider `1.4.18` authorization and signed continuation foundation.
+- [x] Add Better Auth OAuth Provider authorization and signed continuation foundation.
+- [x] Upgrade matched Better Auth packages to stable `1.6.23` without replacing the SSO-owned token endpoint.
 - [x] Require `openid`, state, and PKCE `S256`; reject optional prompts and scopes.
 - [x] Preserve authorization requests through magic-link login and enforce active application membership before returning a code.
 - [x] Keep Better Auth's built-in token and generic session-JWT endpoints disabled.
@@ -67,7 +70,8 @@ login as the next separate provider slice; Facebook and Apple follow later.
 
 ## Migration
 
-- [ ] Inventory old production clients and required flows.
+- [x] Document the repository-derived legacy production protocol and required flows.
+- [ ] Add deployment-provided active production client names and origins to the inventory.
 - [ ] Map old users and client IDs into the new identity/application model.
 - [ ] Define compatibility endpoints only where existing apps need them.
 - [ ] Build a staged migration plan with rollback points.
@@ -86,7 +90,7 @@ login as the next separate provider slice; Facebook and Apple follow later.
 
 ## Latest Verification
 
-- Server tests: `183 pass`, `0 fail` across 44 files.
+- Server tests: `186 pass`, `0 fail` across 45 files.
 - OAuth Provider runtime initialization succeeded.
 - Better Auth's built-in token endpoint and generic session-JWT endpoint return
   `404`; the SSO token endpoint also returns `404` while its deployment flag is off.
@@ -114,10 +118,27 @@ login as the next separate provider slice; Facebook and Apple follow later.
   database; the schema is up to date.
 - Full TypeScript checks, Prisma validation/generation, server and web client/SSR
   builds, E2E helper tests, and the final diff whitespace check pass.
+- Better Auth `1.6.23` schema generation was compared outside the repository.
+  Enabled behavior requires no new fields, so no migration or unused OAuth token
+  tables were added.
+- A real 1.6.23 browser-issued authorization code is consumed by the SSO-owned
+  exchange in both roles. Client-controlled resource indicators are rejected at
+  authorization and token endpoints.
+- JWKS consumer coverage verifies immediate refresh for an unknown `kid`; the
+  existing issuance coverage verifies signatures, claims, replay rejection,
+  pairwise-subject stability, retired-key publication policy, and no refresh or
+  platform claims.
+- `bun audit` was run and is not clean. The stable 1.6.x OAuth Provider advisory
+  is mitigated by disabled upstream token/refresh endpoints, fixed code-bound
+  audiences, and explicit `resource` rejection. Other pre-existing findings are
+  recorded for a separate dependency-remediation slice.
 
 ## Version Risk
 
-- Better Auth remains at `1.4.18` by explicit decision.
-- `@better-auth/oauth-provider` is pinned to the matching `1.4.18` release.
-- The authorization continuation has an SSO-owned server guard, but upgrading
-  Better Auth remains required before treating the provider as production-ready.
+- `better-auth` and `@better-auth/oauth-provider` are exactly pinned to matching
+  stable `1.6.23` releases; `@better-auth/sso` and 1.7 prereleases are absent.
+- Stable 1.6.x is affected by `GHSA-p2fr-6hmx-4528`. The affected Better Auth
+  token behavior is disabled and regression-tested at our boundary. Upgrade to
+  the first patched stable release when available.
+- Staging verification remains a release gate. Production issuance and legacy
+  client migration remain disabled.
