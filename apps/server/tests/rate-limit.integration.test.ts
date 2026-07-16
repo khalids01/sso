@@ -157,6 +157,7 @@ describe("rate limit integration", () => {
     const app = new Elysia()
       .onBeforeHandle((ctx) => enforceRateLimit(ctx as any))
       .post("/api/auth/dummy", () => ({ ok: true }))
+      .post("/api/auth/oauth2/token", () => ({ ok: true }))
       .post("/auth/dummy", () => ({ ok: true }));
 
     const apiAuthFirst = await app.handle(
@@ -187,6 +188,22 @@ describe("rate limit integration", () => {
     expect(apiAuthFirst.status).toBe(200);
     expect(apiAuthSecond.status).toBe(200);
     expect(apiAuthThird.status).toBe(200);
+
+    const tokenResponses = await Promise.all(
+      [1, 2, 3].map(() =>
+        app.handle(
+          new Request("http://localhost/api/auth/oauth2/token", {
+            method: "POST",
+            headers: { "x-forwarded-for": "192.0.2.44" },
+          }),
+        ),
+      ),
+    );
+    expect(tokenResponses.map((response) => response.status).sort()).toEqual([
+      200,
+      200,
+      429,
+    ]);
 
     const customAuthFirst = await app.handle(
       new Request("http://localhost/auth/dummy", {

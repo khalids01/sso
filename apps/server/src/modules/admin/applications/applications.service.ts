@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import prisma, { Prisma } from "@db/server";
 import type {
   ApplicationMembersQuery,
@@ -112,6 +113,10 @@ function normalizeStatus(status?: string) {
   }
 
   return normalized;
+}
+
+function generateApplicationSubject() {
+  return randomBytes(32).toString("base64url");
 }
 
 function normalizeMemberStatus(status?: string) {
@@ -550,13 +555,27 @@ export class AdminApplicationsService {
     }
 
     try {
-      const member = await prisma.applicationMember.create({
-        data: {
-          applicationId,
-          userId: user.id,
-          status: normalizeMemberStatus(),
-        },
-        select: memberSelect,
+      const member = await prisma.$transaction(async (tx) => {
+        await tx.applicationSubject.upsert({
+          where: {
+            applicationId_userId: { applicationId, userId: user.id },
+          },
+          create: {
+            applicationId,
+            userId: user.id,
+            subject: generateApplicationSubject(),
+          },
+          update: {},
+        });
+
+        return tx.applicationMember.create({
+          data: {
+            applicationId,
+            userId: user.id,
+            status: normalizeMemberStatus(),
+          },
+          select: memberSelect,
+        });
       });
 
       await recordApplicationActivity({

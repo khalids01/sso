@@ -392,7 +392,10 @@ export async function enforceRateLimit(input: EnforceInput) {
 
     // Let Better Auth handle its own endpoint rate limiting so we avoid
     // double-throttling the same auth paths.
-    if (pathname.startsWith("/api/auth/")) {
+    if (
+      pathname.startsWith("/api/auth/") &&
+      pathname !== "/api/auth/oauth2/token"
+    ) {
       return;
     }
 

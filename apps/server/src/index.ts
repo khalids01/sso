@@ -8,6 +8,7 @@ import { openapi } from "@elysiajs/openapi";
 import { enforceRateLimit } from "./modules/rate-limit/rate-limit.service";
 import { startVisitorFlushWorker } from "./modules/visitors/visitors.service";
 import { securityHeadersPlugin } from "./plugins/security-headers";
+import { oauthTokenController } from "./modules/oauth/oauth-token.controller";
 
 const shouldLogRequests = env.NODE_ENV === "development";
 const port = env.PORT;
@@ -44,10 +45,15 @@ const server = new Elysia()
   .onBeforeHandle((context) => {
     return enforceRateLimit(context as any);
   })
+  .use(oauthTokenController)
   .all("/api/auth/*", async (context) => {
     const { request, status } = context;
     if (["POST", "GET"].includes(request.method)) {
-      return auth.handler(request);
+      const response = await auth.handler(request);
+      if (new URL(request.url).pathname === "/api/auth/jwks" && response.ok) {
+        response.headers.set("cache-control", "public, max-age=300, stale-while-revalidate=300");
+      }
+      return response;
     }
     return status(405);
   }, {

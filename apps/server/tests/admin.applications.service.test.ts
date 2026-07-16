@@ -109,6 +109,7 @@ const applicationMemberFindUniqueMock = mock(async () => ({
 }));
 const applicationMemberFindFirstMock = mock(async () => ({ id: "member-1" }));
 const applicationMemberDeleteMock = mock(async () => null);
+const applicationSubjectUpsertMock = mock(async () => ({ id: "subject-1" }));
 const userFindUniqueMock = mock(async () => ({
   id: "user-1",
   name: "Khalid",
@@ -117,8 +118,7 @@ const userFindUniqueMock = mock(async () => ({
 }));
 const activityEventCreateMock = mock(async () => null);
 
-mock.module("@db/server", () => ({
-  default: {
+const dbMock: any = {
     application: {
       count: applicationCountMock,
       findMany: applicationFindManyMock,
@@ -143,13 +143,22 @@ mock.module("@db/server", () => ({
       findFirst: applicationMemberFindFirstMock,
       delete: applicationMemberDeleteMock,
     },
+    applicationSubject: {
+      upsert: applicationSubjectUpsertMock,
+    },
     user: {
       findUnique: userFindUniqueMock,
     },
     activityEvent: {
       create: activityEventCreateMock,
     },
-  },
+};
+dbMock.$transaction = mock(async (callback: (tx: typeof dbMock) => unknown) =>
+  callback(dbMock),
+);
+
+mock.module("@db/server", () => ({
+  default: dbMock,
   Prisma,
 }));
 
@@ -177,6 +186,7 @@ describe("AdminApplicationsService", () => {
     applicationMemberFindUniqueMock.mockReset();
     applicationMemberFindFirstMock.mockReset();
     applicationMemberDeleteMock.mockClear();
+    applicationSubjectUpsertMock.mockClear();
     userFindUniqueMock.mockReset();
     activityEventCreateMock.mockClear();
     applicationCountMock.mockResolvedValue(0);

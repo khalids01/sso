@@ -52,6 +52,8 @@ export function assertE2ESafety() {
 
   refuseProduction(e2eEnv.E2E_WEB_ORIGIN);
   refuseProduction(e2eEnv.E2E_API_ORIGIN);
+  refuseProduction(e2eEnv.E2E_CALLBACK_ORIGIN);
+  requireLoopback(e2eEnv.E2E_CALLBACK_ORIGIN, "E2E_CALLBACK_ORIGIN");
 
   if (e2eEnv.E2E_TARGET === "local") {
     requireLoopback(e2eEnv.E2E_WEB_ORIGIN, "E2E_WEB_ORIGIN");

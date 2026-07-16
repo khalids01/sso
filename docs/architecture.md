@@ -67,9 +67,25 @@ application registry remains authoritative. SSO adds a server-side continuation
 guard that requires the user, application, client, and application membership to
 all be active before a code is returned.
 
-The token, userinfo, introspection, revocation, logout, discovery, registration,
-and provider client-management endpoints remain disabled. JWT signing and JWKS
-storage will be introduced with the token-exchange slice.
+SSO owns `POST /api/auth/oauth2/token`. It accepts only form-encoded public-client
+authorization-code exchanges with `openid` and PKCE `S256`. The code is deleted
+atomically before its client, redirect, session, user, application, membership,
+origin, and PKCE bindings are revalidated. Failed exchanges return sanitized
+OAuth errors and cannot reuse a consumed code. Better Auth's built-in token and
+generic session-JWT endpoints remain disabled.
+
+Tokens use stable configured issuer metadata, pairwise application subjects, and
+ten-minute RS256 signatures. Access tokens are application-audienced; ID tokens
+are client-audienced and preserve the authorization nonce. Public keys are
+published at `/api/auth/jwks` with stable key IDs and cache headers. Private keys
+are encrypted at rest, rotate every 30 days, and remain publicly verifiable for a
+24-hour retirement grace period. Issuance is deployment-gated and defaults off.
+
+The API owns authorization, exchange, signing keys, JWKS, and future social
+provider callbacks. The web app owns login and authorization UI. Client callbacks
+receive only `code` and `state`; tokens do not pass through browser URLs or the
+web frontend. Userinfo, introspection, revocation, logout, discovery,
+registration, and provider client-management endpoints remain deferred.
 
 Better Auth remains pinned at `1.4.18` for this slice. The local signed-query and
 membership continuation guard mitigates the known older continuation weakness,

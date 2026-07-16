@@ -21,6 +21,14 @@ const localWebServers = [
   },
 ];
 
+const callbackServer = {
+  command: "bun run scripts/oauth-callback-server.ts",
+  cwd: e2eEnv.e2eRoot,
+  url: `${e2eEnv.E2E_CALLBACK_ORIGIN}/health`,
+  reuseExistingServer: false,
+  timeout: 30_000,
+};
+
 export default defineConfig({
   testDir: "./specs",
   outputDir: "./test-results",
@@ -40,7 +48,10 @@ export default defineConfig({
     navigationTimeout: 30_000,
     launchOptions: { slowMo: e2eEnv.E2E_SLOW_MO },
   },
-  webServer: e2eEnv.E2E_TARGET === "local" ? localWebServers : undefined,
+  webServer:
+    e2eEnv.E2E_TARGET === "local"
+      ? [...localWebServers, callbackServer]
+      : [callbackServer],
   projects: [
     {
       name: "setup",

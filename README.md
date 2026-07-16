@@ -2,7 +2,7 @@
 
 Centralized identity, access control, and SSO management for internal and customer-facing applications.
 
-SSO is being built as the new control plane for company authentication. The current app provides Better Auth sessions, RBAC, owner/admin controls, application and client management, application memberships, invitations, activity logs, visitor analytics, rate limits, Redis-backed caches, and a TanStack admin UI. Browser authorization request handling now uses an authorization-code foundation with PKCE; token exchange remains intentionally disabled until JWT and JWKS work is complete.
+SSO is being built as the new control plane for company authentication. The current app provides Better Auth sessions, RBAC, owner/admin controls, application and client management, application memberships, invitations, activity logs, visitor analytics, rate limits, Redis-backed caches, and a TanStack admin UI. Its browser protocol now supports a deployment-gated authorization-code exchange with PKCE, pairwise application subjects, ten-minute RS256 tokens, and public JWKS verification.
 
 ## Stack
 
@@ -50,6 +50,10 @@ bun run dev
 ```
 
 The web app runs at [http://localhost:5002](http://localhost:5002), and the API runs at [http://localhost:5001](http://localhost:5001).
+
+Token issuance is disabled by default. Configure a stable `SSO_ISSUER` and set
+`ENABLE_OAUTH_TOKEN_ISSUANCE=true` only in an environment approved for the new
+protocol. The issuer is never inferred from the request host.
 
 ## RBAC
 

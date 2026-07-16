@@ -7,6 +7,7 @@ import { resolveActorRole } from "../helpers/actor-role";
 import type { SessionContext } from "../helpers/capabilities";
 import { e2eEnv } from "../helpers/environment";
 import { provisionE2EIdentities } from "../helpers/provision-actor";
+import { provisionOAuthFixture } from "../helpers/provision-oauth-fixture";
 import { assertApprovedRedirects } from "../helpers/safety";
 import { updateRunState } from "../helpers/run-state";
 
@@ -17,7 +18,8 @@ setup("provision and authenticate the selected E2E actor", async ({ page }) => {
     state.lockToken = lockToken;
   });
 
-  await provisionE2EIdentities();
+  const identities = await provisionE2EIdentities();
+  await provisionOAuthFixture(identities.actorId);
 
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Welcome Back" })).toBeVisible();

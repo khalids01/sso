@@ -21,6 +21,7 @@ function getUserIdFromPolarSubscription(
 
 export const authOptions = {
   disabledPaths: [
+    "/token",
     "/oauth2/token",
     "/oauth2/userinfo",
     "/oauth2/introspect",

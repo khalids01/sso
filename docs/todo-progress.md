@@ -6,10 +6,11 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Configure dedicated allowlisted local E2E identities and run the new Playwright
-suite as admin and user. After browser verification, apply the OAuth
-authorization-foundation migration through the normal migration workflow, then
-continue the token-exchange slice. Token issuance remains disabled.
+Verify the gated token flow in staging, inventory the old production SSO's real
+client and token contracts, and select a small allowlisted migration pilot. Keep
+production issuance disabled until the issuer, callback/origin allowlists,
+migration, and JWKS behavior are verified in that environment. Plan Google
+login as the next separate provider slice; Facebook and Apple follow later.
 
 ## Guardrails
 
@@ -57,11 +58,12 @@ continue the token-exchange slice. Token issuance remains disabled.
 - [x] Add Better Auth OAuth Provider `1.4.18` authorization and signed continuation foundation.
 - [x] Require `openid`, state, and PKCE `S256`; reject optional prompts and scopes.
 - [x] Preserve authorization requests through magic-link login and enforce active application membership before returning a code.
-- [x] Keep token, userinfo, introspection, revocation, discovery, registration, and provider client-management endpoints disabled.
-- [ ] Implement authorization-code flow with PKCE.
-- [ ] Issue app-scoped access tokens with audience and expiry.
+- [x] Keep Better Auth's built-in token and generic session-JWT endpoints disabled.
+- [x] Implement authorization-code exchange with atomic code consumption and PKCE `S256`.
+- [x] Issue pairwise, app-scoped RS256 access and ID tokens with ten-minute expiry.
+- [x] Publish rotating public signing keys through a cacheable JWKS endpoint.
 - [ ] Add userinfo or profile endpoint for client apps.
-- [ ] Add token revocation/introspection/JWKS support as needed.
+- [ ] Add token revocation or introspection only when a client contract requires it.
 
 ## Migration
 
@@ -74,18 +76,20 @@ continue the token-exchange slice. Token issuance remains disabled.
 
 - [x] Add tests for application/client validation.
 - [x] Add tests for app membership access decisions.
-- [ ] Add tests for token issuance and revocation.
+- [x] Add unit, integration, concurrency, CORS, disabled-flag, JWT/JWKS, and browser tests for token issuance.
+- [ ] Add revocation tests when revocation is implemented.
 - [ ] Add migration smoke tests using old production flow examples.
 - [ ] Add observability for failed login, invalid redirect, token exchange, and revocation events.
 - [x] Add guarded permission-driven Playwright infrastructure for local and staging.
 - [x] Add visible password-login coverage and the Applications admin lifecycle journey.
-- [ ] Complete the first real local Playwright run with dedicated allowlisted identities.
+- [x] Complete real local Playwright runs with dedicated allowlisted admin and user identities.
 
 ## Latest Verification
 
-- Server tests: `176 pass`, `0 fail`.
+- Server tests: `183 pass`, `0 fail` across 44 files.
 - OAuth Provider runtime initialization succeeded.
-- Disabled token, userinfo, registration, and discovery endpoints return `404`.
+- Better Auth's built-in token endpoint and generic session-JWT endpoint return
+  `404`; the SSO token endpoint also returns `404` while its deployment flag is off.
 - Forged signed continuation data returns `invalid_signature` before access lookup.
 - `bun run check-types` and the web production build pass.
 - `git diff --check` passes.
@@ -97,6 +101,19 @@ continue the token-exchange slice. Token issuance remains disabled.
   applications page hook-context crash introduced by the dependency refresh.
 - Application detail, clients, and members routes build for client and SSR;
   unauthenticated direct-route smoke tests correctly redirect to `/login`.
+- Local `platform.admin` E2E verification passes: `6 passed`, `0 failed`,
+  including the real callback, exchange, JWT/JWKS validation, and replay rejection.
+- Local `platform.user` E2E verification passes: `5 passed`, `1 skipped`,
+  `0 failed`. Visible password login and the real `platform.user` session pass;
+  admin navigation is absent, the direct admin route redirects to `/dashboard`,
+  and the authenticated applications API returns `403`. The application
+  lifecycle is explicitly skipped as not applicable, while the same OAuth/JWKS
+  journey succeeds independently of platform RBAC. Sign-out, protected-route
+  redirects, run-owned cleanup, and actor-lock release pass.
+- Prisma reports all 18 migrations applied to the local loopback PostgreSQL
+  database; the schema is up to date.
+- Full TypeScript checks, Prisma validation/generation, server and web client/SSR
+  builds, E2E helper tests, and the final diff whitespace check pass.
 
 ## Version Risk
 

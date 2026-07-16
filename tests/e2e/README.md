@@ -5,6 +5,12 @@ services. It never migrates, resets, truncates, seeds, or flushes those services
 Every mutable product record uses an `e2e-<run-id>-` prefix and teardown removes
 only data owned by that run.
 
+The suite also starts an isolated loopback callback server. Setup provisions a
+run-owned public client with that exact callback and origin, and the browser
+drives the real authorization UI before exchanging the captured code. The
+fixture validates both JWTs against the API JWKS and clears the code and token
+values after each journey. No production callback route is added.
+
 ## First-time setup
 
 Install dependencies and Chromium:

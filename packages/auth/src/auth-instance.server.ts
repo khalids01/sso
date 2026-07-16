@@ -1,4 +1,4 @@
-import { customSession } from "better-auth/plugins";
+import { customSession, jwt } from "better-auth/plugins";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { env } from "../../env/src/env.server";
 import { getUserSessionRbac } from "../../db/src/rbac/session.server";
@@ -6,11 +6,25 @@ import { betterAuth } from "better-auth";
 
 import { authOptions } from "./auth-options.server";
 import { applicationAuthorizationGuard } from "./lib/application-authorization.server";
+import { hashOAuthToken } from "./lib/oauth-token.server";
 
 export const auth = betterAuth({
   ...authOptions,
   plugins: [
     ...(authOptions.plugins ?? []),
+    jwt({
+      disableSettingJwtHeader: true,
+      jwks: {
+        keyPairConfig: { alg: "RS256", modulusLength: 2048 },
+        rotationInterval: 60 * 60 * 24 * 30,
+        gracePeriod: 60 * 60 * 24,
+        jwksPath: "/jwks",
+      },
+      jwt: {
+        issuer: env.SSO_ISSUER,
+        expirationTime: "10m",
+      },
+    }),
     oauthProvider({
       loginPage: `${env.CORS_ORIGIN}/login`,
       consentPage: `${env.CORS_ORIGIN}/authorize`,
@@ -19,7 +33,10 @@ export const auth = betterAuth({
       codeExpiresIn: 60,
       allowDynamicClientRegistration: false,
       allowUnauthenticatedClientRegistration: false,
-      disableJwtPlugin: true,
+      disableJwtPlugin: false,
+      storeTokens: {
+        hash: (token) => hashOAuthToken(token),
+      },
       schema: {
         oauthClient: {
           modelName: "applicationClient",

@@ -1,5 +1,11 @@
 export { auth, type Auth } from "./auth-instance.server";
 export { authOptions, type AuthOptions } from "./auth-options.server";
+export {
+  createS256Challenge,
+  hashOAuthToken,
+  isValidPkceVerifier,
+  securelyMatchesChallenge,
+} from "./lib/oauth-token.server";
 
 export { getAuthSession } from "./session.server";
 export { toClientSession } from "./session.client";

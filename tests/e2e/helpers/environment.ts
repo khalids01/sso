@@ -34,6 +34,8 @@ const schema = z.object({
   E2E_TARGET: z.enum(["local", "staging"]).default("local"),
   E2E_WEB_ORIGIN: z.url().default("http://localhost:5002"),
   E2E_API_ORIGIN: z.url().default("http://localhost:5001"),
+  E2E_CALLBACK_ORIGIN: z.url().default("http://127.0.0.1:5010"),
+  SSO_ISSUER: z.url(),
   E2E_ACTOR_EMAIL: z.email().transform((value) => value.toLowerCase()),
   E2E_ACTOR_PASSWORD: z.string().min(6).max(30),
   E2E_ACTOR_ROLE: z.enum([

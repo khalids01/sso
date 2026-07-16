@@ -11,6 +11,7 @@ model Application {
 
   clients ApplicationClient[]
   members ApplicationMember[]
+  subjects ApplicationSubject[]
 
   @@index([status])
   @@map("application")
@@ -31,6 +32,21 @@ model ApplicationMember {
   @@index([userId])
   @@index([status])
   @@map("application_member")
+}
+
+model ApplicationSubject {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject       String      @unique
+  createdAt     DateTime    @default(now())
+
+  @@unique([applicationId, userId])
+  @@index([applicationId])
+  @@index([userId])
+  @@map("application_subject")
 }
 
 model ApplicationClient {

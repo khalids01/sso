@@ -9,6 +9,12 @@ export type RunState = {
   applicationIds: string[];
   clientIds: string[];
   membershipIds: string[];
+  oauthFixture?: {
+    applicationId: string;
+    memberId: string;
+    clientId: string;
+    redirectUri: string;
+  };
 };
 
 const stateDirectory = path.join(e2eEnv.e2eRoot, ".state");

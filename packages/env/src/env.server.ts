@@ -10,8 +10,13 @@ export const env = createEnv({
     REDIS_KEY_PREFIX: z.string().default("sso:"),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
+    SSO_ISSUER: z.url(),
     AUTH_SESSION_COOKIE_NAME: z.string().min(1).default("better-auth.session_token"),
     ENABLE_PASSWORD_AUTH: z
+      .string()
+      .default("false")
+      .transform((value) => value === "true"),
+    ENABLE_OAUTH_TOKEN_ISSUANCE: z
       .string()
       .default("false")
       .transform((value) => value === "true"),

@@ -50,6 +50,7 @@ describe("auth rate-limit config", () => {
 
     expect(disabledPaths).toBeDefined();
     for (const path of [
+      "/token",
       "/oauth2/token",
       "/oauth2/userinfo",
       "/oauth2/introspect",
@@ -69,5 +70,26 @@ describe("auth rate-limit config", () => {
     ]) {
       expect(disabledPaths).not.toContain(`"${path}"`);
     }
+  });
+
+  it("uses only the guarded RS256 JWKS signer for OAuth tokens", async () => {
+    const authInstancePath = new URL(
+      "../../../packages/auth/src/auth-instance.server.ts",
+      import.meta.url,
+    );
+    const tokenControllerPath = new URL(
+      "../src/modules/oauth/oauth-token.controller.ts",
+      import.meta.url,
+    );
+    const [authSource, controllerSource] = await Promise.all([
+      Bun.file(authInstancePath).text(),
+      Bun.file(tokenControllerPath).text(),
+    ]);
+
+    expect(authSource).toContain('keyPairConfig: { alg: "RS256", modulusLength: 2048 }');
+    expect(authSource).toContain("disableSettingJwtHeader: true");
+    expect(authSource).toContain("rotationInterval: 60 * 60 * 24 * 30");
+    expect(authSource).toContain("gracePeriod: 60 * 60 * 24");
+    expect(controllerSource).toContain("env.ENABLE_OAUTH_TOKEN_ISSUANCE");
   });
 });

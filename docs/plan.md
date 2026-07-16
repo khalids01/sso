@@ -48,4 +48,13 @@ Add SSO-provider capabilities in layers:
 
 ## Near-Term Scope
 
-This documentation/branding step does not implement the application/client model. It only records the target direction and prepares the current app to become the SSO product.
+The secure authorization-code foundation is implemented behind a deployment
+flag: exact callbacks and origins, PKCE code exchange, pairwise subjects,
+short-lived RS256 access and ID tokens, JWKS, and sanitized exchange auditing.
+
+Next, verify the disabled-by-default flow in staging and inventory the old
+production SSO's real client contracts. Use that inventory to select a small
+allowlisted pilot with rollback points. Social login migration remains separate:
+Google first, then Facebook and Apple in independently reviewed slices. Their
+provider callbacks will terminate on the API origin and return to the web
+authorization UI through a signed continuation.

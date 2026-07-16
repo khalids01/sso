@@ -192,6 +192,21 @@ describe("rateLimitService", () => {
     expect(getSessionMock).not.toHaveBeenCalled();
   });
 
+  it("rate limits the SSO-owned OAuth token endpoint", async () => {
+    const { enforceRateLimit } = await import("../src/modules/rate-limit/rate-limit.service");
+    currentSettings = createSettings({ authMaxRequests: 2 });
+    const requests = [1, 2, 3].map(() =>
+      createContext("http://localhost/api/auth/oauth2/token"),
+    );
+
+    expect(await enforceRateLimit(requests[0] as any)).toBeUndefined();
+    expect(await enforceRateLimit(requests[1] as any)).toBeUndefined();
+    expect(await enforceRateLimit(requests[2] as any)).toMatchObject({
+      message: "Too many requests",
+      group: "auth",
+    });
+  });
+
   it("keeps custom auth limiter for /auth/* routes", async () => {
     const { enforceRateLimit } = await import("../src/modules/rate-limit/rate-limit.service");
     currentSettings = createSettings({
