@@ -4,6 +4,9 @@ Use this runbook only for an explicitly approved non-production environment.
 The Playwright safety layer rejects known production origins, non-allowlisted
 service hosts, and missing mutation acknowledgement.
 
+The old production SSO is outside this runbook. Do not access it, mutate it, or
+use staging verification as a pilot or compatibility migration.
+
 ## Deployment configuration
 
 Configure the staging API with stable, exact values:
@@ -89,7 +92,7 @@ Rollback is configuration-first:
 1. Set `ENABLE_OAUTH_TOKEN_ISSUANCE=false` and
    `ENABLE_APPLICATION_REVOCATION_DELIVERY=false`, then redeploy/restart the API.
 2. Confirm the SSO-owned token endpoint returns `404` and delivery attempts stop.
-3. Leave the old production SSO authoritative and do not switch any client.
+3. Do not redirect any application traffic or change any production client.
 4. Preserve sanitized logs and test run IDs for diagnosis.
 
 Do not delete signing keys or roll back an applied migration as an emergency

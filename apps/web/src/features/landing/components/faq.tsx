@@ -19,7 +19,7 @@ const faqs = [
   {
     question: "Can this replace the old production SSO?",
     answer:
-      "That is the goal. The old production app remains the behavior and migration reference, while this app becomes the safer and more capable replacement.",
+      "That is the goal. The old production app is only a behavioral reference; applications will integrate directly with this safer replacement after staging verification.",
   },
   {
     question: "What is planned next?",

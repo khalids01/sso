@@ -19,7 +19,7 @@ const testimonials = [
   },
   {
     content:
-      "The migration path lets us preserve existing auth flows while building a safer foundation.",
+      "The app-scoped token model gives each product a safer, explicit authentication boundary.",
     author: "James Wilson",
     role: "Independent Indie Hacker",
     avatar:

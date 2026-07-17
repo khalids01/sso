@@ -26,9 +26,11 @@ const getAuthSessionMock = mock(async () => ({
   primaryRoleSlug: Roles.PlatformUser,
   primaryRoleId: "role-user",
 }));
+const getPolarCustomerStateMock = mock(async () => null);
 
 mock.module("@auth/server", () => ({
   getAuthSession: getAuthSessionMock,
+  getPolarCustomerState: getPolarCustomerStateMock,
 }));
 
 describe("sessionController", () => {

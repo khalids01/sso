@@ -27,6 +27,7 @@ mock.module("@auth/server", () => ({
     api: authApi,
   },
   getAuthSession: mock(async () => null),
+  getPolarCustomerState: mock(async () => null),
 }));
 
 mock.module("@env/server", () => ({

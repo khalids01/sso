@@ -1,5 +1,12 @@
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isConnectionClosedAbortError } from "../../../apps/web/src/lib/ssr-cancellation";
+
+const reportError = console.error;
+console.error = (...args: unknown[]) => {
+  if (args.some(isConnectionClosedAbortError)) return;
+  reportError(...args);
+};
 
 const e2eRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const webRoot = path.resolve(e2eRoot, "../../apps/web");

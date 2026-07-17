@@ -2,7 +2,9 @@
 
 ## Direction
 
-SSO will replace the old production SSO as the central identity and access platform for company applications. The new app is the foundation; the old production app is the migration source and compatibility reference.
+SSO will become the central identity and access platform for company
+applications. The old production SSO is only a read-only behavioral reference;
+it is not a migration source and does not impose a compatibility rollout.
 
 The core product rule is separation of concerns:
 
@@ -42,8 +44,8 @@ Add SSO-provider capabilities in layers:
    - Issue app-scoped tokens with the correct audience and claims.
    - Add userinfo, token validation/introspection, revocation, and JWKS support where needed.
 
-4. **Migration and compatibility**
-   - Preserve enough old production behavior for existing apps to migrate safely.
+4. **Direct application integration**
+   - Add protocol features only when a new application contract requires them.
    - Avoid copying legacy security weaknesses such as long-lived generic JWTs, prefix redirect matching, public secret exposure, and userId-based biometric login.
 
 ## Near-Term Scope
@@ -52,9 +54,8 @@ The secure authorization-code foundation is implemented behind a deployment
 flag: exact callbacks and origins, PKCE code exchange, pairwise subjects,
 short-lived RS256 access and ID tokens, JWKS, and sanitized exchange auditing.
 
-Next, verify the disabled-by-default flow in staging and inventory the old
-production SSO's real client contracts. Use that inventory to select a small
-allowlisted pilot with rollback points. Social login migration remains separate:
-Google first, then Facebook and Apple in independently reviewed slices. Their
-provider callbacks will terminate on the API origin and return to the web
-authorization UI through a signed continuation.
+Next, verify the disabled-by-default flow in staging, then integrate applications
+directly with the new SSO. Google authentication is a separate post-staging
+slice; Facebook and Apple follow in independently reviewed slices. Their provider
+callbacks will terminate on the API origin and return to the web authorization
+UI through a signed continuation.

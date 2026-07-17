@@ -1,6 +1,10 @@
 import { Elysia } from "elysia";
+import { getPolarCustomerState } from "@auth/server";
 import { toClientSession } from "@auth/client";
+import { env } from "@env/server";
+import { Roles } from "@rbac";
 import { authGuard } from "@/guards/auth.guard";
+import { resolvePaymentCustomerState } from "./payment.service";
 
 export const sessionController = new Elysia({
   prefix: "/session",
@@ -32,6 +36,26 @@ export const sessionController = new Elysia({
     },
     {
       detail: { summary: "Authenticated session context with permissions" },
+    },
+  )
+  .get(
+    "/payment",
+    async ({ session, userId, set }) => {
+      set.headers["cache-control"] = "private, no-store";
+
+      if (!session || !userId) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
+      return resolvePaymentCustomerState({
+        polarEnabled: env.ENABLE_POLAR,
+        billingEligible: session.primaryRoleSlug === Roles.PlatformUser,
+        loadCustomerState: () => getPolarCustomerState(userId),
+      });
+    },
+    {
+      detail: { summary: "Current billing customer's Polar state" },
     },
   )
   .get(

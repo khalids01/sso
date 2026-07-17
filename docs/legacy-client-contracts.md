@@ -41,26 +41,26 @@ contract before an endpoint is added.
 - Google accounts are matched by email or provider user ID. Facebook fabricates
   an email when the provider does not return one.
 - Existing users can be changed to a different `authProvider` during social
-  login, so production account-linking behavior must be reviewed before import.
+  login. The new Google authentication slice must define account linking safely
+  without importing that behavior.
 - Password login, registration, forgot-password, and reset-password are all
   scoped by the client token and redirect URL.
 - The legacy client-info route returns Google and Facebook client secrets to the
   browser. This behavior must never be reproduced.
 
-## Deployment-provided inventory
+## Direct application onboarding
 
-Before selecting a pilot, obtain the following outside this repository without
-copying secrets into documentation:
+Before integrating an application with the new SSO, obtain the following from
+that application's owner without copying secrets into documentation:
 
-- Active client name and owner.
-- Exact production and staging callback URIs and browser origins.
+- Application name and owner.
+- Exact callback URIs and browser origins for the target environments.
 - Current login methods and whether password reset or registration is used.
-- Whether the client reads `auth_token`, calls the profile endpoint, or relies
-  on particular profile fields.
-- Current token validation implementation and application-session lifetime.
+- Required profile fields, roles, scopes, and local session lifetime.
+- Planned JWKS verification implementation.
 - Required logout, ban, suspension, and revocation latency.
 - Social providers and ownership of their provider credentials.
-- Rollback owner, monitoring contact, and acceptable migration window.
+- Rollback owner, monitoring contact, and acceptable integration window.
 
-Unknown active client names, origins, and usage are rollout blockers. They are
-not inferred from the MongoDB model or source examples.
+This is an integration contract for the new application, not an inventory or
+migration of old production SSO clients.

@@ -55,6 +55,11 @@ Token issuance is disabled by default. Configure a stable `SSO_ISSUER` and set
 `ENABLE_OAUTH_TOKEN_ISSUANCE=true` only in an environment approved for the new
 protocol. The issuer is never inferred from the request host.
 
+Polar is also disabled by default. Protected routes request customer state only
+for billing-eligible `platform.user` identities. Platform admins and owners do
+not require Polar customers, and a confirmed missing customer means no active
+subscription; other Polar failures remain errors.
+
 ## RBAC
 
 Permissions and system role definitions live in `packages/rbac`. The role map is the seed default; runtime authorization reads from PostgreSQL and Redis.
@@ -140,12 +145,22 @@ E2E loopback receivers and is rejected in production. See
 [`docs/application-revocation-webhooks.md`](docs/application-revocation-webhooks.md)
 for the application backend contract.
 
+Local Playwright launches the built API with `ENABLE_POLAR=false` explicitly,
+independent of a developer's normal local billing configuration. Expected
+streamed-SSR cancellation from browser navigation is handled only when the
+request was aborted with the exact closed-connection `AbortError`; unrelated
+SSR failures remain visible.
+
 See [`tests/e2e/README.md`](tests/e2e/README.md) for safe local/staging setup,
 role-selected commands, live debugging, artifacts, and interrupted-run cleanup.
 
 ## Product Direction
 
-The old production SSO remains the behavioral reference for existing app integrations. This app is the replacement foundation. The target design keeps platform/admin access separate from client-application access:
+The old production SSO is a read-only behavioral reference. There is no pilot or
+compatibility migration requirement from it, and development must not access or
+mutate it. After the guarded staging gate passes, applications can be integrated
+directly with the new SSO. The design keeps platform/admin access separate from
+client-application access:
 
 - Platform RBAC controls the SSO admin/control plane.
 - Identity users can exist without access to the SSO admin app.

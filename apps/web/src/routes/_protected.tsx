@@ -34,6 +34,7 @@ import { Permissions } from "@rbac";
 import { FeedbackButton } from "@/components/core/feedback-button";
 import { getRootSession } from "@/features/user/lib/get-root-session";
 import { getPayment } from "@/features/payment/lib/get-payment";
+import { isBillingEligible } from "@/features/payment/lib/payment-eligibility";
 import { useSession } from "@/providers/session-provider";
 
 export const Route = createFileRoute("/_protected")({
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/_protected")({
       });
     }
 
-    const customerState = await getPayment();
+    const customerState = isBillingEligible(session) ? await getPayment() : null;
 
     return {
       session,

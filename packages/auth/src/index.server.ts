@@ -9,6 +9,10 @@ export {
 
 export { getAuthSession } from "./session.server";
 export { toClientSession } from "./session.client";
+export {
+  getPolarCustomerState,
+} from "./lib/payments.server";
+export { isMissingPolarCustomerError } from "./lib/polar-error";
 
 export type {
   AuthGetSessionResult,

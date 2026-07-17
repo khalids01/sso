@@ -111,11 +111,11 @@ export default function SignUpForm() {
 
       <div className="mt-4 text-center">
         <Button
-          asChild
           variant="link"
           className="text-indigo-600 hover:text-indigo-800"
+          render={<Link to="/login" />}
         >
-          <Link to="/login">Already have an account? Sign In</Link>
+          Already have an account? Sign In
         </Button>
       </div>
     </div>

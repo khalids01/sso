@@ -26,6 +26,7 @@ mock.module("@auth/server", () => ({
     },
   },
   getAuthSession: mock(async () => getSessionMock()),
+  getPolarCustomerState: mock(async () => null),
 }));
 
 mock.module("../../src/rbac/resolve/get-effective.ts", () => ({

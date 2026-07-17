@@ -8,11 +8,12 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 Deploy the disabled-by-default issuance and application revocation build to an
 explicitly allowlisted staging environment and run both guarded role journeys
-there through an approved HTTPS callback tunnel. After that gate, inventory the
-deployment-provided active production client names, origins, profile needs, and
-revocation latency before selecting a migration pilot. Authenticated
-introspection remains deferred until a real sensitive-client contract requires
-it. Google migration remains a separate later slice; Facebook and Apple follow.
+there through an approved HTTPS callback tunnel. Do not access or mutate the old
+production SSO; it is only a behavioral reference, and no pilot or compatibility
+migration is required. After staging passes, integrate applications directly
+with the new SSO. Authenticated introspection remains deferred until a real
+sensitive-client contract requires it. Google authentication is a separate next
+slice; Facebook and Apple remain deferred.
 
 ## Guardrails
 
@@ -72,13 +73,13 @@ it. Google migration remains a separate later slice; Facebook and Apple follow.
 - [x] Add pushed application-local session revocation without per-request SSO calls.
 - [ ] Add authenticated introspection only when a sensitive client contract requires it.
 
-## Migration
+## Application Integration
 
-- [x] Document the repository-derived legacy production protocol and required flows.
-- [ ] Add deployment-provided active production client names and origins to the inventory.
-- [ ] Map old users and client IDs into the new identity/application model.
-- [ ] Define compatibility endpoints only where existing apps need them.
-- [ ] Build a staged migration plan with rollback points.
+- [x] Document the old production behavior as a read-only reference.
+- [x] Remove pilot and compatibility migration requirements from the rollout plan.
+- [ ] Integrate the first application directly after the staging gate passes.
+- [ ] Capture app-specific profile, role, scope, and revocation requirements before
+  extending the initial protocol.
 
 ## Tests And Rollout
 
@@ -86,7 +87,8 @@ it. Google migration remains a separate later slice; Facebook and Apple follow.
 - [x] Add tests for app membership access decisions.
 - [x] Add unit, integration, concurrency, CORS, disabled-flag, JWT/JWKS, and browser tests for token issuance.
 - [x] Add unit, integration, concurrency, SSRF, retry, JWT/JWKS, and browser revocation tests.
-- [ ] Add migration smoke tests using old production flow examples.
+- [ ] Add contract tests when a directly integrated application requires behavior
+  beyond the initial protocol.
 - [x] Add sanitized observability for application revocation delivery outcomes.
 - [ ] Complete observability review for failed login and invalid redirects.
 - [x] Add guarded permission-driven Playwright infrastructure for local and staging.
@@ -95,7 +97,7 @@ it. Google migration remains a separate later slice; Facebook and Apple follow.
 
 ## Latest Verification
 
-- Server tests: `196 pass`, `0 fail` across 47 files.
+- Server tests: `200 pass`, `0 fail` across 48 files.
 - OAuth Provider runtime initialization succeeded.
 - Better Auth's built-in token endpoint and generic session-JWT endpoint return
   `404`; the SSO token endpoint also returns `404` while its deployment flag is off.
@@ -104,7 +106,7 @@ it. Google migration remains a separate later slice; Facebook and Apple follow.
 - `git diff --check` passes.
 - Password login remains environment-gated with password signup disabled.
 - Playwright discovers setup, cleanup, permission, application lifecycle, and sign-out tests.
-- E2E helper tests pass (`5 pass`, `0 fail`), Chromium launches successfully,
+- E2E helper tests pass (`8 pass`, `0 fail`), Chromium launches successfully,
   and the web client/SSR production build passes.
 - Web and email now resolve a single React `19.2.5` runtime, fixing the admin
   applications page hook-context crash introduced by the dependency refresh.
@@ -122,6 +124,14 @@ it. Google migration remains a separate later slice; Facebook and Apple follow.
   redirects, run-owned cleanup, and actor-lock release pass.
 - Prisma reports all 19 migrations applied to the local loopback PostgreSQL
   database; the schema is up to date.
+- Local built E2E starts the API with `ENABLE_POLAR=false` explicitly. Protected
+  routes skip Polar state for admins and owners, missing Polar customers resolve
+  to no subscription, and unrelated Polar failures remain visible.
+- Base UI auth links use the supported `render` API while preserving anchor
+  semantics and button styling.
+- Login/logout navigation no longer reports expected browser-cancelled streamed
+  SSR as an unhandled 500. Handling requires an aborted request and the exact
+  closed-connection `AbortError`; focused tests preserve unrelated failures.
 - Full TypeScript checks, Prisma validation/generation, server and web client/SSR
   builds, E2E helper tests, and the final diff whitespace check pass.
 - Better Auth `1.6.23` schema generation was compared outside the repository.
@@ -152,5 +162,5 @@ it. Google migration remains a separate later slice; Facebook and Apple follow.
 - Stable 1.6.x is affected by `GHSA-p2fr-6hmx-4528`. The affected Better Auth
   token behavior is disabled and regression-tested at our boundary. Upgrade to
   the first patched stable release when available.
-- Staging verification remains a release gate. Production issuance, revocation
-  delivery, and legacy client migration remain disabled.
+- Staging verification remains a release gate. Production issuance and revocation
+  delivery remain disabled; the old production SSO remains untouched.

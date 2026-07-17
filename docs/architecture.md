@@ -117,12 +117,16 @@ review.
 Issuance and revocation delivery remain disabled until an explicitly allowlisted
 staging deployment passes both role journeys. Authenticated introspection remains
 deferred until a real sensitive-client contract requires it. Production client
-inventory and pilot selection come next; social-provider migration remains a
-separate slice.
+integration begins only after that gate. Google authentication remains a separate
+post-staging slice; Facebook and Apple remain deferred.
 
-## Legacy Migration Notes
+## Old SSO Behavioral Reference
 
-The old production SSO proves the required integrations: client token validation, login/register, social auth, password reset, and client-branded flows. Its behavior should guide migration, but the new implementation should avoid:
+The old production SSO demonstrates client token validation, login/register,
+social auth, password reset, and client-branded behavior. It is not a migration
+source or staging target. Do not access or mutate it during new SSO development,
+and do not add compatibility behavior unless a new application contract
+independently requires it. The new implementation avoids:
 
 - one-year generic bearer JWTs,
 - redirect URI prefix matching,
@@ -130,3 +134,10 @@ The old production SSO proves the required integrations: client token validation
 - public CORS everywhere,
 - hardcoded or disabled admin auth,
 - biometric login based only on a submitted user ID.
+
+Protected web routes load Polar customer state only for billing-eligible
+`platform.user` identities. Admins and owners intentionally do not require Polar
+customers. A Polar resource-not-found response maps to no subscription, while
+other Polar failures propagate. The built local E2E API explicitly disables
+Polar, and the web server recognizes only aborted closed-connection SSR errors
+as expected browser cancellation.

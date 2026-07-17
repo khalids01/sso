@@ -12,7 +12,7 @@ const localWebServers = [
     command:
       `PORT=${localApiPort} BETTER_AUTH_URL=${e2eEnv.E2E_API_ORIGIN} ` +
       `SSO_ISSUER=${e2eEnv.SSO_ISSUER} CORS_ORIGIN=${e2eEnv.E2E_WEB_ORIGIN} ` +
-      "ENABLE_PASSWORD_AUTH=true ALLOW_LOCAL_APPLICATION_WEBHOOKS=true " +
+      "ENABLE_PASSWORD_AUTH=true ENABLE_POLAR=false ALLOW_LOCAL_APPLICATION_WEBHOOKS=true " +
       "ENABLE_APPLICATION_REVOCATION_DELIVERY=true bun run tests/e2e/scripts/start-local-api.ts",
     cwd: e2eEnv.repoRoot,
     url: e2eEnv.E2E_API_ORIGIN,
@@ -22,7 +22,8 @@ const localWebServers = [
   {
     command:
       `PORT=${localWebPort} VITE_SERVER_URL=${e2eEnv.E2E_API_ORIGIN} ` +
-      "VITE_ENABLE_PASSWORD_AUTH=true bun run tests/e2e/scripts/start-local-web.ts",
+      "VITE_ENABLE_PASSWORD_AUTH=true VITE_ENABLE_POLAR=false " +
+      "bun run tests/e2e/scripts/start-local-web.ts",
     cwd: e2eEnv.repoRoot,
     url: `${e2eEnv.E2E_WEB_ORIGIN}/login`,
     reuseExistingServer: false,
