@@ -158,8 +158,10 @@ role-selected commands, live debugging, artifacts, and interrupted-run cleanup.
 
 The old production SSO is a read-only behavioral reference. There is no pilot or
 compatibility migration requirement from it, and development must not access or
-mutate it. After the guarded staging gate passes, applications can be integrated
-directly with the new SSO. The design keeps platform/admin access separate from
+mutate it. Applications can be integrated directly with the locally verified new
+SSO contract; staging verification is currently deferred. Issuance and
+revocation delivery stay disabled by default until deliberately enabled in the
+target deployment. The design keeps platform/admin access separate from
 client-application access:
 
 - Platform RBAC controls the SSO admin/control plane.

@@ -6,14 +6,14 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Deploy the disabled-by-default issuance and application revocation build to an
-explicitly allowlisted staging environment and run both guarded role journeys
-there through an approved HTTPS callback tunnel. Do not access or mutate the old
-production SSO; it is only a behavioral reference, and no pilot or compatibility
-migration is required. After staging passes, integrate applications directly
-with the new SSO. Authenticated introspection remains deferred until a real
-sensitive-client contract requires it. Google authentication is a separate next
-slice; Facebook and Apple remain deferred.
+Integrate the first application directly with the new SSO and capture only the
+profile, role, scope, and branding requirements that application actually needs.
+Local automated and browser validation is the current acceptance gate; staging
+verification is deferred. Do not access or mutate the old production SSO. It is
+only a behavioral reference, and no pilot or compatibility migration is
+required. Authenticated introspection remains deferred until a real sensitive
+client requires it. Google authentication is a separate later slice; Facebook
+and Apple remain deferred.
 
 ## Guardrails
 
@@ -77,7 +77,7 @@ slice; Facebook and Apple remain deferred.
 
 - [x] Document the old production behavior as a read-only reference.
 - [x] Remove pilot and compatibility migration requirements from the rollout plan.
-- [ ] Integrate the first application directly after the staging gate passes.
+- [ ] Integrate the first application directly using the locally verified contract.
 - [ ] Capture app-specific profile, role, scope, and revocation requirements before
   extending the initial protocol.
 
@@ -90,14 +90,14 @@ slice; Facebook and Apple remain deferred.
 - [ ] Add contract tests when a directly integrated application requires behavior
   beyond the initial protocol.
 - [x] Add sanitized observability for application revocation delivery outcomes.
-- [ ] Complete observability review for failed login and invalid redirects.
+- [x] Complete observability review for failed login and invalid redirects.
 - [x] Add guarded permission-driven Playwright infrastructure for local and staging.
 - [x] Add visible password-login coverage and the Applications admin lifecycle journey.
 - [x] Complete real local Playwright runs with dedicated allowlisted admin and user identities.
 
 ## Latest Verification
 
-- Server tests: `200 pass`, `0 fail` across 48 files.
+- Server tests: `205 pass`, `0 fail` across 49 files.
 - OAuth Provider runtime initialization succeeded.
 - Better Auth's built-in token endpoint and generic session-JWT endpoint return
   `404`; the SSO token endpoint also returns `404` while its deployment flag is off.
@@ -132,6 +132,10 @@ slice; Facebook and Apple remain deferred.
 - Login/logout navigation no longer reports expected browser-cancelled streamed
   SSR as an unhandled 500. Handling requires an aborted request and the exact
   closed-connection `AbortError`; focused tests preserve unrelated failures.
+- Failed password and magic-link logins and rejected OAuth authorization requests
+  create warning activity events with a response request ID. Events never store
+  credentials, email addresses, redirect URIs, state, codes, tokens, or signed
+  continuation data; unsafe provider error text is replaced with a fixed reason.
 - Full TypeScript checks, Prisma validation/generation, server and web client/SSR
   builds, E2E helper tests, and the final diff whitespace check pass.
 - Better Auth `1.6.23` schema generation was compared outside the repository.
@@ -162,5 +166,7 @@ slice; Facebook and Apple remain deferred.
 - Stable 1.6.x is affected by `GHSA-p2fr-6hmx-4528`. The affected Better Auth
   token behavior is disabled and regression-tested at our boundary. Upgrade to
   the first patched stable release when available.
-- Staging verification remains a release gate. Production issuance and revocation
-  delivery remain disabled; the old production SSO remains untouched.
+- Local verification is the current acceptance gate and staging is deferred.
+  Production issuance and revocation delivery remain disabled by default and
+  require deliberate deployment configuration; the old production SSO remains
+  untouched.

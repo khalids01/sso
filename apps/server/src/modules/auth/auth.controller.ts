@@ -2,11 +2,13 @@ import { Elysia } from "elysia";
 import { auth } from "@auth/server";
 import prisma from "@db/server";
 import { env } from "@env/server";
+import { randomUUID } from "node:crypto";
 import {
   CheckEmailDto,
   MagicLinkLoginDto,
   MagicLinkSignupDto,
 } from "./auth.dto";
+import { recordLoginDenied } from "./auth-observability.service";
 
 function resolveCallbackURL(callbackURL?: string) {
   if (!callbackURL) {
@@ -47,7 +49,15 @@ export const authController = new Elysia({ prefix: "/auth" })
         where: { email: body.email },
       });
       if (!user) {
+        const requestId = randomUUID();
+        await recordLoginDenied({
+          requestId,
+          reason: "user_not_found",
+          method: "magic_link",
+          status: 400,
+        });
         set.status = 400;
+        set.headers["x-request-id"] = requestId;
         return { message: "User not found" };
       }
       await auth.api.signInMagicLink({

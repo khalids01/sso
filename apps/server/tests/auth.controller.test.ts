@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Prisma } from "../../../packages/db/prisma/generated/client";
 
 const findUniqueMock = mock(async () => null);
+const activityCreateMock = mock(async () => ({ id: "activity-1" }));
 const authApi =
   ((globalThis as typeof globalThis & {
     __serverTestAuthApi?: {
@@ -17,6 +18,9 @@ mock.module("@db/server", () => ({
   default: {
     user: {
       findUnique: findUniqueMock,
+    },
+    activityEvent: {
+      create: activityCreateMock,
     },
   },
   Prisma,
@@ -38,6 +42,7 @@ mock.module("@env/server", () => ({
 
 afterEach(() => {
   findUniqueMock.mockReset();
+  activityCreateMock.mockReset();
   authApi.signInMagicLink.mockReset();
 });
 
@@ -64,5 +69,10 @@ describe("authController", () => {
     expect(response.status).toBe(400);
     expect(body).toEqual({ message: "User not found" });
     expect(authApi.signInMagicLink).not.toHaveBeenCalled();
+    expect(response.headers.get("x-request-id")).toBeTruthy();
+    expect(activityCreateMock).toHaveBeenCalledTimes(1);
+    const serializedEvent = JSON.stringify(activityCreateMock.mock.calls[0]);
+    expect(serializedEvent).toContain("auth.login.denied");
+    expect(serializedEvent).not.toContain("missing@example.com");
   });
 });

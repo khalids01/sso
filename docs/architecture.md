@@ -114,11 +114,13 @@ and derives audiences from the code-bound application and client. See
 `docs/better-auth-1.6.23-audit.md` for the compatibility, schema, and dependency
 review.
 
-Issuance and revocation delivery remain disabled until an explicitly allowlisted
-staging deployment passes both role journeys. Authenticated introspection remains
-deferred until a real sensitive-client contract requires it. Production client
-integration begins only after that gate. Google authentication remains a separate
-post-staging slice; Facebook and Apple remain deferred.
+Issuance and revocation delivery remain disabled by default and require
+deliberate deployment configuration. Local automated and browser verification is
+the current acceptance gate; staging verification is deferred. Client
+integration can proceed directly using the locally verified public-client
+contract. Authenticated introspection remains deferred until a real sensitive
+client requires it. Google authentication is a separate later slice; Facebook
+and Apple remain deferred.
 
 ## Old SSO Behavioral Reference
 
@@ -141,3 +143,10 @@ customers. A Polar resource-not-found response maps to no subscription, while
 other Polar failures propagate. The built local E2E API explicitly disables
 Polar, and the web server recognizes only aborted closed-connection SSR errors
 as expected browser cancellation.
+
+Failed password and magic-link logins and rejected OAuth authorization requests
+are recorded as warning activity events with response request IDs. Their metadata
+is intentionally limited to a normalized reason, status, login method, and a
+validated OAuth client ID. Request bodies, email addresses, credentials, redirect
+URIs, state, authorization codes, tokens, and signed continuation data are never
+copied into these events.

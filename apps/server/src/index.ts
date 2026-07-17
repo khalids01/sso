@@ -2,6 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { auth } from "@auth/server";
 import { env } from "@env/server";
 import { connectRedis } from "@redis/server";
+import { randomUUID } from "node:crypto";
 import { Elysia } from "elysia";
 import { app } from "./modules/app";
 import { openapi } from "@elysiajs/openapi";
@@ -10,6 +11,7 @@ import { startVisitorFlushWorker } from "./modules/visitors/visitors.service";
 import { securityHeadersPlugin } from "./plugins/security-headers";
 import { oauthTokenController } from "./modules/oauth/oauth-token.controller";
 import { startApplicationRevocationWorker } from "./modules/application-revocation/revocation.service";
+import { observeBetterAuthFailure } from "./modules/auth/auth-observability.service";
 
 const shouldLogRequests = env.NODE_ENV === "development";
 const port = env.PORT;
@@ -51,7 +53,16 @@ const server = new Elysia()
   .all("/api/auth/*", async (context) => {
     const { request, status } = context;
     if (["POST", "GET"].includes(request.method)) {
+      const requestId = randomUUID();
       const response = await auth.handler(request);
+      const observedFailure = await observeBetterAuthFailure({
+        request,
+        response,
+        requestId,
+      });
+      if (observedFailure) {
+        response.headers.set("x-request-id", requestId);
+      }
       if (new URL(request.url).pathname === "/api/auth/jwks" && response.ok) {
         response.headers.set("cache-control", "public, max-age=300, stale-while-revalidate=300");
       }
