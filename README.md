@@ -172,4 +172,5 @@ See `docs/plan.md`, `docs/architecture.md`, and `docs/todo-progress.md` for the
 working plan. Upgrade-specific decisions are recorded in
 `docs/better-auth-1.6.23-audit.md`, the legacy protocol in
 `docs/legacy-client-contracts.md`, and staging verification in
-`docs/staging-oauth-runbook.md`.
+`docs/staging-oauth-runbook.md`. The current dependency advisory classification
+and remediation record is in `docs/dependency-security-review.md`.

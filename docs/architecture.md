@@ -114,6 +114,13 @@ and derives audiences from the code-bound application and client. See
 `docs/better-auth-1.6.23-audit.md` for the compatibility, schema, and dependency
 review.
 
+Targeted dependency maintenance keeps network-facing runtime packages on patched
+compatible releases. The remaining audit report is limited to reviewed local
+CLI/build paths, unused optional peers, and the separately mitigated stable
+OAuth Provider advisory. See `docs/dependency-security-review.md`. TanStack
+Start's client/server import protection remains enabled; isomorphic public
+browser configuration is isolated in `packages/env/src/env.public.ts`.
+
 Issuance and revocation delivery remain disabled by default and require
 deliberate deployment configuration. Local automated and browser verification is
 the current acceptance gate; staging verification is deferred. Client

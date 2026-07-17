@@ -78,6 +78,9 @@ and Apple remain deferred.
 - [x] Document the old production behavior as a read-only reference.
 - [x] Remove pilot and compatibility migration requirements from the rollout plan.
 - [ ] Integrate the first application directly using the locally verified contract.
+- [ ] Create a separate TanStack Start reference application and use it to test
+  login, callback, PKCE exchange, local session creation, sign-out, and pushed
+  revocation as the first real client contract.
 - [ ] Capture app-specific profile, role, scope, and revocation requirements before
   extending the initial protocol.
 
@@ -91,6 +94,7 @@ and Apple remain deferred.
   beyond the initial protocol.
 - [x] Add sanitized observability for application revocation delivery outcomes.
 - [x] Complete observability review for failed login and invalid redirects.
+- [x] Review dependency advisories and apply targeted compatible runtime fixes.
 - [x] Add guarded permission-driven Playwright infrastructure for local and staging.
 - [x] Add visible password-login coverage and the Applications admin lifecycle journey.
 - [x] Complete real local Playwright runs with dedicated allowlisted admin and user identities.
@@ -154,10 +158,16 @@ and Apple remain deferred.
   restoration without reviving old tokens.
 - The production web build preserves Better Auth's repeated signed continuation
   parameters and completes post-login only from the exact configured web origin.
-- `bun audit` was run and is not clean. The stable 1.6.x OAuth Provider advisory
-  is mitigated by disabled upstream token/refresh endpoints, fixed code-bound
-  audiences, and explicit `resource` rejection. Other pre-existing findings are
-  recorded for a separate dependency-remediation slice.
+- The dependency security review reduced `bun audit` from 107 to 66 reported
+  findings. Elysia, file-type, Nodemailer, TanStack Start, Vite/Tailwind, Turbo,
+  Prisma's PostgreSQL adapter, and local UI/email tooling received targeted
+  compatible updates. Remaining reports are reviewed build/CLI or unused
+  optional-peer paths, except the stable Better Auth OAuth Provider advisory,
+  which remains boundary-mitigated and regression-tested. See
+  `docs/dependency-security-review.md`.
+- The TanStack Start update now enforces client/server import protection. Shared
+  public browser configuration moved to `env.public.ts`, and both client and SSR
+  builds pass without weakening that boundary.
 
 ## Version Risk
 

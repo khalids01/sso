@@ -25,6 +25,7 @@
       "@/*": ["./src/*"],
       "@auth/client": ["../../packages/auth/src/index.client.ts"],
       "@env/client": ["../../packages/env/src/env.client.ts"],
+      "@env/public": ["../../packages/env/src/env.public.ts"],
       "@rbac": ["../../packages/rbac/src"]
     }
   }

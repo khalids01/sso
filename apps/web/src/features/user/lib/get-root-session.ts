@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 
 import type { ClientSession, ClientSessionResult } from "@auth/client";
-import { env } from "@env/client";
+import { env } from "@env/public";
 
 type BackendSessionContext =
   | ClientSession
@@ -62,9 +62,12 @@ async function fetchRootSession(
   requestHeaders: Headers,
 ): Promise<ClientSessionResult> {
   try {
-    const response = await fetch(`${env.VITE_SERVER_URL}/session/context`, {
-      headers: requestHeaders,
-    });
+    const response = await fetch(
+      `${env.VITE_SERVER_URL}/session/context`,
+      {
+        headers: requestHeaders,
+      },
+    );
 
     if (!response.ok) {
       return null;

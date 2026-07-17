@@ -20,11 +20,11 @@
     "typescript": "^6.0.2"
   },
   "dependencies": {
+    "@env": "workspace:*",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@rbac": "workspace:*",
     "@redis": "workspace:*",
-    "@env": "workspace:*",
-    "@prisma/adapter-pg": "^7.4.1",
-    "@prisma/client": "^7.8.0",
     "dotenv": "^17.3.1",
     "pg": "^8.18.0",
     "zod": "^4.3.6"
