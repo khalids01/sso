@@ -14,6 +14,7 @@ import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 import { useSession } from "@/providers/session-provider";
 import { ApplicationManagementHeader } from "../components/application-management-header";
 import { getApplication } from "../crud/applications";
+import { showMutationError } from "../lifecycle";
 import {
   getRevocationEndpoint,
   listRevocationDeliveries,
@@ -57,7 +58,7 @@ export function ApplicationRevocationPage({ applicationId }: { applicationId: st
         queryKey: queryKeys.admin.applications.revocation(applicationId),
       });
     },
-    onError: () => toast.error("Failed to update revocation webhook"),
+    onError: showMutationError("Failed to update revocation webhook"),
   });
   const retryMutation = useMutation({
     mutationFn: retryRevocationDelivery,
@@ -67,7 +68,7 @@ export function ApplicationRevocationPage({ applicationId }: { applicationId: st
         queryKey: queryKeys.admin.applications.revocationDeliveries(applicationId),
       });
     },
-    onError: () => toast.error("Failed to retry delivery"),
+    onError: showMutationError("Failed to retry delivery"),
   });
 
   const application = applicationQuery.data;

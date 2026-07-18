@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { queryKeys } from "@/constants/query-keys";
 import { client } from "@/lib/client";
 import type { PendingAction } from "./page-types";
+import { getMutationErrorMessage } from "./mutation-error";
 
 export function lifecycleCopy(action: PendingAction) {
   const name =
@@ -176,7 +177,7 @@ export function invalidateApplicationMembers(
 }
 
 export function showMutationError(fallback: string) {
-  return (error: any) => {
-    toast.error(String(error?.value?.message || error?.message || fallback));
+  return (error: unknown) => {
+    toast.error(getMutationErrorMessage(error, fallback));
   };
 }
