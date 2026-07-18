@@ -17,6 +17,8 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as PaymentSuccessRouteImport } from './routes/payment/success'
+import { Route as ApplicationSignupRouteImport } from './routes/application/signup'
+import { Route as ApplicationLoginRouteImport } from './routes/application/login'
 import { Route as AdminWebhooksRouteImport } from './routes/admin/webhooks'
 import { Route as AdminVisitorsRouteImport } from './routes/admin/visitors'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
@@ -74,6 +76,16 @@ const PublicIndexRoute = PublicIndexRouteImport.update({
 const PaymentSuccessRoute = PaymentSuccessRouteImport.update({
   id: '/payment/success',
   path: '/payment/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApplicationSignupRoute = ApplicationSignupRouteImport.update({
+  id: '/application/signup',
+  path: '/application/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApplicationLoginRoute = ApplicationLoginRouteImport.update({
+  id: '/application/login',
+  path: '/application/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminWebhooksRoute = AdminWebhooksRouteImport.update({
@@ -196,6 +208,8 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/admin/visitors': typeof AdminVisitorsRoute
   '/admin/webhooks': typeof AdminWebhooksRoute
+  '/application/login': typeof ApplicationLoginRoute
+  '/application/signup': typeof ApplicationSignupRoute
   '/payment/success': typeof PaymentSuccessRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
@@ -223,6 +237,8 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/admin/visitors': typeof AdminVisitorsRoute
   '/admin/webhooks': typeof AdminWebhooksRoute
+  '/application/login': typeof ApplicationLoginRoute
+  '/application/signup': typeof ApplicationSignupRoute
   '/payment/success': typeof PaymentSuccessRoute
   '/admin': typeof AdminIndexRoute
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
@@ -252,6 +268,8 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/admin/visitors': typeof AdminVisitorsRoute
   '/admin/webhooks': typeof AdminWebhooksRoute
+  '/application/login': typeof ApplicationLoginRoute
+  '/application/signup': typeof ApplicationSignupRoute
   '/payment/success': typeof PaymentSuccessRoute
   '/_public/': typeof PublicIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -283,6 +301,8 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/visitors'
     | '/admin/webhooks'
+    | '/application/login'
+    | '/application/signup'
     | '/payment/success'
     | '/admin/'
     | '/admin/roles/$roleId'
@@ -310,6 +330,8 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/visitors'
     | '/admin/webhooks'
+    | '/application/login'
+    | '/application/signup'
     | '/payment/success'
     | '/admin'
     | '/admin/roles/$roleId'
@@ -338,6 +360,8 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/visitors'
     | '/admin/webhooks'
+    | '/application/login'
+    | '/application/signup'
     | '/payment/success'
     | '/_public/'
     | '/admin/'
@@ -355,6 +379,8 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
+  ApplicationLoginRoute: typeof ApplicationLoginRoute
+  ApplicationSignupRoute: typeof ApplicationSignupRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
   PublicIndexRoute: typeof PublicIndexRoute
 }
@@ -415,6 +441,20 @@ declare module '@tanstack/react-router' {
       path: '/payment/success'
       fullPath: '/payment/success'
       preLoaderRoute: typeof PaymentSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/application/signup': {
+      id: '/application/signup'
+      path: '/application/signup'
+      fullPath: '/application/signup'
+      preLoaderRoute: typeof ApplicationSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/application/login': {
+      id: '/application/login'
+      path: '/application/login'
+      fullPath: '/application/login'
+      preLoaderRoute: typeof ApplicationLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/webhooks': {
@@ -628,6 +668,8 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
+  ApplicationLoginRoute: ApplicationLoginRoute,
+  ApplicationSignupRoute: ApplicationSignupRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
   PublicIndexRoute: PublicIndexRoute,
 }

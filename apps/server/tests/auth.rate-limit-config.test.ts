@@ -92,6 +92,13 @@ describe("auth rate-limit config", () => {
     expect(authSource).toContain("gracePeriod: 60 * 60 * 24");
     expect(authSource).toContain("oauthAuthServerConfig: true");
     expect(authSource).toContain("openidConfig: true");
+    expect(authSource).toContain(
+      'loginPage: `${env.CORS_ORIGIN}/application/login`',
+    );
+    expect(authSource).toContain(
+      'page: `${env.CORS_ORIGIN}/application/signup`',
+    );
+    expect(authSource).toContain("allowPublicClientPrelogin: true");
     expect(controllerSource).toContain("env.ENABLE_OAUTH_TOKEN_ISSUANCE");
   });
 

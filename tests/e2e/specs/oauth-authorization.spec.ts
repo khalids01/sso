@@ -10,9 +10,72 @@ declare global {
   }
 }
 
+test("uses dedicated application auth and preserves the signed continuation", async ({ browser }) => {
+  const fixture = readRunState().oauthFixture;
+  if (!fixture) throw new Error("OAuth E2E fixture was not provisioned");
+
+  const context = await browser.newContext({
+    storageState: { cookies: [], origins: [] },
+  });
+  const page = await context.newPage();
+  try {
+    const verifier = randomBytes(48).toString("base64url");
+    const challenge = createHash("sha256").update(verifier).digest("base64url");
+    const authorize = new URL("/api/auth/oauth2/authorize", e2eEnv.E2E_API_ORIGIN);
+    authorize.search = new URLSearchParams({
+      client_id: fixture.clientId,
+      redirect_uri: fixture.redirectUri,
+      response_type: "code",
+      scope: "openid",
+      state: randomBytes(24).toString("base64url"),
+      nonce: randomBytes(24).toString("base64url"),
+      code_challenge_method: "S256",
+      code_challenge: challenge,
+    }).toString();
+
+    await page.goto(authorize.toString());
+    await expect(page).toHaveURL(/\/application\/login\?/);
+    await expect(
+      page.getByRole("heading", { name: `Continue to E2E OAuth Client ${e2eEnv.runId}` }),
+    ).toBeVisible();
+
+    const loginQuery = new URL(page.url()).searchParams;
+    expect(loginQuery.get("sig")).toBeTruthy();
+    expect(loginQuery.get("exp")).toBeTruthy();
+    await page.getByRole("link", { name: "Need an account? Sign Up" }).click();
+    await expect(page).toHaveURL(/\/application\/signup\?/);
+    expect([...new URL(page.url()).searchParams.entries()]).toEqual([...loginQuery.entries()]);
+
+    await page.getByRole("link", { name: "Already have an account? Sign In" }).click();
+    await expect(page).toHaveURL(/\/application\/login\?/);
+    expect([...new URL(page.url()).searchParams.entries()]).toEqual([...loginQuery.entries()]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) => {
   const fixture = readRunState().oauthFixture;
   if (!fixture) throw new Error("OAuth E2E fixture was not provisioned");
+
+  await test.step("resolve public verification metadata from the client ID", async () => {
+    const response = await page.request.get(
+      `${e2eEnv.E2E_API_ORIGIN}/api/oauth/client-metadata?client_id=${encodeURIComponent(fixture.clientId)}`,
+    );
+    expect(response.status()).toBe(200);
+    expect(response.headers()["cache-control"]).toContain("max-age=300");
+    expect(await response.json()).toEqual({
+      client_id: fixture.clientId,
+      application_id: fixture.applicationId,
+      audience: `urn:sso:application:${fixture.applicationId}`,
+    });
+
+    const missing = await page.request.get(
+      `${e2eEnv.E2E_API_ORIGIN}/api/oauth/client-metadata?client_id=missing-client`,
+    );
+    expect(missing.status()).toBe(404);
+    expect(await missing.json()).toEqual({ error: "client_not_found" });
+  });
 
   const verifier = randomBytes(48).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");

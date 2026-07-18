@@ -88,6 +88,18 @@ receive only `code` and `state`; tokens do not pass through browser URLs or the
 web frontend. Userinfo, introspection, revocation, logout, discovery,
 registration, and provider client-management endpoints remain deferred.
 
+OAuth requests use dedicated `/application/login` and `/application/signup`
+pages. They share the platform's underlying accounts and sessions but do not
+show platform navigation, and they preserve Better Auth's signed authorization
+query through login, signup, and magic-link verification. Platform `/login` and
+`/signup` remain the control-plane account experience.
+
+Server-side clients resolve their application binding from
+`GET /api/oauth/client-metadata?client_id=...`. The public response contains only
+the client ID, application ID, and derived application audience. This removes a
+duplicate application-ID setting while retaining exact audience and revocation
+event verification.
+
 Applications verify tokens locally and do not call SSO during normal requests.
 Each application can configure one revocation webhook. Membership suspension or
 revocation and platform user ban/archive create an application-specific durable

@@ -3,12 +3,14 @@ import { Elysia } from "elysia";
 import { env } from "@env/server";
 import {
   exchangeAuthorizationCode,
+  getPublicClientMetadata,
   isOriginRegisteredForActiveClient,
   OAuthTokenError,
   recordTokenRequestDenied,
 } from "./oauth-token.service";
 
 const TOKEN_PATH = "/api/auth/oauth2/token";
+const CLIENT_METADATA_PATH = "/api/oauth/client-metadata";
 const tokenFields = [
   "grant_type",
   "client_id",
@@ -64,6 +66,30 @@ function readSingle(params: URLSearchParams, key: string) {
 }
 
 export const oauthTokenController = new Elysia({ name: "oauth-token" })
+  .get(CLIENT_METADATA_PATH, async ({ query }) => {
+    const clientId = query.client_id;
+    if (typeof clientId !== "string" || !clientId) {
+      return new Response(JSON.stringify({ error: "invalid_request" }), {
+        status: 400,
+        headers: { "content-type": "application/json; charset=utf-8" },
+      });
+    }
+    const metadata = await getPublicClientMetadata(clientId);
+    if (!metadata) {
+      return new Response(JSON.stringify({ error: "client_not_found" }), {
+        status: 404,
+        headers: { "content-type": "application/json; charset=utf-8" },
+      });
+    }
+    return new Response(JSON.stringify(metadata), {
+      status: 200,
+      headers: {
+        "cache-control": "public, max-age=300",
+        "content-type": "application/json; charset=utf-8",
+        "x-content-type-options": "nosniff",
+      },
+    });
+  })
   .options(TOKEN_PATH, async ({ request }) => {
     if (!env.ENABLE_OAUTH_TOKEN_ISSUANCE) {
       return new Response("Not Found", { status: 404 });

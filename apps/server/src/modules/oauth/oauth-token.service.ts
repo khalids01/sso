@@ -130,6 +130,23 @@ export async function isOriginRegisteredForActiveClient(origin: string) {
   return Boolean(client);
 }
 
+export async function getPublicClientMetadata(clientId: string) {
+  const client = await prisma.applicationClient.findFirst({
+    where: { clientId, public: true },
+    select: {
+      clientId: true,
+      applicationId: true,
+    },
+  });
+  if (!client) return null;
+
+  return {
+    client_id: client.clientId,
+    application_id: client.applicationId,
+    audience: `urn:sso:application:${client.applicationId}`,
+  };
+}
+
 export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
   let audit: {
     userId?: string;

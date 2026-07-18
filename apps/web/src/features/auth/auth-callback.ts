@@ -1,13 +1,25 @@
-export function getAuthCallbackURL() {
-  const searchParams = new URLSearchParams(window.location.search);
+export function getAuthCallbackURLForLocation(origin: string, search: string) {
+  const searchParams = new URLSearchParams(search);
   const isOAuthRequest =
     searchParams.has("client_id") &&
     searchParams.has("sig") &&
     searchParams.has("exp");
 
   if (!isOAuthRequest) {
-    return `${window.location.origin}/dashboard`;
+    return `${origin}/dashboard`;
   }
 
-  return `${window.location.origin}/authorize?${window.location.search.slice(1)}`;
+  return `${origin}/authorize?${search.replace(/^\?/, "")}`;
+}
+
+export function getAuthCallbackURL() {
+  return getAuthCallbackURLForLocation(
+    window.location.origin,
+    window.location.search,
+  );
+}
+
+export function getApplicationAuthPath(pathname: string, search: string) {
+  if (!search) return pathname;
+  return `${pathname}${search.startsWith("?") ? search : `?${search}`}`;
 }

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
 import z from "zod";
@@ -8,8 +8,18 @@ import { client } from "@/lib/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getApplicationAuthPath, getAuthCallbackURL } from "./auth-callback";
 
-export default function SignUpForm() {
+export default function SignUpForm({
+  applicationName,
+}: {
+  applicationName?: string;
+}) {
+  const search = useLocation({ select: (location) => location.searchStr });
+  const isApplicationSignup = Boolean(applicationName);
+  const loginHref = isApplicationSignup
+    ? getApplicationAuthPath("/application/login", search)
+    : "/login";
   const magicLinkForm = useForm({
     defaultValues: {
       email: "",
@@ -19,6 +29,7 @@ export default function SignUpForm() {
       const { error } = await client.auth["magic-link"].signup.post({
         email: value.email,
         name: value.name,
+        callbackURL: getAuthCallbackURL(),
       });
 
       if (error) {
@@ -40,7 +51,12 @@ export default function SignUpForm() {
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
+      <h1 className="mb-2 text-center text-3xl font-bold">Create Account</h1>
+      {isApplicationSignup ? (
+        <p className="mb-6 text-center text-sm text-muted-foreground">
+          Create an SSO account to continue to {applicationName}.
+        </p>
+      ) : null}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -113,7 +129,13 @@ export default function SignUpForm() {
         <Button
           variant="link"
           className="text-indigo-600 hover:text-indigo-800"
-          render={<Link to="/login" />}
+          render={
+            isApplicationSignup ? (
+              <a href={loginHref} />
+            ) : (
+              <Link to="/login" />
+            )
+          }
         >
           Already have an account? Sign In
         </Button>

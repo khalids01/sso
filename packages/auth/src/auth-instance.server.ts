@@ -29,13 +29,17 @@ export const auth = betterAuth({
       },
     }),
     oauthProvider({
-      loginPage: `${env.CORS_ORIGIN}/login`,
+      loginPage: `${env.CORS_ORIGIN}/application/login`,
       consentPage: `${env.CORS_ORIGIN}/authorize`,
+      signup: {
+        page: `${env.CORS_ORIGIN}/application/signup`,
+      },
       scopes: ["openid"],
       grantTypes: ["authorization_code"],
       codeExpiresIn: 60,
       allowDynamicClientRegistration: false,
       allowUnauthenticatedClientRegistration: false,
+      allowPublicClientPrelogin: true,
       disableJwtPlugin: false,
       // Discovery remains intentionally disabled until the complete provider
       // surface is approved for production.
