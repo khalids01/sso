@@ -96,9 +96,9 @@ query through login, signup, and magic-link verification. Platform `/login` and
 
 Server-side clients resolve their application binding from
 `GET /api/oauth/client-metadata?client_id=...`. The public response contains only
-the client ID, application ID, and derived application audience. This removes a
-duplicate application-ID setting while retaining exact audience and revocation
-event verification.
+the client ID, application ID, derived application audience, and configured SSO
+issuer. This removes duplicate application-ID and issuer settings while retaining
+exact token and revocation-event verification.
 
 Applications verify tokens locally and do not call SSO during normal requests.
 Each application can configure one revocation webhook. Membership suspension or

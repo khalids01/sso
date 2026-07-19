@@ -68,6 +68,7 @@ test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) =>
       client_id: fixture.clientId,
       application_id: fixture.applicationId,
       audience: `urn:sso:application:${fixture.applicationId}`,
+      issuer: e2eEnv.SSO_ISSUER,
     });
 
     const missing = await page.request.get(

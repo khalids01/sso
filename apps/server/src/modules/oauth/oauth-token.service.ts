@@ -144,6 +144,7 @@ export async function getPublicClientMetadata(clientId: string) {
     client_id: client.clientId,
     application_id: client.applicationId,
     audience: `urn:sso:application:${client.applicationId}`,
+    issuer: env.SSO_ISSUER,
   };
 }
 
