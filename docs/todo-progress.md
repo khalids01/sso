@@ -47,12 +47,16 @@ and Apple remain deferred.
   client/member management pages with direct, refresh-safe URLs.
 - [ ] Add client secret generation, rotation, and safe display behavior.
 - [ ] Add application branding fields for login and email flows.
+- [x] Add application-level sign-in/signup method controls and closed,
+  invitation-only, or open registration policy.
 
 ## Application Access
 
 - [x] Design user-to-application access/membership model.
 - [ ] Add app-specific roles, scopes, or claims.
 - [x] Add admin controls for granting, suspending, and revoking app access.
+- [x] Add application invitations and create membership only during a trusted
+  OAuth continuation when registration policy allows it.
 - [x] Add audit events for app access changes.
 - [x] Add monotonic membership authorization versions to tokens and lifecycle changes.
 - [x] Add application-specific signed revocation events and durable delivery outbox.

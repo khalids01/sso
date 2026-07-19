@@ -136,15 +136,36 @@ export async function getPublicClientMetadata(clientId: string) {
     select: {
       clientId: true,
       applicationId: true,
+      status: true,
+      oauthDisabled: true,
+      application: {
+        select: {
+          status: true,
+          signInMethods: true,
+          signUpMethods: true,
+          registrationMode: true,
+        },
+      },
     },
   });
   if (!client) return null;
+
+  const available =
+    client.status === "active" &&
+    !client.oauthDisabled &&
+    client.application.status === "active";
 
   return {
     client_id: client.clientId,
     application_id: client.applicationId,
     audience: `urn:sso:application:${client.applicationId}`,
     issuer: env.SSO_ISSUER,
+    sign_in_methods: available ? client.application.signInMethods : [],
+    sign_up_methods:
+      available && client.application.registrationMode !== "closed"
+        ? client.application.signUpMethods
+        : [],
+    registration_mode: client.application.registrationMode,
   };
 }
 

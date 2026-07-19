@@ -1,5 +1,7 @@
 export type ApplicationStatus = "active" | "disabled" | "archived";
 export type ApplicationMemberStatus = "active" | "suspended" | "revoked";
+export type ApplicationAuthMethod = "magic_link" | "password";
+export type ApplicationRegistrationMode = "closed" | "invite_only" | "open";
 
 export type AdminApplication = {
   id: string;
@@ -9,6 +11,9 @@ export type AdminApplication = {
   status: ApplicationStatus;
   logoUrl: string | null;
   homepageUrl: string | null;
+  signInMethods: ApplicationAuthMethod[];
+  signUpMethods: Array<"magic_link">;
+  registrationMode: ApplicationRegistrationMode;
   clientCount: number;
   memberCount: number;
   createdAt: string;

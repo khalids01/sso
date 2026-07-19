@@ -167,6 +167,9 @@ client-application access:
 - Platform RBAC controls the SSO admin/control plane.
 - Identity users can exist without access to the SSO admin app.
 - Client applications will have their own registrations, redirect URIs, secrets, memberships, app roles, and app-scoped tokens.
+- Application login can independently expose magic-link or password sign-in,
+  while registration can be closed, invitation-only, or open. Password signup
+  remains disabled until verification-email delivery is configured.
 
 See `docs/plan.md`, `docs/architecture.md`, and `docs/todo-progress.md` for the
 working plan. Upgrade-specific decisions are recorded in

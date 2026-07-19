@@ -23,6 +23,7 @@ model User {
   applicationMemberships  ApplicationMember[]
   applicationSubjects     ApplicationSubject[]
   oauthConsents            OAuthConsent[]
+  applicationInvitations ApplicationInvitation[] @relation("ApplicationInvitationInviter")
 
   // Polar Integration
   polarCustomerId    String?

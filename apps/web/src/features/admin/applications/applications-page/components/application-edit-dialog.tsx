@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ApplicationForm } from "../../application.form";
-import type { AdminApplication, ApplicationStatus } from "../../types";
+import type { AdminApplication, ApplicationAuthMethod, ApplicationRegistrationMode, ApplicationStatus } from "../../types";
 
 export function ApplicationEditDialog(props: {
   application: AdminApplication | null;
@@ -18,6 +18,9 @@ export function ApplicationEditDialog(props: {
     slug?: string;
     description?: string;
     status?: ApplicationStatus;
+    signInMethods?: ApplicationAuthMethod[];
+    signUpMethods?: Array<"magic_link">;
+    registrationMode?: ApplicationRegistrationMode;
   }) => void;
 }) {
   const initialValues = useMemo(
@@ -28,6 +31,9 @@ export function ApplicationEditDialog(props: {
             slug: props.application.slug,
             description: props.application.description ?? "",
             status: props.application.status,
+            signInMethods: props.application.signInMethods,
+            signUpMethods: props.application.signUpMethods,
+            registrationMode: props.application.registrationMode,
           }
         : undefined,
     [props.application],
@@ -35,7 +41,7 @@ export function ApplicationEditDialog(props: {
 
   return (
     <Dialog open={Boolean(props.application)} onOpenChange={props.onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit application</DialogTitle>
           <DialogDescription>{props.application?.name}</DialogDescription>

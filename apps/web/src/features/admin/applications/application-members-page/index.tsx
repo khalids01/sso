@@ -13,7 +13,7 @@ import {
   ApplicationRequestError,
   getApplication,
 } from "../crud/applications";
-import { grantMember } from "../crud/members";
+import { grantMember, inviteApplicationMember } from "../crud/members";
 import {
   invalidateApplicationMembers,
   lifecycleSuccessMessage,
@@ -79,6 +79,15 @@ export function ApplicationMembersPage({
       setPendingAction(null);
     },
     onError: showMutationError("Action failed"),
+  });
+
+  const invitationMutation = useMutation({
+    mutationFn: inviteApplicationMember,
+    onSuccess: () => {
+      toast.success("Application invitation created");
+      setGrantOpen(false);
+    },
+    onError: showMutationError("Failed to create invitation"),
   });
 
   if (applicationQuery.isLoading) {
@@ -154,10 +163,13 @@ export function ApplicationMembersPage({
 
       <GrantAccessDialog
         application={grantOpen ? application : null}
-        isLoading={grantMutation.isPending}
+        isLoading={grantMutation.isPending || invitationMutation.isPending}
         onOpenChange={setGrantOpen}
         onGrant={(userId) =>
           grantMutation.mutate({ applicationId: application.id, userId })
+        }
+        onInvite={(email) =>
+          invitationMutation.mutate({ applicationId: application.id, email })
         }
       />
       <MemberViewDialog

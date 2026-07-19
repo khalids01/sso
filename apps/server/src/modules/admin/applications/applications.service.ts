@@ -7,6 +7,7 @@ import type {
   CreateApplicationClientInput,
   CreateApplicationMemberInput,
   CreateApplicationInput,
+  CreateApplicationInvitationInput,
   UpdateApplicationClientInput,
   UpdateApplicationInput,
   UpdateRevocationEndpointInput,
@@ -26,6 +27,9 @@ import { env } from "@env/server";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
+const allowedAuthMethods = new Set(["magic_link", "password"]);
+const allowedSignupMethods = new Set(["magic_link"]);
+const allowedRegistrationModes = new Set(["closed", "invite_only", "open"]);
 
 const applicationSelect = {
   id: true,
@@ -35,6 +39,9 @@ const applicationSelect = {
   status: true,
   logoUrl: true,
   homepageUrl: true,
+  signInMethods: true,
+  signUpMethods: true,
+  registrationMode: true,
   createdAt: true,
   updatedAt: true,
   _count: {
@@ -138,6 +145,52 @@ function normalizeMemberStatus(status?: string) {
   return normalized;
 }
 
+function normalizeAuthPolicy(input: {
+  signInMethods?: string[];
+  signUpMethods?: string[];
+  registrationMode?: string;
+}) {
+  const signInMethods = input.signInMethods
+    ? [...new Set(input.signInMethods)]
+    : undefined;
+  const signUpMethods = input.signUpMethods
+    ? [...new Set(input.signUpMethods)]
+    : undefined;
+
+  if (signInMethods?.some((method) => !allowedAuthMethods.has(method))) {
+    throw new ApplicationsPolicyError("Invalid application sign-in method");
+  }
+  if (signInMethods?.length === 0) {
+    throw new ApplicationsPolicyError("At least one sign-in method is required");
+  }
+  if (signUpMethods?.some((method) => !allowedSignupMethods.has(method))) {
+    throw new ApplicationsPolicyError("Invalid application signup method");
+  }
+  if (
+    input.registrationMode &&
+    !allowedRegistrationModes.has(input.registrationMode)
+  ) {
+    throw new ApplicationsPolicyError("Invalid application registration mode");
+  }
+
+  return {
+    signInMethods,
+    signUpMethods,
+    registrationMode: input.registrationMode,
+  };
+}
+
+function assertSignupMethodsAreSignInMethods(
+  signInMethods: string[],
+  signUpMethods: string[],
+) {
+  if (signUpMethods.some((method) => !signInMethods.includes(method))) {
+    throw new ApplicationsPolicyError(
+      "Signup methods must also be enabled for sign-in",
+    );
+  }
+}
+
 function mapApplication(row: {
   id: string;
   slug: string;
@@ -146,6 +199,9 @@ function mapApplication(row: {
   status: string;
   logoUrl: string | null;
   homepageUrl: string | null;
+  signInMethods: string[];
+  signUpMethods: string[];
+  registrationMode: string;
   createdAt: Date;
   updatedAt: Date;
   _count?: { clients: number; members: number };
@@ -158,6 +214,9 @@ function mapApplication(row: {
     status: row.status,
     logoUrl: row.logoUrl,
     homepageUrl: row.homepageUrl,
+    signInMethods: row.signInMethods,
+    signUpMethods: row.signUpMethods,
+    registrationMode: row.registrationMode,
     clientCount: row._count?.clients ?? 0,
     memberCount: row._count?.members ?? 0,
     createdAt: row.createdAt.toISOString(),
@@ -341,6 +400,10 @@ export class AdminApplicationsService {
   }
 
   async create(input: CreateApplicationInput, actor: AdminApplicationsActor) {
+    const policy = normalizeAuthPolicy(input);
+    const signInMethods = policy.signInMethods ?? ["magic_link", "password"];
+    const signUpMethods = policy.signUpMethods ?? ["magic_link"];
+    assertSignupMethodsAreSignInMethods(signInMethods, signUpMethods);
     const application = await prisma.application.create({
       data: {
         slug: normalizeSlug(input.slug ?? input.name),
@@ -349,6 +412,9 @@ export class AdminApplicationsService {
         status: normalizeStatus(input.status),
         logoUrl: input.logoUrl ?? null,
         homepageUrl: input.homepageUrl ?? null,
+        signInMethods,
+        signUpMethods,
+        registrationMode: policy.registrationMode ?? "closed",
       },
       select: {
         id: true,
@@ -358,6 +424,9 @@ export class AdminApplicationsService {
         status: true,
         logoUrl: true,
         homepageUrl: true,
+        signInMethods: true,
+        signUpMethods: true,
+        registrationMode: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -382,6 +451,7 @@ export class AdminApplicationsService {
     actor: AdminApplicationsActor,
   ) {
     const data: Prisma.ApplicationUpdateInput = {};
+    const policy = normalizeAuthPolicy(input);
 
     if (input.slug !== undefined) {
       data.slug = normalizeSlug(input.slug);
@@ -401,12 +471,25 @@ export class AdminApplicationsService {
     if (input.homepageUrl !== undefined) {
       data.homepageUrl = input.homepageUrl;
     }
+    if (policy.signInMethods !== undefined) {
+      data.signInMethods = policy.signInMethods;
+    }
+    if (policy.signUpMethods !== undefined) {
+      data.signUpMethods = policy.signUpMethods;
+    }
+    if (policy.registrationMode !== undefined) {
+      data.registrationMode = policy.registrationMode;
+    }
 
     const application = await prisma.$transaction(async (tx) => {
       const current = await tx.application.findUniqueOrThrow({
         where: { id },
-        select: { status: true },
+        select: { status: true, signInMethods: true, signUpMethods: true },
       });
+      assertSignupMethodsAreSignInMethods(
+        policy.signInMethods ?? current.signInMethods,
+        policy.signUpMethods ?? current.signUpMethods,
+      );
       const updated = await tx.application.update({
         where: { id },
         data,
@@ -577,6 +660,88 @@ export class AdminApplicationsService {
       page,
       limit,
     };
+  }
+
+  async listInvitations(applicationId: string) {
+    const rows = await prisma.applicationInvitation.findMany({
+      where: { applicationId },
+      select: {
+        id: true,
+        applicationId: true,
+        email: true,
+        status: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      items: rows.map((row) => ({
+        ...row,
+        expiresAt: row.expiresAt.toISOString(),
+        createdAt: row.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  async createInvitation(
+    applicationId: string,
+    input: CreateApplicationInvitationInput,
+    actor: AdminApplicationsActor,
+  ) {
+    if (!actor.id) {
+      throw new ApplicationsPolicyError("Authenticated administrator required", 401);
+    }
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { id: true, status: true },
+    });
+    if (!application) throw new ApplicationsPolicyError("Application not found", 404);
+    if (application.status === "archived") {
+      throw new ApplicationsPolicyError("Archived applications cannot invite users");
+    }
+
+    const email = input.email.trim().toLowerCase();
+    const now = new Date();
+    const existing = await prisma.applicationInvitation.findFirst({
+      where: { applicationId, email, status: "pending", expiresAt: { gt: now } },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ApplicationsPolicyError("An active invitation already exists");
+    }
+
+    const invitation = await prisma.applicationInvitation.create({
+      data: {
+        applicationId,
+        email,
+        inviterId: actor.id,
+        expiresAt: new Date(now.getTime() + (input.expiresInDays ?? 7) * 86_400_000),
+      },
+    });
+    return {
+      ...invitation,
+      expiresAt: invitation.expiresAt.toISOString(),
+      createdAt: invitation.createdAt.toISOString(),
+      updatedAt: invitation.updatedAt.toISOString(),
+    };
+  }
+
+  async revokeInvitation(applicationId: string, invitationId: string) {
+    const invitation = await prisma.applicationInvitation.findFirst({
+      where: { id: invitationId, applicationId },
+      select: { id: true, status: true },
+    });
+    if (!invitation) throw new ApplicationsPolicyError("Invitation not found", 404);
+    if (invitation.status !== "pending") {
+      throw new ApplicationsPolicyError("Only pending invitations can be revoked");
+    }
+    await prisma.applicationInvitation.update({
+      where: { id: invitation.id },
+      data: { status: "revoked" },
+    });
+    return { id: invitation.id, status: "revoked" };
   }
 
   async grantMember(

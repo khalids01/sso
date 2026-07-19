@@ -17,7 +17,9 @@ export const Route = createFileRoute("/application/login")({
 function ApplicationLogin() {
   return (
     <ApplicationAuthShell>
-      {(applicationName) => <SignInForm applicationName={applicationName} />}
+      {(applicationName, policy) => (
+        <SignInForm applicationName={applicationName} applicationPolicy={policy} />
+      )}
     </ApplicationAuthShell>
   );
 }

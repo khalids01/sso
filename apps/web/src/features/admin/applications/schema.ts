@@ -40,14 +40,25 @@ export const createApplicationDefaults: CreateApplicationFormValues = {
   slug: "",
   description: "",
   status: "active",
+  signInMethods: ["magic_link", "password"],
+  signUpMethods: ["magic_link"],
+  registrationMode: "closed",
 };
 
-export const createApplicationSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(120),
-  slug: optionalTrimmedString(80),
-  description: optionalTrimmedString(500),
-  status: applicationStatusSchema.default("active"),
-});
+export const createApplicationSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(120),
+    slug: optionalTrimmedString(80),
+    description: optionalTrimmedString(500),
+    status: applicationStatusSchema.default("active"),
+    signInMethods: z.array(z.enum(["magic_link", "password"])).min(1),
+    signUpMethods: z.array(z.literal("magic_link")),
+    registrationMode: z.enum(["closed", "invite_only", "open"]),
+  })
+  .refine(
+    (value) => value.signUpMethods.every((method) => value.signInMethods.includes(method)),
+    { path: ["signUpMethods"], message: "Signup methods must also be enabled for sign-in" },
+  );
 
 export const createApplicationClientDefaults: CreateApplicationClientFormValues = {
   name: "",

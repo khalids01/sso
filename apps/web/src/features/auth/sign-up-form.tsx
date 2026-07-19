@@ -9,17 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getApplicationAuthPath, getAuthCallbackURL } from "./auth-callback";
+import type { ApplicationAuthPolicy } from "./application-auth-shell";
 
 export default function SignUpForm({
   applicationName,
+  applicationPolicy,
 }: {
   applicationName?: string;
+  applicationPolicy?: ApplicationAuthPolicy;
 }) {
   const search = useLocation({ select: (location) => location.searchStr });
   const isApplicationSignup = Boolean(applicationName);
   const loginHref = isApplicationSignup
     ? getApplicationAuthPath("/application/login", search)
     : "/login";
+  const signupAvailable =
+    !applicationPolicy || applicationPolicy.signUpMethods.includes("magic_link");
   const magicLinkForm = useForm({
     defaultValues: {
       email: "",
@@ -57,7 +62,11 @@ export default function SignUpForm({
           Create an SSO account to continue to {applicationName}.
         </p>
       ) : null}
-      <form
+      {!signupAvailable ? (
+        <div className="rounded-md border px-4 py-5 text-center text-sm text-muted-foreground">
+          Registration is not available for this application.
+        </div>
+      ) : <form
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -123,7 +132,7 @@ export default function SignUpForm({
             </Button>
           )}
         </magicLinkForm.Subscribe>
-      </form>
+      </form>}
 
       <div className="mt-4 text-center">
         <Button

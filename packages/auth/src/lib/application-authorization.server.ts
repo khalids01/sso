@@ -1,5 +1,6 @@
 import {
   getApplicationClientAccess,
+  registerApplicationMemberIfAllowed,
   recordApplicationAuthorizationDenied,
 } from "../../../db/src/application-access.server";
 import type { BetterAuthPlugin } from "better-auth";
@@ -118,10 +119,20 @@ export function applicationAuthorizationGuard(): BetterAuthPlugin {
               });
             }
 
-            const result = await getApplicationClientAccess(
+            let result = await getApplicationClientAccess(
               session.user.id,
               clientId,
             );
+
+            if (result.allowed === false && result.reason === "membership_missing") {
+              const registered = await registerApplicationMemberIfAllowed(
+                session.user.id,
+                clientId,
+              );
+              if (registered) {
+                result = await getApplicationClientAccess(session.user.id, clientId);
+              }
+            }
 
             if (result.allowed) {
               return;

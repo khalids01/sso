@@ -12,6 +12,7 @@ import {
   ApplicationsQueryDto,
   ClientsQueryDto,
   CreateApplicationClientDto,
+  CreateApplicationInvitationDto,
   CreateApplicationMemberDto,
   CreateApplicationDto,
   RevocationDeliveriesQueryDto,
@@ -208,6 +209,47 @@ export const applicationsController = new Elysia({
             detail: {
               summary: "Grant application access to a user",
             },
+          },
+        )
+        .get(
+          "/:id/invitations",
+          ({ params: { id } }) => adminApplicationsService.listInvitations(id),
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsRead),
+            detail: { summary: "List application invitations" },
+          },
+        )
+        .post(
+          "/:id/invitations",
+          async ({ params: { id }, body, set, userId }) => {
+            try {
+              return await adminApplicationsService.createInvitation(
+                id,
+                body,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            body: CreateApplicationInvitationDto,
+            detail: { summary: "Invite a user to an application" },
+          },
+        )
+        .post(
+          "/:id/invitations/:invitationId/revoke",
+          async ({ params: { id, invitationId }, set }) => {
+            try {
+              return await adminApplicationsService.revokeInvitation(id, invitationId);
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: { summary: "Revoke an application invitation" },
           },
         )
         .post(

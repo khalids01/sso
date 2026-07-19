@@ -16,6 +16,18 @@ const ApplicationMemberFilterSchema = t.Union([
   t.Literal("revoked"),
 ]);
 
+const ApplicationAuthMethodSchema = t.Union([
+  t.Literal("magic_link"),
+  t.Literal("password"),
+]);
+const ApplicationSignupMethodSchema = t.Literal("magic_link");
+
+const ApplicationRegistrationModeSchema = t.Union([
+  t.Literal("closed"),
+  t.Literal("invite_only"),
+  t.Literal("open"),
+]);
+
 export const ApplicationsQueryDto = t.Object({
   page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
   limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 20 })),
@@ -31,6 +43,9 @@ export const CreateApplicationDto = t.Object({
   status: t.Optional(ApplicationStatusSchema),
   logoUrl: t.Optional(t.String({ format: "uri" })),
   homepageUrl: t.Optional(t.String({ format: "uri" })),
+  signInMethods: t.Optional(t.Array(ApplicationAuthMethodSchema, { minItems: 1 })),
+  signUpMethods: t.Optional(t.Array(ApplicationSignupMethodSchema)),
+  registrationMode: t.Optional(ApplicationRegistrationModeSchema),
 });
 
 export const CreateApplicationClientDto = t.Object({
@@ -48,6 +63,14 @@ export const UpdateApplicationDto = t.Object({
   status: t.Optional(ApplicationStatusSchema),
   logoUrl: t.Optional(t.String({ format: "uri" })),
   homepageUrl: t.Optional(t.String({ format: "uri" })),
+  signInMethods: t.Optional(t.Array(ApplicationAuthMethodSchema, { minItems: 1 })),
+  signUpMethods: t.Optional(t.Array(ApplicationSignupMethodSchema)),
+  registrationMode: t.Optional(ApplicationRegistrationModeSchema),
+});
+
+export const CreateApplicationInvitationDto = t.Object({
+  email: t.String({ format: "email", maxLength: 320 }),
+  expiresInDays: t.Optional(t.Numeric({ minimum: 1, maximum: 30, default: 7 })),
 });
 
 export const ClientsQueryDto = t.Object({
@@ -96,3 +119,5 @@ export type UpdateApplicationClientInput =
   typeof UpdateApplicationClientDto.static;
 export type UpdateRevocationEndpointInput =
   typeof UpdateRevocationEndpointDto.static;
+export type CreateApplicationInvitationInput =
+  typeof CreateApplicationInvitationDto.static;

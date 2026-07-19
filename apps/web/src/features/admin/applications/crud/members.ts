@@ -13,3 +13,14 @@ export async function grantMember(input: GrantMemberInput) {
   if (error) throw error;
   return data as ApplicationMember;
 }
+
+export async function inviteApplicationMember(input: {
+  applicationId: string;
+  email: string;
+}) {
+  const { data, error } = await client.admin
+    .applications({ id: input.applicationId })
+    .invitations.post({ email: input.email, expiresInDays: 7 });
+  if (error) throw error;
+  return data;
+}

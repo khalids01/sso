@@ -1,4 +1,5 @@
 import prisma from "./client.server";
+import { randomBytes } from "node:crypto";
 
 export type ApplicationClientAccessDenialReason =
   | "client_not_found"
@@ -99,6 +100,84 @@ export async function getApplicationClientAccess(
     ...context,
     memberId: member.id,
   };
+}
+
+export async function registerApplicationMemberIfAllowed(
+  userId: string,
+  clientId: string,
+  db: Pick<typeof prisma, "$transaction"> = prisma,
+) {
+  return db.$transaction(async (tx) => {
+    const client = await tx.applicationClient.findUnique({
+      where: { clientId },
+      select: {
+        application: {
+          select: {
+            id: true,
+            status: true,
+            registrationMode: true,
+          },
+        },
+      },
+    });
+    if (!client || client.application.status !== "active") return false;
+
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { email: true, archived: true, banned: true },
+    });
+    if (!user || user.archived || user.banned) return false;
+
+    let invitationId: string | undefined;
+    if (client.application.registrationMode === "invite_only") {
+      const invitation = await tx.applicationInvitation.findFirst({
+        where: {
+          applicationId: client.application.id,
+          email: user.email.trim().toLowerCase(),
+          status: "pending",
+          expiresAt: { gt: new Date() },
+        },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+      });
+      if (!invitation) return false;
+      invitationId = invitation.id;
+    } else if (client.application.registrationMode !== "open") {
+      return false;
+    }
+
+    await tx.applicationMember.upsert({
+      where: {
+        applicationId_userId: {
+          applicationId: client.application.id,
+          userId,
+        },
+      },
+      create: { applicationId: client.application.id, userId, status: "active" },
+      update: {},
+    });
+    await tx.applicationSubject.upsert({
+      where: {
+        applicationId_userId: {
+          applicationId: client.application.id,
+          userId,
+        },
+      },
+      create: {
+        applicationId: client.application.id,
+        userId,
+        subject: randomBytes(32).toString("base64url"),
+      },
+      update: {},
+    });
+    if (invitationId) {
+      await tx.applicationInvitation.updateMany({
+        where: { id: invitationId, status: "pending" },
+        data: { status: "accepted", acceptedAt: new Date() },
+      });
+    }
+    return true;
+  });
 }
 
 export async function recordApplicationAuthorizationDenied(input: {

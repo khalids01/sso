@@ -2,13 +2,37 @@ import { useEffect, useState, type ReactNode } from "react";
 import { LoaderCircle } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
+import { env } from "@env/public";
+
+export type ApplicationAuthPolicy = {
+  signInMethods: Array<"magic_link" | "password">;
+  signUpMethods: Array<"magic_link">;
+  registrationMode: "closed" | "invite_only" | "open";
+};
+
+function isApplicationAuthPolicy(metadata: Record<string, unknown>) {
+  return (
+    Array.isArray(metadata.sign_in_methods) &&
+    metadata.sign_in_methods.every(
+      (method) => method === "magic_link" || method === "password",
+    ) &&
+    Array.isArray(metadata.sign_up_methods) &&
+    metadata.sign_up_methods.every((method) => method === "magic_link") &&
+    (metadata.registration_mode === "closed" ||
+      metadata.registration_mode === "invite_only" ||
+      metadata.registration_mode === "open")
+  );
+}
 
 export function ApplicationAuthShell({
   children,
 }: {
-  children: (applicationName: string) => ReactNode;
+  children: (applicationName: string, policy: ApplicationAuthPolicy) => ReactNode;
 }) {
-  const [applicationName, setApplicationName] = useState<string | null>(null);
+  const [application, setApplication] = useState<{
+    name: string;
+    policy: ApplicationAuthPolicy;
+  } | null>(null);
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
@@ -19,14 +43,37 @@ export function ApplicationAuthShell({
       return;
     }
 
-    void authClient.oauth2
-      .publicClientPrelogin({ client_id: clientId, oauth_query: oauthQuery })
-      .then(({ data, error }) => {
+    void Promise.all([
+      authClient.oauth2.publicClientPrelogin({
+        client_id: clientId,
+        oauth_query: oauthQuery,
+      }),
+      fetch(
+        `${env.VITE_SERVER_URL}/api/oauth/client-metadata?client_id=${encodeURIComponent(clientId)}`,
+      ).then(async (response) => (response.ok ? response.json() : null)),
+    ])
+      .then(([{ data, error }, metadata]) => {
         if (error || !data) {
           setUnavailable(true);
           return;
         }
-        setApplicationName(data.client_name || "application");
+        if (
+          !metadata ||
+          metadata.client_id !== clientId ||
+          typeof metadata !== "object" ||
+          !isApplicationAuthPolicy(metadata)
+        ) {
+          setUnavailable(true);
+          return;
+        }
+        setApplication({
+          name: data.client_name || "application",
+          policy: {
+            signInMethods: metadata.sign_in_methods,
+            signUpMethods: metadata.sign_up_methods,
+            registrationMode: metadata.registration_mode,
+          },
+        });
       })
       .catch(() => setUnavailable(true));
   }, []);
@@ -42,8 +89,8 @@ export function ApplicationAuthShell({
               This sign-in request is invalid or has expired.
             </p>
           </div>
-        ) : applicationName ? (
-          children(applicationName)
+        ) : application ? (
+          children(application.name, application.policy)
         ) : (
           <LoaderCircle className="mt-12 size-8 animate-spin text-muted-foreground" />
         )}

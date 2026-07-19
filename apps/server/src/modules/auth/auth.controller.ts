@@ -29,6 +29,25 @@ function resolveCallbackURL(callbackURL?: string) {
   }
 }
 
+async function getApplicationPolicy(callbackURL?: string) {
+  const resolved = resolveCallbackURL(callbackURL);
+  const clientId = new URL(resolved).searchParams.get("client_id");
+  if (!clientId) return null;
+  return prisma.applicationClient.findUnique({
+    where: { clientId },
+    select: {
+      application: {
+        select: {
+          status: true,
+          signInMethods: true,
+          signUpMethods: true,
+          registrationMode: true,
+        },
+      },
+    },
+  });
+}
+
 export const authController = new Elysia({ prefix: "/auth" })
   .post(
     "/check-email",
@@ -45,6 +64,11 @@ export const authController = new Elysia({ prefix: "/auth" })
   .post(
     "/magic-link/login",
     async ({ body, request, set }) => {
+      const policy = await getApplicationPolicy(body.callbackURL);
+      if (policy && !policy.application.signInMethods.includes("magic_link")) {
+        set.status = 403;
+        return { message: "Magic-link sign-in is disabled for this application" };
+      }
       const user = await prisma.user.findUnique({
         where: { email: body.email },
       });
@@ -76,6 +100,16 @@ export const authController = new Elysia({ prefix: "/auth" })
   .post(
     "/magic-link/signup",
     async ({ body, request, set }) => {
+      const policy = await getApplicationPolicy(body.callbackURL);
+      if (
+        policy &&
+        (policy.application.status !== "active" ||
+          policy.application.registrationMode === "closed" ||
+          !policy.application.signUpMethods.includes("magic_link"))
+      ) {
+        set.status = 403;
+        return { message: "Registration is not available for this application" };
+      }
       const user = await prisma.user.findUnique({
         where: { email: body.email },
       });

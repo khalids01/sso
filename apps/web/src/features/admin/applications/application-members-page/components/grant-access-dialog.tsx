@@ -20,8 +20,10 @@ export function GrantAccessDialog(props: {
   isLoading: boolean;
   onOpenChange: (open: boolean) => void;
   onGrant: (userId: string) => void;
+  onInvite: (email: string) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const usersQuery = useQuery({
     queryKey: queryKeys.admin.users.list(`application-grant:${search}`),
@@ -60,6 +62,7 @@ export function GrantAccessDialog(props: {
       onOpenChange={(open) => {
         if (!open) {
           setSearch("");
+          setInviteEmail("");
           setSelectedUserId(null);
         }
         props.onOpenChange(open);
@@ -132,6 +135,28 @@ export function GrantAccessDialog(props: {
             >
               {props.isLoading ? "Granting..." : "Grant access"}
             </Button>
+          </div>
+          <div className="border-t pt-4">
+            <p className="mb-2 text-sm font-medium">Invite a new user</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              The invitation allows this email address to register when the application is invitation-only.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="user@example.com"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={props.isLoading || !/^\S+@\S+\.\S+$/.test(inviteEmail)}
+                onClick={() => props.onInvite(inviteEmail.trim())}
+              >
+                Invite
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

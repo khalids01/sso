@@ -1,22 +1,45 @@
 model Application {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
-  description String?
-  status      String   @default("active")
-  logoUrl     String?
-  homepageUrl String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  name             String
+  description      String?
+  status           String   @default("active")
+  logoUrl          String?
+  homepageUrl      String?
+  signInMethods    String[] @default(["magic_link", "password"])
+  signUpMethods    String[] @default(["magic_link"])
+  registrationMode String   @default("closed")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   clients              ApplicationClient[]
   members              ApplicationMember[]
   subjects             ApplicationSubject[]
   revocationEndpoint   ApplicationRevocationEndpoint?
   revocationDeliveries ApplicationRevocationDelivery[]
+  invitations          ApplicationInvitation[]
 
   @@index([status])
   @@map("application")
+}
+
+model ApplicationInvitation {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  email         String
+  status        String      @default("pending")
+  expiresAt     DateTime
+  inviterId     String
+  inviter       User        @relation("ApplicationInvitationInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  acceptedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([applicationId, email, status])
+  @@index([expiresAt])
+  @@index([inviterId])
+  @@map("application_invitation")
 }
 
 model ApplicationMember {

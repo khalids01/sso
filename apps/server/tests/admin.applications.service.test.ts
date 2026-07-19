@@ -11,6 +11,9 @@ const applicationCreateMock = mock(async (args: any) => ({
   status: args.data.status,
   logoUrl: args.data.logoUrl,
   homepageUrl: args.data.homepageUrl,
+  signInMethods: args.data.signInMethods,
+  signUpMethods: args.data.signUpMethods,
+  registrationMode: args.data.registrationMode,
   createdAt: new Date("2026-07-10T08:00:00.000Z"),
   updatedAt: new Date("2026-07-10T08:01:00.000Z"),
 }));
@@ -26,6 +29,9 @@ const applicationUpdateMock = mock(async (args: any) => ({
   status: args.data.status ?? "active",
   logoUrl: args.data.logoUrl ?? null,
   homepageUrl: args.data.homepageUrl ?? null,
+  signInMethods: args.data.signInMethods ?? ["magic_link", "password"],
+  signUpMethods: args.data.signUpMethods ?? ["magic_link"],
+  registrationMode: args.data.registrationMode ?? "closed",
   createdAt: new Date("2026-07-10T08:00:00.000Z"),
   updatedAt: new Date("2026-07-10T08:10:00.000Z"),
   _count: { clients: 0, members: 0 },
@@ -212,6 +218,9 @@ describe("AdminApplicationsService", () => {
     applicationFindUniqueMock.mockResolvedValue({
       id: "app-1",
       name: "Dashboard",
+      status: "active",
+      signInMethods: ["magic_link", "password"],
+      signUpMethods: ["magic_link"],
     });
     applicationClientFindUniqueMock.mockResolvedValue({
       id: "client-1",
@@ -269,6 +278,9 @@ describe("AdminApplicationsService", () => {
         status: "active",
         logoUrl: null,
         homepageUrl: null,
+        signInMethods: ["magic_link", "password"],
+        signUpMethods: ["magic_link"],
+        registrationMode: "closed",
         createdAt: new Date("2026-07-10T08:00:00.000Z"),
         updatedAt: new Date("2026-07-10T08:01:00.000Z"),
         _count: { clients: 2, members: 3 },
@@ -291,6 +303,9 @@ describe("AdminApplicationsService", () => {
         status: true,
         logoUrl: true,
         homepageUrl: true,
+        signInMethods: true,
+        signUpMethods: true,
+        registrationMode: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -321,6 +336,9 @@ describe("AdminApplicationsService", () => {
       status: "active",
       logoUrl: null,
       homepageUrl: null,
+      signInMethods: ["magic_link", "password"],
+      signUpMethods: ["magic_link"],
+      registrationMode: "closed",
       createdAt: new Date("2026-07-10T08:00:00.000Z"),
       updatedAt: new Date("2026-07-10T08:01:00.000Z"),
       _count: { clients: 2, members: 3 },
@@ -457,6 +475,47 @@ describe("AdminApplicationsService", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           type: "application.updated",
+        }),
+      }),
+    );
+  });
+
+  it("requires every signup method to also be enabled for sign-in", async () => {
+    const { adminApplicationsService, ApplicationsPolicyError } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await expect(
+      adminApplicationsService.update(
+        "app-1",
+        { signInMethods: ["password"], signUpMethods: ["magic_link"] },
+        { id: "owner-1" },
+      ),
+    ).rejects.toBeInstanceOf(ApplicationsPolicyError);
+    expect(applicationUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("stores separate application sign-in and registration settings", async () => {
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await adminApplicationsService.update(
+      "app-1",
+      {
+        signInMethods: ["magic_link"],
+        signUpMethods: ["magic_link"],
+        registrationMode: "invite_only",
+      },
+      { id: "owner-1" },
+    );
+
+    expect(applicationUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          signInMethods: ["magic_link"],
+          signUpMethods: ["magic_link"],
+          registrationMode: "invite_only",
         }),
       }),
     );

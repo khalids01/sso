@@ -33,7 +33,7 @@ export function CreateApplicationDialog({
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create application</DialogTitle>
           <DialogDescription>

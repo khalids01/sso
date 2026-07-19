@@ -7,17 +7,25 @@ import { AuthMethodDivider } from "./auth-method-divider";
 import { MagicLinkSignInForm } from "./magic-link-sign-in-form";
 import { PasswordSignInForm } from "./password-sign-in-form";
 import { getApplicationAuthPath } from "./auth-callback";
+import type { ApplicationAuthPolicy } from "./application-auth-shell";
 
 export default function SignInForm({
   applicationName,
+  applicationPolicy,
 }: {
   applicationName?: string;
+  applicationPolicy?: ApplicationAuthPolicy;
 }) {
   const search = useLocation({ select: (location) => location.searchStr });
   const isApplicationLogin = Boolean(applicationName);
   const signupHref = isApplicationLogin
     ? getApplicationAuthPath("/application/signup", search)
     : "/signup";
+  const showPassword = env.VITE_ENABLE_PASSWORD_AUTH &&
+    (!applicationPolicy || applicationPolicy.signInMethods.includes("password"));
+  const showMagicLink = !applicationPolicy ||
+    applicationPolicy.signInMethods.includes("magic_link");
+  const showSignup = !applicationPolicy || applicationPolicy.signUpMethods.length > 0;
 
   return (
     <div className="mx-auto mt-10 w-full max-w-md p-6">
@@ -31,16 +39,16 @@ export default function SignInForm({
       </p>
 
       <div className="space-y-6">
-        {env.VITE_ENABLE_PASSWORD_AUTH ? (
+        {showPassword ? (
           <>
             <PasswordSignInForm />
-            <AuthMethodDivider label="or continue with" />
+            {showMagicLink ? <AuthMethodDivider label="or continue with" /> : null}
           </>
         ) : null}
-        <MagicLinkSignInForm />
+        {showMagicLink ? <MagicLinkSignInForm /> : null}
       </div>
 
-      <div className="mt-4 text-center">
+      {showSignup ? <div className="mt-4 text-center">
         <Button
           variant="link"
           render={
@@ -53,7 +61,7 @@ export default function SignInForm({
         >
           Need an account? Sign Up
         </Button>
-      </div>
+      </div> : null}
     </div>
   );
 }

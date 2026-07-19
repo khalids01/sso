@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -117,6 +118,90 @@ export function ApplicationForm({
           </Field>
         )}
       />
+
+      <div className="grid gap-3 rounded-md border p-4">
+        <div>
+          <p className="text-sm font-medium">Application sign-in</p>
+          <p className="text-xs text-muted-foreground">
+            Choose the methods shown to users of this application.
+          </p>
+        </div>
+        <Controller
+          control={form.control}
+          name="signInMethods"
+          render={({ field }) => (
+            <div className="grid gap-3">
+              {(["magic_link", "password"] as const).map((method) => (
+                <label key={method} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={field.value.includes(method)}
+                    onCheckedChange={(checked) => {
+                      const next = checked
+                        ? [...field.value, method]
+                        : field.value.filter((value) => value !== method);
+                      field.onChange(next);
+                      if (method === "magic_link" && !checked) {
+                        form.setValue("signUpMethods", []);
+                      }
+                    }}
+                  />
+                  {method === "magic_link" ? "Email magic link" : "Email and password"}
+                </label>
+              ))}
+              <FieldError errors={[form.formState.errors.signInMethods]} />
+            </div>
+          )}
+        />
+
+        <Controller
+          control={form.control}
+          name="registrationMode"
+          render={({ field, fieldState }) => (
+            <Field>
+              <FieldLabel>Account registration</FieldLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="w-full" aria-invalid={Boolean(fieldState.error)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="invite_only">Invitation only</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError errors={[fieldState.error]} />
+            </Field>
+          )}
+        />
+
+        <Controller
+          control={form.control}
+          name="signUpMethods"
+          render={({ field }) => (
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox
+                checked={
+                  form.watch("registrationMode") !== "closed" &&
+                  field.value.includes("magic_link")
+                }
+                disabled={
+                  form.watch("registrationMode") === "closed" ||
+                  !form.watch("signInMethods").includes("magic_link")
+                }
+                onCheckedChange={(checked) =>
+                  field.onChange(checked ? ["magic_link"] : [])
+                }
+              />
+              <span>
+                Allow signup by email magic link
+                <span className="block text-xs text-muted-foreground">
+                  Password signup stays unavailable until its verification-email flow is configured.
+                </span>
+              </span>
+            </label>
+          )}
+        />
+      </div>
 
       <DialogFooter>
         <Button disabled={isLoading} type="submit">
