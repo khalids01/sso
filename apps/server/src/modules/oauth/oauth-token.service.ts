@@ -7,6 +7,7 @@ import {
 } from "@auth/server";
 import prisma from "@db/server";
 import { env } from "@env/server";
+import { getAvailableApplicationAuthMethodIds } from "@auth/server";
 import { z } from "zod";
 
 const TOKEN_TTL_SECONDS = 10 * 60;
@@ -154,16 +155,23 @@ export async function getPublicClientMetadata(clientId: string) {
     client.status === "active" &&
     !client.oauthDisabled &&
     client.application.status === "active";
+  const availableMethodIds = getAvailableApplicationAuthMethodIds();
 
   return {
     client_id: client.clientId,
     application_id: client.applicationId,
     audience: `urn:sso:application:${client.applicationId}`,
     issuer: env.SSO_ISSUER,
-    sign_in_methods: available ? client.application.signInMethods : [],
+    sign_in_methods: available
+      ? client.application.signInMethods.filter((method) =>
+          availableMethodIds.has(method),
+        )
+      : [],
     sign_up_methods:
       available && client.application.registrationMode !== "closed"
-        ? client.application.signUpMethods
+        ? client.application.signUpMethods.filter((method) =>
+            availableMethodIds.has(method),
+          )
         : [],
     registration_mode: client.application.registrationMode,
   };

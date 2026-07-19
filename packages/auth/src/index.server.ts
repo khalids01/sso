@@ -30,3 +30,8 @@ export type {
 } from "./session";
 
 export { PLANS, type Plan, type PlanSlug } from "./plans.server";
+export {
+  getApplicationAuthCapabilities,
+  getAvailableApplicationAuthMethodIds,
+  type ApplicationAuthCapability,
+} from "./lib/application-auth-capabilities.server";

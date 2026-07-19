@@ -7,6 +7,9 @@
     },
     "./server": {
       "default": "./src/index.server.ts"
+    },
+    "./application-capabilities": {
+      "default": "./src/lib/application-auth-capabilities.server.ts"
     }
   },
   "scripts": {},

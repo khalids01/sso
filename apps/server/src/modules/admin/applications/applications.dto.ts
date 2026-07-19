@@ -19,8 +19,18 @@ const ApplicationMemberFilterSchema = t.Union([
 const ApplicationAuthMethodSchema = t.Union([
   t.Literal("magic_link"),
   t.Literal("password"),
+  t.Literal("google"),
+  t.Literal("facebook"),
+  t.Literal("linkedin"),
+  t.Literal("github"),
 ]);
-const ApplicationSignupMethodSchema = t.Literal("magic_link");
+const ApplicationSignupMethodSchema = t.Union([
+  t.Literal("magic_link"),
+  t.Literal("google"),
+  t.Literal("facebook"),
+  t.Literal("linkedin"),
+  t.Literal("github"),
+]);
 
 const ApplicationRegistrationModeSchema = t.Union([
   t.Literal("closed"),

@@ -1,7 +1,21 @@
 export type ApplicationStatus = "active" | "disabled" | "archived";
 export type ApplicationMemberStatus = "active" | "suspended" | "revoked";
-export type ApplicationAuthMethod = "magic_link" | "password";
+export type ApplicationAuthMethod =
+  | "magic_link"
+  | "password"
+  | "google"
+  | "facebook"
+  | "linkedin"
+  | "github";
+export type ApplicationSignupMethod = Exclude<ApplicationAuthMethod, "password">;
 export type ApplicationRegistrationMode = "closed" | "invite_only" | "open";
+export type ApplicationAuthCapability = {
+  id: string;
+  label: string;
+  available: boolean;
+  supportsSignUp: boolean;
+  unavailableReason: string;
+};
 
 export type AdminApplication = {
   id: string;
@@ -12,8 +26,9 @@ export type AdminApplication = {
   logoUrl: string | null;
   homepageUrl: string | null;
   signInMethods: ApplicationAuthMethod[];
-  signUpMethods: Array<"magic_link">;
+  signUpMethods: ApplicationSignupMethod[];
   registrationMode: ApplicationRegistrationMode;
+  authCapabilities: ApplicationAuthCapability[];
   clientCount: number;
   memberCount: number;
   createdAt: string;

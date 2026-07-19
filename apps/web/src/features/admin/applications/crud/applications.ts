@@ -1,5 +1,5 @@
 import { client } from "@/lib/client";
-import type { AdminApplication, ApplicationAuthMethod, ApplicationRegistrationMode, ApplicationStatus } from "../types";
+import type { AdminApplication, ApplicationAuthMethod, ApplicationRegistrationMode, ApplicationSignupMethod, ApplicationStatus } from "../types";
 
 export type UpdateApplicationInput = {
   id: string;
@@ -9,7 +9,7 @@ export type UpdateApplicationInput = {
     description?: string;
     status?: ApplicationStatus;
     signInMethods?: ApplicationAuthMethod[];
-    signUpMethods?: Array<"magic_link">;
+    signUpMethods?: ApplicationSignupMethod[];
     registrationMode?: ApplicationRegistrationMode;
   };
 };
@@ -41,10 +41,16 @@ export async function createApplication(input: {
   description?: string;
   status: ApplicationStatus;
   signInMethods: ApplicationAuthMethod[];
-  signUpMethods: Array<"magic_link">;
+  signUpMethods: ApplicationSignupMethod[];
   registrationMode: ApplicationRegistrationMode;
 }) {
-  const { data, error } = await client.admin.applications.post(input);
+  const { name, slug, description, status } = input;
+  const { data, error } = await client.admin.applications.post({
+    name,
+    slug,
+    description,
+    status,
+  });
   if (error) throw error;
   return data as AdminApplication;
 }

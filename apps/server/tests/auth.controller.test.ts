@@ -41,6 +41,10 @@ mock.module("@auth/server", () => ({
 mock.module("@env/server", () => ({
   env: {
     CORS_ORIGIN: "http://localhost:5002",
+    ENABLE_PASSWORD_AUTH: true,
+    SMTP_HOST: "smtp.example.com",
+    EMAIL: "sso@example.com",
+    EMAIL_PASSWORD: "test-password",
   },
 }));
 

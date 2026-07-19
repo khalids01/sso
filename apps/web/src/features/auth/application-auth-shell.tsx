@@ -5,8 +5,12 @@ import { authClient } from "@/lib/auth-client";
 import { env } from "@env/public";
 
 export type ApplicationAuthPolicy = {
-  signInMethods: Array<"magic_link" | "password">;
-  signUpMethods: Array<"magic_link">;
+  signInMethods: Array<
+    "magic_link" | "password" | "google" | "facebook" | "linkedin" | "github"
+  >;
+  signUpMethods: Array<
+    "magic_link" | "google" | "facebook" | "linkedin" | "github"
+  >;
   registrationMode: "closed" | "invite_only" | "open";
 };
 
@@ -14,10 +18,23 @@ function isApplicationAuthPolicy(metadata: Record<string, unknown>) {
   return (
     Array.isArray(metadata.sign_in_methods) &&
     metadata.sign_in_methods.every(
-      (method) => method === "magic_link" || method === "password",
+      (method) =>
+        method === "magic_link" ||
+        method === "password" ||
+        method === "google" ||
+        method === "facebook" ||
+        method === "linkedin" ||
+        method === "github",
     ) &&
     Array.isArray(metadata.sign_up_methods) &&
-    metadata.sign_up_methods.every((method) => method === "magic_link") &&
+    metadata.sign_up_methods.every(
+      (method) =>
+        method === "magic_link" ||
+        method === "google" ||
+        method === "facebook" ||
+        method === "linkedin" ||
+        method === "github",
+    ) &&
     (metadata.registration_mode === "closed" ||
       metadata.registration_mode === "invite_only" ||
       metadata.registration_mode === "open")

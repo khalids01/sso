@@ -7,6 +7,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@auth/server": ["../../packages/auth/src/index.server.ts"],
+      "@auth/application-capabilities": [
+        "../../packages/auth/src/lib/application-auth-capabilities.server.ts"
+      ],
       "@auth/client": ["../../packages/auth/src/index.client.ts"],
       "@db/server": ["../../packages/db/src/index.server.ts"],
       "@db/server/rbac/assignments": ["../../packages/db/src/rbac/assignments.server.ts"],

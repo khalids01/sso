@@ -24,12 +24,22 @@ import {
   REVOCATION_DELIVERY_TTL_MS,
 } from "../../application-revocation/revocation.service";
 import { env } from "@env/server";
+import {
+  getApplicationAuthCapabilities,
+  getAvailableApplicationAuthMethodIds,
+} from "@auth/application-capabilities";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
-const allowedAuthMethods = new Set(["magic_link", "password"]);
-const allowedSignupMethods = new Set(["magic_link"]);
+const socialAuthMethods = ["google", "facebook", "linkedin", "github"];
+const allowedAuthMethods = new Set([
+  "magic_link",
+  "password",
+  ...socialAuthMethods,
+]);
+const allowedSignupMethods = new Set(["magic_link", ...socialAuthMethods]);
 const allowedRegistrationModes = new Set(["closed", "invite_only", "open"]);
+
 
 const applicationSelect = {
   id: true,
@@ -160,6 +170,12 @@ function normalizeAuthPolicy(input: {
   if (signInMethods?.some((method) => !allowedAuthMethods.has(method))) {
     throw new ApplicationsPolicyError("Invalid application sign-in method");
   }
+  const availableMethods = getAvailableApplicationAuthMethodIds();
+  if (signInMethods?.some((method) => !availableMethods.has(method))) {
+    throw new ApplicationsPolicyError(
+      "One or more sign-in methods are not configured on the SSO server",
+    );
+  }
   if (signInMethods?.length === 0) {
     throw new ApplicationsPolicyError("At least one sign-in method is required");
   }
@@ -217,6 +233,7 @@ function mapApplication(row: {
     signInMethods: row.signInMethods,
     signUpMethods: row.signUpMethods,
     registrationMode: row.registrationMode,
+    authCapabilities: getApplicationAuthCapabilities(),
     clientCount: row._count?.clients ?? 0,
     memberCount: row._count?.members ?? 0,
     createdAt: row.createdAt.toISOString(),
@@ -401,8 +418,20 @@ export class AdminApplicationsService {
 
   async create(input: CreateApplicationInput, actor: AdminApplicationsActor) {
     const policy = normalizeAuthPolicy(input);
-    const signInMethods = policy.signInMethods ?? ["magic_link", "password"];
-    const signUpMethods = policy.signUpMethods ?? ["magic_link"];
+    const availableMethods = getAvailableApplicationAuthMethodIds();
+    const signInMethods =
+      policy.signInMethods ??
+      ["magic_link", "password", ...socialAuthMethods].filter((method) =>
+        availableMethods.has(method),
+      );
+    if (signInMethods.length === 0) {
+      throw new ApplicationsPolicyError(
+        "Configure at least one SSO authentication method before creating applications",
+      );
+    }
+    const signUpMethods =
+      policy.signUpMethods ??
+      (availableMethods.has("magic_link") ? ["magic_link"] : []);
     assertSignupMethodsAreSignInMethods(signInMethods, signUpMethods);
     const application = await prisma.application.create({
       data: {

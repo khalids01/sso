@@ -10,6 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getApplicationAuthPath, getAuthCallbackURL } from "./auth-callback";
 import type { ApplicationAuthPolicy } from "./application-auth-shell";
+import { AuthMethodDivider } from "./auth-method-divider";
+import {
+  SocialAuthButtons,
+  type SocialAuthMethod,
+} from "./social-auth-buttons";
 
 export default function SignUpForm({
   applicationName,
@@ -23,8 +28,16 @@ export default function SignUpForm({
   const loginHref = isApplicationSignup
     ? getApplicationAuthPath("/application/login", search)
     : "/login";
-  const signupAvailable =
+  const showMagicSignup =
     !applicationPolicy || applicationPolicy.signUpMethods.includes("magic_link");
+  const socialMethods = (applicationPolicy?.signUpMethods ?? []).filter(
+    (method): method is SocialAuthMethod =>
+      method === "google" ||
+      method === "facebook" ||
+      method === "linkedin" ||
+      method === "github",
+  );
+  const signupAvailable = showMagicSignup || socialMethods.length > 0;
   const magicLinkForm = useForm({
     defaultValues: {
       email: "",
@@ -66,7 +79,17 @@ export default function SignUpForm({
         <div className="rounded-md border px-4 py-5 text-center text-sm text-muted-foreground">
           Registration is not available for this application.
         </div>
-      ) : <form
+      ) : (
+        <div className="space-y-5">
+          {socialMethods.length > 0 ? (
+            <>
+              <SocialAuthButtons methods={socialMethods} />
+              {showMagicSignup ? (
+                <AuthMethodDivider label="or sign up with email" />
+              ) : null}
+            </>
+          ) : null}
+          {showMagicSignup ? <form
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -132,7 +155,9 @@ export default function SignUpForm({
             </Button>
           )}
         </magicLinkForm.Subscribe>
-      </form>}
+          </form> : null}
+        </div>
+      )}
 
       <div className="mt-4 text-center">
         <Button

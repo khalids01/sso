@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { AppWindow, ArrowRight, KeyRound, Users } from "lucide-react";
+import { AppWindow, ArrowRight, KeyRound, Settings, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +23,7 @@ export function ApplicationItem(props: {
   canManage: boolean;
   onView: () => void;
   onEdit: () => void;
+  onSettings: () => void;
   onLifecycle: (action: PendingAction) => void;
 }) {
   const { application, viewMode } = props;
@@ -96,19 +97,30 @@ export function ApplicationItem(props: {
           <span className="text-xs text-muted-foreground">
             Created {new Date(application.createdAt).toLocaleDateString()}
           </span>
-          <Button
-            size="sm"
-            nativeButton={false}
-            render={
-              <Link
-                to="/admin/applications/$applicationId/clients"
-                params={{ applicationId: application.id }}
-              />
-            }
-          >
-            Manage clients
-            <ArrowRight />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              nativeButton={false}
+              render={
+                <Link
+                  to="/admin/applications/$applicationId/clients"
+                  params={{ applicationId: application.id }}
+                />
+              }
+            >
+              Manage clients
+              <ArrowRight />
+            </Button>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              aria-label={`Authentication settings for ${application.name}`}
+              onClick={props.onSettings}
+            >
+              <Settings />
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     );

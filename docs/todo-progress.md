@@ -12,8 +12,9 @@ Local automated and browser validation is the current acceptance gate; staging
 verification is deferred. Do not access or mutate the old production SSO. It is
 only a behavioral reference, and no pilot or compatibility migration is
 required. Authenticated introspection remains deferred until a real sensitive
-client requires it. Google authentication is a separate later slice; Facebook
-and Apple remain deferred.
+client requires it. Google, Facebook, LinkedIn, and GitHub are available only
+when their server credentials are configured and an application enables them.
+Instagram and Apple remain deferred.
 
 ## Guardrails
 
@@ -49,6 +50,8 @@ and Apple remain deferred.
 - [ ] Add application branding fields for login and email flows.
 - [x] Add application-level sign-in/signup method controls and closed,
   invitation-only, or open registration policy.
+- [x] Add a dedicated application authentication settings dialog with
+  server-derived provider availability and per-application sign-in/signup toggles.
 
 ## Application Access
 

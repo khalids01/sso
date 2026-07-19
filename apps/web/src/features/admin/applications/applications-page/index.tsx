@@ -12,6 +12,7 @@ import type { AdminApplication, ApplicationsListResponse } from "../types";
 import { ApplicationEditDialog } from "./components/application-edit-dialog";
 import { ApplicationItem } from "./components/application-item";
 import { ApplicationViewDialog } from "./components/application-view-dialog";
+import { ApplicationAuthSettingsDialog } from "./components/application-auth-settings-dialog";
 import { LifecycleConfirmDialog } from "../components/lifecycle-confirm-dialog";
 import { SegmentedFilter, ViewModeToggle } from "../components/ui-controls";
 import { createApplication, updateApplication } from "../crud/applications";
@@ -37,6 +38,8 @@ export function AdminApplicationsPage() {
   const [viewApplication, setViewApplication] =
     useState<AdminApplication | null>(null);
   const [editApplication, setEditApplication] =
+    useState<AdminApplication | null>(null);
+  const [settingsApplication, setSettingsApplication] =
     useState<AdminApplication | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
@@ -153,6 +156,7 @@ export function AdminApplicationsPage() {
               canManage={canManage}
               onView={() => setViewApplication(application)}
               onEdit={() => setEditApplication(application)}
+              onSettings={() => setSettingsApplication(application)}
               onLifecycle={setPendingAction}
             />
           ))}
@@ -171,6 +175,19 @@ export function AdminApplicationsPage() {
           if (!editApplication) return;
           updateApplicationMutation.mutate({ id: editApplication.id, payload });
           setEditApplication(null);
+        }}
+      />
+      <ApplicationAuthSettingsDialog
+        application={settingsApplication}
+        canManage={canManage && settingsApplication?.status !== "archived"}
+        isLoading={updateApplicationMutation.isPending}
+        onOpenChange={(open) => !open && setSettingsApplication(null)}
+        onSave={(payload) => {
+          if (!settingsApplication) return;
+          updateApplicationMutation.mutate(
+            { id: settingsApplication.id, payload },
+            { onSuccess: () => setSettingsApplication(null) },
+          );
         }}
       />
       <LifecycleConfirmDialog

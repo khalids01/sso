@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ApplicationForm } from "../../application.form";
-import type { AdminApplication, ApplicationAuthMethod, ApplicationRegistrationMode, ApplicationStatus } from "../../types";
+import type { AdminApplication, ApplicationAuthMethod, ApplicationRegistrationMode, ApplicationSignupMethod, ApplicationStatus } from "../../types";
 
 export function ApplicationEditDialog(props: {
   application: AdminApplication | null;
@@ -19,7 +19,7 @@ export function ApplicationEditDialog(props: {
     description?: string;
     status?: ApplicationStatus;
     signInMethods?: ApplicationAuthMethod[];
-    signUpMethods?: Array<"magic_link">;
+    signUpMethods?: ApplicationSignupMethod[];
     registrationMode?: ApplicationRegistrationMode;
   }) => void;
 }) {
@@ -51,7 +51,9 @@ export function ApplicationEditDialog(props: {
             initialValues={initialValues}
             isLoading={props.isLoading}
             resetKey={props.application?.id ?? "closed"}
-            onSubmit={props.onSubmit}
+            onSubmit={({ name, slug, description, status }) =>
+              props.onSubmit({ name, slug, description, status })
+            }
             onSubmitted={() => props.onOpenChange(false)}
           />
         ) : null}

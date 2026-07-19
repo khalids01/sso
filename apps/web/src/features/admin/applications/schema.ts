@@ -51,8 +51,21 @@ export const createApplicationSchema = z
     slug: optionalTrimmedString(80),
     description: optionalTrimmedString(500),
     status: applicationStatusSchema.default("active"),
-    signInMethods: z.array(z.enum(["magic_link", "password"])).min(1),
-    signUpMethods: z.array(z.literal("magic_link")),
+    signInMethods: z
+      .array(
+        z.enum([
+          "magic_link",
+          "password",
+          "google",
+          "facebook",
+          "linkedin",
+          "github",
+        ]),
+      )
+      .min(1),
+    signUpMethods: z.array(
+      z.enum(["magic_link", "google", "facebook", "linkedin", "github"]),
+    ),
     registrationMode: z.enum(["closed", "invite_only", "open"]),
   })
   .refine(

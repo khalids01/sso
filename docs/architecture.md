@@ -150,8 +150,10 @@ deliberate deployment configuration. Local automated and browser verification is
 the current acceptance gate; staging verification is deferred. Client
 integration can proceed directly using the locally verified public-client
 contract. Authenticated introspection remains deferred until a real sensitive
-client requires it. Google authentication is a separate later slice; Facebook
-and Apple remain deferred.
+client requires it. Google, Facebook, LinkedIn, and GitHub use optional
+server-side Better Auth provider registrations. A provider is exposed to an
+application only when both credentials are configured and the application has
+enabled it. Instagram and Apple remain deferred.
 
 ## Old SSO Behavioral Reference
 

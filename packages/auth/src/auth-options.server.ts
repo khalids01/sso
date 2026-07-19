@@ -51,6 +51,40 @@ export const authOptions = {
     minPasswordLength: 15,
     maxPasswordLength: 128,
   },
+  socialProviders: {
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : {}),
+    ...(env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET
+      ? {
+          facebook: {
+            clientId: env.FACEBOOK_CLIENT_ID,
+            clientSecret: env.FACEBOOK_CLIENT_SECRET,
+          },
+        }
+      : {}),
+    ...(env.LINKEDIN_CLIENT_ID && env.LINKEDIN_CLIENT_SECRET
+      ? {
+          linkedin: {
+            clientId: env.LINKEDIN_CLIENT_ID,
+            clientSecret: env.LINKEDIN_CLIENT_SECRET,
+          },
+        }
+      : {}),
+    ...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
+      ? {
+          github: {
+            clientId: env.GITHUB_CLIENT_ID,
+            clientSecret: env.GITHUB_CLIENT_SECRET,
+          },
+        }
+      : {}),
+  },
   rateLimit: {
     enabled: true,
     window: 10,
