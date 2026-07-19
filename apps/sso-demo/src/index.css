@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+:root {
+  --background: oklch(0.98 0.008 255);
+  --foreground: oklch(0.18 0.025 260);
+  --card: oklch(1 0 0 / 88%);
+  --card-foreground: oklch(0.18 0.025 260);
+  --primary: oklch(0.54 0.21 264);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.94 0.025 260);
+  --secondary-foreground: oklch(0.28 0.06 264);
+  --muted: oklch(0.95 0.012 255);
+  --muted-foreground: oklch(0.5 0.035 260);
+  --border: oklch(0.89 0.02 258);
+  --ring: oklch(0.62 0.18 264);
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply min-h-screen bg-background font-sans text-foreground antialiased; }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 15% 5%, oklch(0.83 0.1 250 / 35%), transparent 32rem),
+      radial-gradient(circle at 90% 20%, oklch(0.88 0.09 300 / 28%), transparent 28rem),
+      linear-gradient(180deg, oklch(1 0 0 / 75%), transparent 55%);
+  }
+}

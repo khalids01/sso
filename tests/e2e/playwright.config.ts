@@ -6,6 +6,7 @@ assertE2ESafety();
 
 const localApiPort = new URL(e2eEnv.E2E_API_ORIGIN).port || "80";
 const localWebPort = new URL(e2eEnv.E2E_WEB_ORIGIN).port || "80";
+const localDemoPort = new URL(e2eEnv.E2E_DEMO_ORIGIN).port || "80";
 
 const localWebServers = [
   {
@@ -26,6 +27,16 @@ const localWebServers = [
       "bun run tests/e2e/scripts/start-local-web.ts",
     cwd: e2eEnv.repoRoot,
     url: `${e2eEnv.E2E_WEB_ORIGIN}/login`,
+    reuseExistingServer: false,
+    timeout: 120_000,
+  },
+  {
+    command:
+      `PORT=${localDemoPort} SSO_DEMO_ORIGIN=${e2eEnv.E2E_DEMO_ORIGIN} ` +
+      `SSO_API_ORIGIN=${e2eEnv.E2E_API_ORIGIN} ` +
+      "SSO_DEMO_SESSION_SECRET=e2e-only-sso-demo-session-secret-32 bun run tests/e2e/scripts/start-local-demo.ts",
+    cwd: e2eEnv.repoRoot,
+    url: e2eEnv.E2E_DEMO_ORIGIN,
     reuseExistingServer: false,
     timeout: 120_000,
   },

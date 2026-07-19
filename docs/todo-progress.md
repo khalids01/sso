@@ -6,8 +6,8 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Integrate the first application directly with the new SSO and capture only the
-profile, role, scope, and branding requirements that application actually needs.
+Use the completed `sso-demo` reference client to capture only the profile, role,
+scope, and branding requirements that the first production application actually needs.
 Local automated and browser validation is the current acceptance gate; staging
 verification is deferred. Do not access or mutate the old production SSO. It is
 only a behavioral reference, and no pilot or compatibility migration is
@@ -85,10 +85,11 @@ deferred.
 
 - [x] Document the old production behavior as a read-only reference.
 - [x] Remove pilot and compatibility migration requirements from the rollout plan.
-- [ ] Integrate the first application directly using the locally verified contract.
-- [ ] Create a separate TanStack Start reference application and use it to test
-  login, callback, PKCE exchange, local session creation, sign-out, and pushed
-  revocation as the first real client contract.
+- [x] Integrate a TanStack reference application directly using the locally verified contract.
+- [x] Create a separate TanStack Start reference application and use it to test
+  login, callback, PKCE exchange, local session creation, and sign-out as the
+  first real client contract.
+- [ ] Add pushed revocation handling to the reference application's local session.
 - [ ] Capture app-specific profile, role, scope, and revocation requirements before
   extending the initial protocol.
 
@@ -108,6 +109,12 @@ deferred.
 - [x] Complete real local Playwright runs with dedicated allowlisted admin and user identities.
 
 ## Latest Verification
+
+- `apps/sso-demo` now completes the public-client authorization-code flow with
+  server-side PKCE, state and nonce validation, JWKS verification, an encrypted
+  HttpOnly local session, safe claim display, reload persistence, and local sign-out.
+- The focused visible-password demo browser journey passes on isolated local
+  loopback ports: `3 passed`, `0 failed`, including setup and run-owned cleanup.
 
 - Server tests: `220 pass`, `0 fail` across 51 files.
 - OAuth Provider runtime initialization succeeded.

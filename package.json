@@ -29,6 +29,7 @@
     "check-types": "turbo check-types",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
+    "dev:demo": "turbo -F sso-demo dev",
     "db:studio": "turbo -F @db db:studio",
     "db:generate": "turbo -F @db db:generate",
     "db:reset": "turbo -F @db db:reset",

@@ -50,6 +50,9 @@ bun run dev
 ```
 
 The web app runs at [http://localhost:5002](http://localhost:5002), and the API runs at [http://localhost:5001](http://localhost:5001).
+The optional SSO demo runs at [http://localhost:5003](http://localhost:5003) after
+its application client and local environment are configured. See
+[`apps/sso-demo/README.md`](apps/sso-demo/README.md).
 
 Token issuance is disabled by default. Configure a stable `SSO_ISSUER` and set
 `ENABLE_OAUTH_TOKEN_ISSUANCE=true` only in an environment approved for the new
@@ -104,6 +107,7 @@ Redis stores short-lived and regeneratable data such as rate-limit counters, RBA
 sso/
 ├── apps/
 │   ├── web/         # TanStack Start frontend and admin UI
+│   ├── sso-demo/    # TanStack Start reference relying-party application
 │   └── server/      # Elysia API server
 ├── packages/
 │   ├── auth/        # Better Auth configuration and session types
@@ -121,6 +125,7 @@ sso/
 - `bun run dev`: start all apps in development mode
 - `bun run dev:web`: start only the web app
 - `bun run dev:server`: start only the API server
+- `bun run dev:demo`: start only the SSO reference client
 - `bun run build`: build all workspaces
 - `bun run check-types`: type-check all workspaces
 - `bun run db:generate`: generate Prisma client

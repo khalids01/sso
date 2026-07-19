@@ -6,6 +6,7 @@ SSO is a Bun/Turborepo TypeScript monorepo.
 
 - `apps/web`: TanStack Start frontend for public pages, protected user pages, onboarding, and admin.
 - `apps/server`: Elysia API server for auth helpers, session context, admin modules, rate limits, visitors, notifications, feedback, Polar, and invitations.
+- `apps/sso-demo`: TanStack Start reference relying party for the public-client OAuth contract and deterministic password-auth browser validation.
 - `packages/auth`: Better Auth configuration, custom session payload, magic-link auth, Polar integration, and session types.
 - `packages/db`: Prisma schema, generated client, RBAC data access, session revocation, and seed helpers.
 - `packages/rbac`: permission catalog, role definitions, role-permission defaults, and permission checks.
@@ -87,6 +88,14 @@ provider callbacks. The web app owns login and authorization UI. Client callback
 receive only `code` and `state`; tokens do not pass through browser URLs or the
 web frontend. Userinfo, introspection, revocation, logout, discovery,
 registration, and provider client-management endpoints remain deferred.
+
+The `sso-demo` reference client keeps PKCE state and nonce in an encrypted,
+short-lived HttpOnly cookie, performs authorization-code exchange on its server,
+and verifies both tokens against SSO JWKS before creating an encrypted local
+session. OAuth tokens are not exposed to React, browser storage, or callback
+URLs. The reference session follows the ten-minute issued-token lifetime and
+implements application-local sign-out; global logout and durable application
+session storage remain outside the initial protocol.
 
 OAuth requests use dedicated `/application/login` and `/application/signup`
 pages. They share the platform's underlying accounts and sessions but do not

@@ -52,17 +52,20 @@ export function assertE2ESafety() {
 
   refuseProduction(e2eEnv.E2E_WEB_ORIGIN);
   refuseProduction(e2eEnv.E2E_API_ORIGIN);
+  refuseProduction(e2eEnv.E2E_DEMO_ORIGIN);
   refuseProduction(e2eEnv.E2E_CALLBACK_ORIGIN);
 
   if (e2eEnv.E2E_TARGET === "local") {
     requireLoopback(e2eEnv.E2E_WEB_ORIGIN, "E2E_WEB_ORIGIN");
     requireLoopback(e2eEnv.E2E_API_ORIGIN, "E2E_API_ORIGIN");
+    requireLoopback(e2eEnv.E2E_DEMO_ORIGIN, "E2E_DEMO_ORIGIN");
     requireLoopback(e2eEnv.E2E_CALLBACK_ORIGIN, "E2E_CALLBACK_ORIGIN");
     return;
   }
 
   requireExact(e2eEnv.E2E_WEB_ORIGIN, e2eEnv.E2E_ALLOWED_WEB_ORIGINS, "Web origin");
   requireExact(e2eEnv.E2E_API_ORIGIN, e2eEnv.E2E_ALLOWED_API_ORIGINS, "API origin");
+  requireExact(e2eEnv.E2E_DEMO_ORIGIN, e2eEnv.E2E_ALLOWED_DEMO_ORIGINS, "Demo origin");
   requireExact(
     e2eEnv.E2E_CALLBACK_ORIGIN,
     e2eEnv.E2E_ALLOWED_CALLBACK_ORIGINS,
@@ -81,7 +84,7 @@ export function assertE2ESafety() {
 }
 
 export async function assertApprovedRedirects() {
-  for (const origin of [e2eEnv.E2E_WEB_ORIGIN, e2eEnv.E2E_API_ORIGIN]) {
+  for (const origin of [e2eEnv.E2E_WEB_ORIGIN, e2eEnv.E2E_API_ORIGIN, e2eEnv.E2E_DEMO_ORIGIN]) {
     const response = await fetch(origin, { redirect: "manual" });
     const location = response.headers.get("location");
     if (!location) continue;

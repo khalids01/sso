@@ -7,6 +7,7 @@ export async function provisionOAuthFixture(actorId: string, revocationUserId: s
   const slug = `${e2eEnv.runPrefix}oauth`;
   const clientId = `sso_client_${randomBytes(18).toString("base64url")}`;
   const redirectUri = `${e2eEnv.E2E_CALLBACK_ORIGIN}/callback`;
+  const demoRedirectUri = `${e2eEnv.E2E_DEMO_ORIGIN}/auth/callback`;
   const actorSubject = randomBytes(32).toString("base64url");
   const revocationSubject = randomBytes(32).toString("base64url");
 
@@ -32,8 +33,8 @@ export async function provisionOAuthFixture(actorId: string, revocationUserId: s
             responseTypes: ["code"],
             public: true,
             metadata: { runId: e2eEnv.runId },
-            redirectUris: [redirectUri],
-            allowedOrigins: [e2eEnv.E2E_CALLBACK_ORIGIN],
+            redirectUris: [redirectUri, demoRedirectUri],
+            allowedOrigins: [e2eEnv.E2E_CALLBACK_ORIGIN, e2eEnv.E2E_DEMO_ORIGIN],
           },
         },
         members: {
@@ -69,6 +70,7 @@ export async function provisionOAuthFixture(actorId: string, revocationUserId: s
         memberId: member.id,
         clientId: client.clientId,
         redirectUri,
+        demoRedirectUri,
         revocationMemberId: revocationMember.id,
         revocationUserId,
         revocationSubject,
