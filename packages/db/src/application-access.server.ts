@@ -7,6 +7,7 @@ export type ApplicationClientAccessDenialReason =
   | "application_inactive"
   | "membership_missing"
   | "membership_inactive"
+  | "email_unverified"
   | "user_inactive";
 
 export type ApplicationClientAccessResult =
@@ -44,6 +45,7 @@ export async function getApplicationClientAccess(
           id: true,
           name: true,
           status: true,
+          passwordEmailVerificationRequired: true,
           members: {
             where: { userId },
             take: 1,
@@ -54,6 +56,7 @@ export async function getApplicationClientAccess(
                 select: {
                   archived: true,
                   banned: true,
+                  emailVerified: true,
                 },
               },
             },
@@ -89,6 +92,13 @@ export async function getApplicationClientAccess(
 
   if (member.user.archived || member.user.banned) {
     return { allowed: false, reason: "user_inactive", ...context };
+  }
+
+  if (
+    client.application.passwordEmailVerificationRequired &&
+    !member.user.emailVerified
+  ) {
+    return { allowed: false, reason: "email_unverified", ...context };
   }
 
   if (member.status !== "active") {

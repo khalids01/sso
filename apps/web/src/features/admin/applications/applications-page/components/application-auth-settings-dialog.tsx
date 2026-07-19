@@ -40,6 +40,7 @@ export function ApplicationAuthSettingsDialog(props: {
     signInMethods: ApplicationAuthMethod[];
     signUpMethods: ApplicationSignupMethod[];
     registrationMode: ApplicationRegistrationMode;
+    passwordEmailVerificationRequired: boolean;
   }) => void;
 }) {
   const [signInMethods, setSignInMethods] = useState<ApplicationAuthMethod[]>([]);
@@ -47,6 +48,8 @@ export function ApplicationAuthSettingsDialog(props: {
     useState<ApplicationSignupMethod[]>([]);
   const [registrationMode, setRegistrationMode] =
     useState<ApplicationRegistrationMode>("closed");
+  const [passwordEmailVerificationRequired, setPasswordEmailVerificationRequired] =
+    useState(true);
 
   useEffect(() => {
     const application = props.application;
@@ -65,10 +68,18 @@ export function ApplicationAuthSettingsDialog(props: {
       ),
     );
     setRegistrationMode(application.registrationMode);
+    setPasswordEmailVerificationRequired(
+      application.passwordEmailVerificationRequired,
+    );
   }, [props.application]);
 
   const application = props.application;
   const canSave = props.canManage && signInMethods.length > 0;
+  const emailVerificationAvailable = Boolean(
+    application?.authCapabilities.find(
+      (capability) => capability.id === "magic_link",
+    )?.available,
+  );
 
   return (
     <Dialog open={Boolean(application)} onOpenChange={props.onOpenChange}>
@@ -111,10 +122,7 @@ export function ApplicationAuthSettingsDialog(props: {
                   const method = supportedMethod
                     ? (capability.id as ApplicationAuthMethod)
                     : null;
-                  const signupMethod =
-                    method && method !== "password"
-                      ? (method as ApplicationSignupMethod)
-                      : null;
+                  const signupMethod = method as ApplicationSignupMethod | null;
                   const checked =
                     capability.available &&
                     method !== null &&
@@ -237,6 +245,32 @@ export function ApplicationAuthSettingsDialog(props: {
                 </p>
               </div>
 
+              <div className="mt-4 flex items-start justify-between gap-4 border-t pt-4">
+                <div>
+                  <p className="text-sm font-medium">Require email verification</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Password users must verify their email before this application
+                    can authorize them or issue tokens.
+                  </p>
+                  {!emailVerificationAvailable ? (
+                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                      Configure SSO email delivery before enabling this requirement.
+                    </p>
+                  ) : null}
+                </div>
+                <Switch
+                  checked={passwordEmailVerificationRequired}
+                  disabled={
+                    !props.canManage ||
+                    !signInMethods.includes("password") ||
+                    (!emailVerificationAvailable &&
+                      !passwordEmailVerificationRequired)
+                  }
+                  aria-label="Require email verification for password authentication"
+                  onCheckedChange={setPasswordEmailVerificationRequired}
+                />
+              </div>
+
             </section>
 
             {signInMethods.length === 0 ? (
@@ -264,6 +298,7 @@ export function ApplicationAuthSettingsDialog(props: {
                 signUpMethods:
                   registrationMode === "closed" ? [] : signUpMethods,
                 registrationMode,
+                passwordEmailVerificationRequired,
               })
             }
           >

@@ -100,8 +100,9 @@ registration mode (`closed`, `invite_only`, or `open`). Signup methods must also
 be valid sign-in methods. Open registration creates an active application
 membership during the signed OAuth continuation; invitation-only registration
 requires a pending, unexpired invitation for the authenticated email. Password
-signup remains unavailable until the verification-email delivery flow is
-configured. Existing shared SSO sessions remain reusable across applications;
+signup uses a guarded SSO endpoint, and each application decides whether an
+email must be verified before authorization and token issuance. Existing shared
+SSO sessions remain reusable across applications;
 the method selection controls the unauthenticated application experience, not a
 token authentication-method assurance claim.
 

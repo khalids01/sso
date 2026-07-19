@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { getApplicationAuthPath, getAuthCallbackURL } from "./auth-callback";
 import type { ApplicationAuthPolicy } from "./application-auth-shell";
 import { AuthMethodDivider } from "./auth-method-divider";
+import { PasswordSignUpForm } from "./password-sign-up-form";
 import {
   SocialAuthButtons,
   type SocialAuthMethod,
@@ -30,6 +31,8 @@ export default function SignUpForm({
     : "/login";
   const showMagicSignup =
     !applicationPolicy || applicationPolicy.signUpMethods.includes("magic_link");
+  const showPasswordSignup =
+    Boolean(applicationPolicy?.signUpMethods.includes("password"));
   const socialMethods = (applicationPolicy?.signUpMethods ?? []).filter(
     (method): method is SocialAuthMethod =>
       method === "google" ||
@@ -37,7 +40,8 @@ export default function SignUpForm({
       method === "linkedin" ||
       method === "github",
   );
-  const signupAvailable = showMagicSignup || socialMethods.length > 0;
+  const signupAvailable =
+    showMagicSignup || showPasswordSignup || socialMethods.length > 0;
   const magicLinkForm = useForm({
     defaultValues: {
       email: "",
@@ -84,7 +88,7 @@ export default function SignUpForm({
           {socialMethods.length > 0 ? (
             <>
               <SocialAuthButtons methods={socialMethods} />
-              {showMagicSignup ? (
+              {showMagicSignup || showPasswordSignup ? (
                 <AuthMethodDivider label="or sign up with email" />
               ) : null}
             </>
@@ -156,6 +160,10 @@ export default function SignUpForm({
           )}
         </magicLinkForm.Subscribe>
           </form> : null}
+          {showMagicSignup && showPasswordSignup ? (
+            <AuthMethodDivider label="or use a password" />
+          ) : null}
+          {showPasswordSignup ? <PasswordSignUpForm /> : null}
         </div>
       )}
 

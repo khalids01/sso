@@ -37,8 +37,15 @@ const allowedAuthMethods = new Set([
   "password",
   ...socialAuthMethods,
 ]);
-const allowedSignupMethods = new Set(["magic_link", ...socialAuthMethods]);
+const allowedSignupMethods = new Set([
+  "magic_link",
+  "password",
+  ...socialAuthMethods,
+]);
 const allowedRegistrationModes = new Set(["closed", "invite_only", "open"]);
+const emailDeliveryConfigured = Boolean(
+  env.SMTP_HOST && env.EMAIL && env.EMAIL_PASSWORD,
+);
 
 
 const applicationSelect = {
@@ -52,6 +59,7 @@ const applicationSelect = {
   signInMethods: true,
   signUpMethods: true,
   registrationMode: true,
+  passwordEmailVerificationRequired: true,
   createdAt: true,
   updatedAt: true,
   _count: {
@@ -159,6 +167,7 @@ function normalizeAuthPolicy(input: {
   signInMethods?: string[];
   signUpMethods?: string[];
   registrationMode?: string;
+  passwordEmailVerificationRequired?: boolean;
 }) {
   const signInMethods = input.signInMethods
     ? [...new Set(input.signInMethods)]
@@ -188,11 +197,21 @@ function normalizeAuthPolicy(input: {
   ) {
     throw new ApplicationsPolicyError("Invalid application registration mode");
   }
+  if (
+    input.passwordEmailVerificationRequired === true &&
+    !emailDeliveryConfigured
+  ) {
+    throw new ApplicationsPolicyError(
+      "Configure SSO email delivery before requiring password email verification",
+    );
+  }
 
   return {
     signInMethods,
     signUpMethods,
     registrationMode: input.registrationMode,
+    passwordEmailVerificationRequired:
+      input.passwordEmailVerificationRequired,
   };
 }
 
@@ -218,6 +237,7 @@ function mapApplication(row: {
   signInMethods: string[];
   signUpMethods: string[];
   registrationMode: string;
+  passwordEmailVerificationRequired: boolean;
   createdAt: Date;
   updatedAt: Date;
   _count?: { clients: number; members: number };
@@ -233,6 +253,8 @@ function mapApplication(row: {
     signInMethods: row.signInMethods,
     signUpMethods: row.signUpMethods,
     registrationMode: row.registrationMode,
+    passwordEmailVerificationRequired:
+      row.passwordEmailVerificationRequired,
     authCapabilities: getApplicationAuthCapabilities(),
     clientCount: row._count?.clients ?? 0,
     memberCount: row._count?.members ?? 0,
@@ -431,7 +453,9 @@ export class AdminApplicationsService {
     }
     const signUpMethods =
       policy.signUpMethods ??
-      (availableMethods.has("magic_link") ? ["magic_link"] : []);
+      ["magic_link", "password"].filter((method) =>
+        availableMethods.has(method),
+      );
     assertSignupMethodsAreSignInMethods(signInMethods, signUpMethods);
     const application = await prisma.application.create({
       data: {
@@ -444,6 +468,8 @@ export class AdminApplicationsService {
         signInMethods,
         signUpMethods,
         registrationMode: policy.registrationMode ?? "closed",
+        passwordEmailVerificationRequired:
+          policy.passwordEmailVerificationRequired ?? emailDeliveryConfigured,
       },
       select: {
         id: true,
@@ -456,6 +482,7 @@ export class AdminApplicationsService {
         signInMethods: true,
         signUpMethods: true,
         registrationMode: true,
+        passwordEmailVerificationRequired: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -508,6 +535,10 @@ export class AdminApplicationsService {
     }
     if (policy.registrationMode !== undefined) {
       data.registrationMode = policy.registrationMode;
+    }
+    if (policy.passwordEmailVerificationRequired !== undefined) {
+      data.passwordEmailVerificationRequired =
+        policy.passwordEmailVerificationRequired;
     }
 
     const application = await prisma.$transaction(async (tx) => {

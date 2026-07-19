@@ -7,8 +7,9 @@ model Application {
   logoUrl          String?
   homepageUrl      String?
   signInMethods    String[] @default(["magic_link", "password"])
-  signUpMethods    String[] @default(["magic_link"])
+  signUpMethods    String[] @default(["magic_link", "password"])
   registrationMode String   @default("closed")
+  passwordEmailVerificationRequired Boolean @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -26,6 +26,7 @@ const ApplicationAuthMethodSchema = t.Union([
 ]);
 const ApplicationSignupMethodSchema = t.Union([
   t.Literal("magic_link"),
+  t.Literal("password"),
   t.Literal("google"),
   t.Literal("facebook"),
   t.Literal("linkedin"),
@@ -56,6 +57,7 @@ export const CreateApplicationDto = t.Object({
   signInMethods: t.Optional(t.Array(ApplicationAuthMethodSchema, { minItems: 1 })),
   signUpMethods: t.Optional(t.Array(ApplicationSignupMethodSchema)),
   registrationMode: t.Optional(ApplicationRegistrationModeSchema),
+  passwordEmailVerificationRequired: t.Optional(t.Boolean()),
 });
 
 export const CreateApplicationClientDto = t.Object({
@@ -76,6 +78,7 @@ export const UpdateApplicationDto = t.Object({
   signInMethods: t.Optional(t.Array(ApplicationAuthMethodSchema, { minItems: 1 })),
   signUpMethods: t.Optional(t.Array(ApplicationSignupMethodSchema)),
   registrationMode: t.Optional(ApplicationRegistrationModeSchema),
+  passwordEmailVerificationRequired: t.Optional(t.Boolean()),
 });
 
 export const CreateApplicationInvitationDto = t.Object({

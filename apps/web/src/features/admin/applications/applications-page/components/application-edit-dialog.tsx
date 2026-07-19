@@ -21,6 +21,7 @@ export function ApplicationEditDialog(props: {
     signInMethods?: ApplicationAuthMethod[];
     signUpMethods?: ApplicationSignupMethod[];
     registrationMode?: ApplicationRegistrationMode;
+    passwordEmailVerificationRequired?: boolean;
   }) => void;
 }) {
   const initialValues = useMemo(
@@ -34,6 +35,8 @@ export function ApplicationEditDialog(props: {
             signInMethods: props.application.signInMethods,
             signUpMethods: props.application.signUpMethods,
             registrationMode: props.application.registrationMode,
+            passwordEmailVerificationRequired:
+              props.application.passwordEmailVerificationRequired,
           }
         : undefined,
     [props.application],

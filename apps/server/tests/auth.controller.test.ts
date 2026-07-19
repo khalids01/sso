@@ -9,11 +9,18 @@ const authApi =
     __serverTestAuthApi?: {
       getSession: ReturnType<typeof mock>;
       signInMagicLink: ReturnType<typeof mock>;
+      signInEmail: ReturnType<typeof mock>;
+      signUpEmail: ReturnType<typeof mock>;
+      sendVerificationEmail: ReturnType<typeof mock>;
     };
   }).__serverTestAuthApi ??= {
     getSession: mock(async () => null),
     signInMagicLink: mock(async () => ({ success: true })),
+    signInEmail: mock(async () => new Response()),
+    signUpEmail: mock(async () => new Response()),
+    sendVerificationEmail: mock(async () => ({ status: true })),
   });
+const sessionDeleteManyMock = mock(async () => ({ count: 1 }));
 
 mock.module("@db/server", () => ({
   default: {
@@ -25,6 +32,9 @@ mock.module("@db/server", () => ({
     },
     applicationClient: {
       findUnique: applicationClientFindUniqueMock,
+    },
+    session: {
+      deleteMany: sessionDeleteManyMock,
     },
   },
   Prisma,
@@ -52,6 +62,10 @@ afterEach(() => {
   findUniqueMock.mockReset();
   activityCreateMock.mockReset();
   authApi.signInMagicLink.mockReset();
+  authApi.signInEmail.mockReset();
+  authApi.signUpEmail.mockReset();
+  authApi.sendVerificationEmail.mockReset();
+  sessionDeleteManyMock.mockReset();
   applicationClientFindUniqueMock.mockReset();
 });
 
@@ -115,5 +129,135 @@ describe("authController", () => {
       message: "Registration is not available for this application",
     });
     expect(authApi.signInMagicLink).not.toHaveBeenCalled();
+  });
+
+  it("creates a password account and sends verification when required", async () => {
+    applicationClientFindUniqueMock.mockResolvedValue({
+      application: {
+        status: "active",
+        signInMethods: ["password"],
+        signUpMethods: ["password"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: true,
+      },
+    });
+    authApi.signUpEmail.mockResolvedValue(
+      new Response(JSON.stringify({ token: null, user: { id: "user-1" } }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    authApi.sendVerificationEmail.mockResolvedValue({ status: true });
+
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const response = await authController.handle(
+      new Request("http://localhost/auth/password/signup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: "new@example.com",
+          name: "New User",
+          password: "a-secure-password-value",
+          callbackURL:
+            "http://localhost:5002/authorize?client_id=sso_client_test",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      success: true,
+      requiresEmailVerification: true,
+    });
+    expect(authApi.signUpEmail).toHaveBeenCalledTimes(1);
+    expect(authApi.sendVerificationEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not create a password session for an unverified required email", async () => {
+    applicationClientFindUniqueMock.mockResolvedValue({
+      application: {
+        status: "active",
+        signInMethods: ["password"],
+        signUpMethods: ["password"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: true,
+      },
+    });
+    authApi.signInEmail.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          token: "session-token",
+          user: { emailVerified: false },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    authApi.sendVerificationEmail.mockResolvedValue({ status: true });
+
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const response = await authController.handle(
+      new Request("http://localhost/auth/password/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: "user@example.com",
+          password: "a-secure-password-value",
+          callbackURL:
+            "http://localhost:5002/authorize?client_id=sso_client_test",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(sessionDeleteManyMock).toHaveBeenCalledWith({
+      where: { token: "session-token" },
+    });
+    expect(authApi.sendVerificationEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("signs in immediately after password signup when verification is optional", async () => {
+    applicationClientFindUniqueMock.mockResolvedValue({
+      application: {
+        status: "active",
+        signInMethods: ["password"],
+        signUpMethods: ["password"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: false,
+      },
+    });
+    authApi.signUpEmail.mockResolvedValue(
+      new Response(JSON.stringify({ token: null, user: { id: "user-1" } }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    authApi.signInEmail.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          token: "session-token",
+          user: { emailVerified: false },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const response = await authController.handle(
+      new Request("http://localhost/auth/password/signup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: "new@example.com",
+          name: "New User",
+          password: "a-secure-password-value",
+          callbackURL:
+            "http://localhost:5002/authorize?client_id=sso_client_test",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(authApi.signInEmail).toHaveBeenCalledTimes(1);
+    expect(authApi.sendVerificationEmail).not.toHaveBeenCalled();
   });
 });

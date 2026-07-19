@@ -7,7 +7,7 @@ export type ApplicationAuthMethod =
   | "facebook"
   | "linkedin"
   | "github";
-export type ApplicationSignupMethod = Exclude<ApplicationAuthMethod, "password">;
+export type ApplicationSignupMethod = ApplicationAuthMethod;
 export type ApplicationRegistrationMode = "closed" | "invite_only" | "open";
 export type ApplicationAuthCapability = {
   id: string;
@@ -28,6 +28,7 @@ export type AdminApplication = {
   signInMethods: ApplicationAuthMethod[];
   signUpMethods: ApplicationSignupMethod[];
   registrationMode: ApplicationRegistrationMode;
+  passwordEmailVerificationRequired: boolean;
   authCapabilities: ApplicationAuthCapability[];
   clientCount: number;
   memberCount: number;

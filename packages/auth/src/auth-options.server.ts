@@ -7,7 +7,11 @@ import { getUserSessionCacheVersion } from "../../db/src/session-revocation.serv
 import { env } from "../../env/src/env.server";
 import type { BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { sendEmail, magicLinkTemplate } from "../../email/src/index.server";
+import {
+  emailVerificationTemplate,
+  magicLinkTemplate,
+  sendEmail,
+} from "../../email/src/index.server";
 
 import { defaultUserRoleOnSignup } from "./lib/default-user-role.server";
 import { polarClient } from "./lib/payments.server";
@@ -38,6 +42,8 @@ export const authOptions = {
     "/oauth2/get-consents",
     "/oauth2/update-consent",
     "/oauth2/delete-consent",
+    "/sign-up/email",
+    "/sign-in/email",
     "/.well-known/openid-configuration",
     "/.well-known/oauth-authorization-server",
   ],
@@ -46,10 +52,21 @@ export const authOptions = {
   }),
   emailAndPassword: {
     enabled: env.ENABLE_PASSWORD_AUTH,
-    disableSignUp: true,
-    requireEmailVerification: true,
+    disableSignUp: false,
+    requireEmailVerification: false,
+    autoSignIn: false,
     minPasswordLength: 15,
     maxPasswordLength: 128,
+  },
+  emailVerification: {
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Verify your SSO email",
+        html: await emailVerificationTemplate(url),
+      });
+    },
   },
   socialProviders: {
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET

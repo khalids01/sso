@@ -72,6 +72,7 @@ test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) =>
       sign_in_methods: ["magic_link", "password"],
       sign_up_methods: ["magic_link"],
       registration_mode: "open",
+      password_email_verification_required: true,
     });
 
     const missing = await page.request.get(

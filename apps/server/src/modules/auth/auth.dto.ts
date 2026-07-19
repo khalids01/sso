@@ -14,3 +14,16 @@ export const MagicLinkSignupDto = t.Object({
   name: t.String(),
   callbackURL: t.Optional(t.String()),
 });
+
+export const PasswordLoginDto = t.Object({
+  email: t.String({ format: "email", maxLength: 320 }),
+  password: t.String({ minLength: 1, maxLength: 128 }),
+  callbackURL: t.Optional(t.String()),
+});
+
+export const PasswordSignupDto = t.Object({
+  email: t.String({ format: "email", maxLength: 320 }),
+  name: t.String({ minLength: 2, maxLength: 120 }),
+  password: t.String({ minLength: 15, maxLength: 128 }),
+  callbackURL: t.String(),
+});

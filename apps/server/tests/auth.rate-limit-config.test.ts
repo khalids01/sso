@@ -28,7 +28,7 @@ describe("auth rate-limit config", () => {
     );
   });
 
-  it("keeps password authentication gated and password signup disabled", async () => {
+  it("keeps password authentication gated behind the guarded signup route", async () => {
     const authConfigPath = new URL(
       "../../../packages/auth/src/auth-options.server.ts",
       import.meta.url,
@@ -36,8 +36,12 @@ describe("auth rate-limit config", () => {
     const source = await Bun.file(authConfigPath).text();
 
     expect(source).toMatch(
-      /emailAndPassword:\s*\{\s*enabled:\s*env\.ENABLE_PASSWORD_AUTH,\s*disableSignUp:\s*true,\s*requireEmailVerification:\s*true,\s*minPasswordLength:\s*15,\s*maxPasswordLength:\s*128/s,
+      /emailAndPassword:\s*\{\s*enabled:\s*env\.ENABLE_PASSWORD_AUTH,\s*disableSignUp:\s*false,\s*requireEmailVerification:\s*false,\s*autoSignIn:\s*false,\s*minPasswordLength:\s*15,\s*maxPasswordLength:\s*128/s,
     );
+    expect(source).toContain('"/sign-up/email"');
+    expect(source).toContain('"/sign-in/email"');
+    expect(source).toContain("emailVerificationTemplate");
+    expect(source).toContain("autoSignInAfterVerification: true");
   });
 
   it("keeps OAuth token and provider-management paths disabled", async () => {

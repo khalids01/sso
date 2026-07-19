@@ -145,6 +145,7 @@ export async function getPublicClientMetadata(clientId: string) {
           signInMethods: true,
           signUpMethods: true,
           registrationMode: true,
+          passwordEmailVerificationRequired: true,
         },
       },
     },
@@ -174,6 +175,8 @@ export async function getPublicClientMetadata(clientId: string) {
           )
         : [],
     registration_mode: client.application.registrationMode,
+    password_email_verification_required:
+      client.application.passwordEmailVerificationRequired,
   };
 }
 
@@ -240,6 +243,7 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
           select: {
             id: true,
             status: true,
+            passwordEmailVerificationRequired: true,
             members: {
               where: { userId: stored.userId },
               take: 1,
@@ -297,12 +301,14 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
     if (!member || member.status !== "active" || !subject) {
       throw new OAuthTokenError("invalid_grant", 400, "membership_inactive");
     }
+    if (member.user.archived || member.user.banned) {
+      throw new OAuthTokenError("invalid_grant", 400, "user_inactive");
+    }
     if (
-      member.user.archived ||
-      member.user.banned ||
+      client.application.passwordEmailVerificationRequired &&
       !member.user.emailVerified
     ) {
-      throw new OAuthTokenError("invalid_grant", 400, "user_inactive");
+      throw new OAuthTokenError("invalid_grant", 400, "email_unverified");
     }
 
     const session = await prisma.session.findUnique({

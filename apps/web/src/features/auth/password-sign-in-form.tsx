@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
+import { client } from "@/lib/client";
 
 import { getAuthCallbackURL } from "./auth-callback";
 import {
@@ -23,18 +23,15 @@ export function PasswordSignInForm() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     const callbackURL = getAuthCallbackURL();
-    const { error } = await authClient.signIn.email({
+    const { error } = await client.auth.password.login.post({
       email: values.email,
       password: values.password,
       callbackURL,
     });
 
     if (error) {
-      toast.error(
-        error.status === 400
-          ? "Password authentication is unavailable"
-          : "Invalid email or password",
-      );
+      const value = error.value as { message?: string } | undefined;
+      toast.error(value?.message ?? "Invalid email or password");
       return;
     }
 

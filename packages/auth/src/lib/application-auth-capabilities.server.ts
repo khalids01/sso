@@ -44,7 +44,7 @@ export function getApplicationAuthCapabilities(): ApplicationAuthCapability[] {
       id: "password",
       label: "Email and password",
       available: env.ENABLE_PASSWORD_AUTH,
-      supportsSignUp: false,
+      supportsSignUp: true,
       unavailableReason: "Password authentication is disabled on the SSO server",
     },
     ...socialProviders.map((provider) => ({

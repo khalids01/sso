@@ -108,14 +108,15 @@ Instagram and Apple remain deferred.
 
 ## Latest Verification
 
-- Server tests: `205 pass`, `0 fail` across 49 files.
+- Server tests: `214 pass`, `0 fail` across 50 files.
 - OAuth Provider runtime initialization succeeded.
 - Better Auth's built-in token endpoint and generic session-JWT endpoint return
   `404`; the SSO token endpoint also returns `404` while its deployment flag is off.
 - Forged signed continuation data returns `invalid_signature` before access lookup.
 - `bun run check-types` and the web production build pass.
 - `git diff --check` passes.
-- Password login remains environment-gated with password signup disabled.
+- Password authentication remains environment-gated. Applications can enable
+  password signup and independently require verified email before authorization.
 - Playwright discovers setup, cleanup, permission, application lifecycle, and sign-out tests.
 - E2E helper tests pass (`8 pass`, `0 fail`), Chromium launches successfully,
   and the web client/SSR production build passes.
@@ -133,7 +134,7 @@ Instagram and Apple remain deferred.
   lifecycle is explicitly skipped as not applicable, while the same OAuth/JWKS
   journey succeeds independently of platform RBAC. Sign-out, protected-route
   redirects, run-owned cleanup, and actor-lock release pass.
-- Prisma reports all 19 migrations applied to the local loopback PostgreSQL
+- Prisma reports all 21 migrations applied to the local loopback PostgreSQL
   database; the schema is up to date.
 - Local built E2E starts the API with `ENABLE_POLAR=false` explicitly. Protected
   routes skip Polar state for admins and owners, missing Polar customers resolve

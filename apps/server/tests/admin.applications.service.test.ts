@@ -14,6 +14,8 @@ const applicationCreateMock = mock(async (args: any) => ({
   signInMethods: args.data.signInMethods,
   signUpMethods: args.data.signUpMethods,
   registrationMode: args.data.registrationMode,
+  passwordEmailVerificationRequired:
+    args.data.passwordEmailVerificationRequired,
   createdAt: new Date("2026-07-10T08:00:00.000Z"),
   updatedAt: new Date("2026-07-10T08:01:00.000Z"),
 }));
@@ -32,6 +34,8 @@ const applicationUpdateMock = mock(async (args: any) => ({
   signInMethods: args.data.signInMethods ?? ["magic_link", "password"],
   signUpMethods: args.data.signUpMethods ?? ["magic_link"],
   registrationMode: args.data.registrationMode ?? "closed",
+  passwordEmailVerificationRequired:
+    args.data.passwordEmailVerificationRequired ?? true,
   createdAt: new Date("2026-07-10T08:00:00.000Z"),
   updatedAt: new Date("2026-07-10T08:10:00.000Z"),
   _count: { clients: 0, members: 0 },
@@ -281,6 +285,7 @@ describe("AdminApplicationsService", () => {
         signInMethods: ["magic_link", "password"],
         signUpMethods: ["magic_link"],
         registrationMode: "closed",
+        passwordEmailVerificationRequired: true,
         createdAt: new Date("2026-07-10T08:00:00.000Z"),
         updatedAt: new Date("2026-07-10T08:01:00.000Z"),
         _count: { clients: 2, members: 3 },
@@ -306,6 +311,7 @@ describe("AdminApplicationsService", () => {
         signInMethods: true,
         signUpMethods: true,
         registrationMode: true,
+        passwordEmailVerificationRequired: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -339,6 +345,7 @@ describe("AdminApplicationsService", () => {
       signInMethods: ["magic_link", "password"],
       signUpMethods: ["magic_link"],
       registrationMode: "closed",
+      passwordEmailVerificationRequired: true,
       createdAt: new Date("2026-07-10T08:00:00.000Z"),
       updatedAt: new Date("2026-07-10T08:01:00.000Z"),
       _count: { clients: 2, members: 3 },
@@ -503,9 +510,10 @@ describe("AdminApplicationsService", () => {
     await adminApplicationsService.update(
       "app-1",
       {
-        signInMethods: ["magic_link"],
-        signUpMethods: ["magic_link"],
+        signInMethods: ["magic_link", "password"],
+        signUpMethods: ["magic_link", "password"],
         registrationMode: "invite_only",
+        passwordEmailVerificationRequired: false,
       },
       { id: "owner-1" },
     );
@@ -513,9 +521,10 @@ describe("AdminApplicationsService", () => {
     expect(applicationUpdateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          signInMethods: ["magic_link"],
-          signUpMethods: ["magic_link"],
+          signInMethods: ["magic_link", "password"],
+          signUpMethods: ["magic_link", "password"],
           registrationMode: "invite_only",
+          passwordEmailVerificationRequired: false,
         }),
       }),
     );

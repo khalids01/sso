@@ -11,6 +11,7 @@ export type UpdateApplicationInput = {
     signInMethods?: ApplicationAuthMethod[];
     signUpMethods?: ApplicationSignupMethod[];
     registrationMode?: ApplicationRegistrationMode;
+    passwordEmailVerificationRequired?: boolean;
   };
 };
 
@@ -43,6 +44,7 @@ export async function createApplication(input: {
   signInMethods: ApplicationAuthMethod[];
   signUpMethods: ApplicationSignupMethod[];
   registrationMode: ApplicationRegistrationMode;
+  passwordEmailVerificationRequired: boolean;
 }) {
   const { name, slug, description, status } = input;
   const { data, error } = await client.admin.applications.post({

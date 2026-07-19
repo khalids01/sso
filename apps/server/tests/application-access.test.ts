@@ -20,11 +20,12 @@ function createClient(overrides: Record<string, unknown> = {}) {
       id: "app-1",
       name: "Dashboard",
       status: "active",
+      passwordEmailVerificationRequired: true,
       members: [
         {
           id: "member-1",
           status: "active",
-          user: { archived: false, banned: false },
+          user: { archived: false, banned: false, emailVerified: true },
         },
       ],
     },
@@ -87,7 +88,7 @@ describe("getApplicationClientAccess", () => {
             {
               id: "member-1",
               status,
-              user: { archived: false, banned: false },
+              user: { archived: false, banned: false, emailVerified: true },
             },
           ]
         : [];
@@ -107,8 +108,8 @@ describe("getApplicationClientAccess", () => {
 
   it("denies banned and archived users", async () => {
     for (const user of [
-      { archived: false, banned: true },
-      { archived: true, banned: false },
+      { archived: false, banned: true, emailVerified: true },
+      { archived: true, banned: false, emailVerified: true },
     ]) {
       const client = createClient();
       client.application.members[0]!.user = user;
@@ -124,5 +125,27 @@ describe("getApplicationClientAccess", () => {
         reason: "user_inactive",
       });
     }
+  });
+
+  it("requires a verified email only when the application enables the rule", async () => {
+    const requiredClient = createClient();
+    requiredClient.application.members[0]!.user.emailVerified = false;
+
+    expect(
+      await getApplicationClientAccess(
+        "user-1",
+        "sso_client_1",
+        createDb(requiredClient),
+      ),
+    ).toMatchObject({ allowed: false, reason: "email_unverified" });
+
+    requiredClient.application.passwordEmailVerificationRequired = false;
+    expect(
+      await getApplicationClientAccess(
+        "user-1",
+        "sso_client_1",
+        createDb(requiredClient),
+      ),
+    ).toMatchObject({ allowed: true });
   });
 });

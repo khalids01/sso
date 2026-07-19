@@ -9,9 +9,10 @@ export type ApplicationAuthPolicy = {
     "magic_link" | "password" | "google" | "facebook" | "linkedin" | "github"
   >;
   signUpMethods: Array<
-    "magic_link" | "google" | "facebook" | "linkedin" | "github"
+    "magic_link" | "password" | "google" | "facebook" | "linkedin" | "github"
   >;
   registrationMode: "closed" | "invite_only" | "open";
+  passwordEmailVerificationRequired: boolean;
 };
 
 function isApplicationAuthPolicy(metadata: Record<string, unknown>) {
@@ -30,6 +31,7 @@ function isApplicationAuthPolicy(metadata: Record<string, unknown>) {
     metadata.sign_up_methods.every(
       (method) =>
         method === "magic_link" ||
+        method === "password" ||
         method === "google" ||
         method === "facebook" ||
         method === "linkedin" ||
@@ -37,7 +39,8 @@ function isApplicationAuthPolicy(metadata: Record<string, unknown>) {
     ) &&
     (metadata.registration_mode === "closed" ||
       metadata.registration_mode === "invite_only" ||
-      metadata.registration_mode === "open")
+      metadata.registration_mode === "open") &&
+    typeof metadata.password_email_verification_required === "boolean"
   );
 }
 
@@ -89,6 +92,8 @@ export function ApplicationAuthShell({
             signInMethods: metadata.sign_in_methods,
             signUpMethods: metadata.sign_up_methods,
             registrationMode: metadata.registration_mode,
+            passwordEmailVerificationRequired:
+              metadata.password_email_verification_required,
           },
         });
       })

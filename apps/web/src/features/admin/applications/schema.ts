@@ -43,6 +43,7 @@ export const createApplicationDefaults: CreateApplicationFormValues = {
   signInMethods: ["magic_link", "password"],
   signUpMethods: ["magic_link"],
   registrationMode: "closed",
+  passwordEmailVerificationRequired: true,
 };
 
 export const createApplicationSchema = z
@@ -64,9 +65,17 @@ export const createApplicationSchema = z
       )
       .min(1),
     signUpMethods: z.array(
-      z.enum(["magic_link", "google", "facebook", "linkedin", "github"]),
+      z.enum([
+        "magic_link",
+        "password",
+        "google",
+        "facebook",
+        "linkedin",
+        "github",
+      ]),
     ),
     registrationMode: z.enum(["closed", "invite_only", "open"]),
+    passwordEmailVerificationRequired: z.boolean(),
   })
   .refine(
     (value) => value.signUpMethods.every((method) => value.signInMethods.includes(method)),
