@@ -132,6 +132,9 @@ const userFindUniqueMock = mock(async () => ({
   archived: false,
 }));
 const activityEventCreateMock = mock(async () => null);
+const socialCredentialFindUniqueMock = mock(async () => null);
+const socialCredentialUpsertMock = mock(async () => ({}));
+const socialCredentialDeleteManyMock = mock(async () => ({ count: 0 }));
 
 const dbMock: any = {
     application: {
@@ -149,6 +152,11 @@ const dbMock: any = {
       findUnique: applicationClientFindUniqueMock,
       update: applicationClientUpdateMock,
       delete: applicationClientDeleteMock,
+    },
+    applicationSocialProviderCredential: {
+      findUnique: socialCredentialFindUniqueMock,
+      upsert: socialCredentialUpsertMock,
+      deleteMany: socialCredentialDeleteManyMock,
     },
     applicationMember: {
       count: applicationMemberCountMock,
@@ -217,6 +225,9 @@ describe("AdminApplicationsService", () => {
     revocationEndpointFindFirstMock.mockResolvedValue(null);
     userFindUniqueMock.mockReset();
     activityEventCreateMock.mockClear();
+    socialCredentialFindUniqueMock.mockReset();
+    socialCredentialUpsertMock.mockReset();
+    socialCredentialDeleteManyMock.mockReset();
     applicationCountMock.mockResolvedValue(0);
     applicationFindManyMock.mockResolvedValue([]);
     applicationFindUniqueMock.mockResolvedValue({
@@ -318,6 +329,13 @@ describe("AdminApplicationsService", () => {
           select: {
             clients: true,
             members: true,
+          },
+        },
+        clients: {
+          select: {
+            socialProviderCredentials: {
+              select: { provider: true },
+            },
           },
         },
       },
@@ -530,6 +548,30 @@ describe("AdminApplicationsService", () => {
     );
   });
 
+  it("allows a social method after a client has configured that provider", async () => {
+    applicationFindUniqueMock.mockResolvedValueOnce({
+      id: "app-1",
+      name: "Dashboard",
+      status: "active",
+      signInMethods: ["password"],
+      signUpMethods: [],
+      clients: [
+        { socialProviderCredentials: [{ provider: "google" }] },
+      ],
+    });
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await adminApplicationsService.update(
+      "app-1",
+      { signInMethods: ["password", "google"], signUpMethods: ["google"] },
+      { id: "owner-1" },
+    );
+
+    expect(applicationUpdateMock).toHaveBeenCalled();
+  });
+
   it("archives and restores an application", async () => {
     const { adminApplicationsService } = await import(
       "../src/modules/admin/applications/applications.service"
@@ -634,6 +676,45 @@ describe("AdminApplicationsService", () => {
         }),
       }),
     );
+  });
+
+  it("stores social provider secrets encrypted and only returns configuration metadata", async () => {
+    applicationClientFindUniqueMock.mockResolvedValue({
+      id: "client-1",
+      applicationId: "app-1",
+      clientId: "sso_client_1",
+      name: "Browser client",
+      clientType: "public",
+      status: "active",
+      redirectUris: ["https://app.example.com/callback"],
+      allowedOrigins: ["https://app.example.com"],
+      socialProviderCredentials: [
+        { provider: "google", clientId: "google-client-id" },
+      ],
+      createdAt: new Date("2026-07-10T08:02:00.000Z"),
+      updatedAt: new Date("2026-07-10T08:03:00.000Z"),
+    });
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+    const result = await adminApplicationsService.createClient(
+      "app-1",
+      {
+        name: "Browser client",
+        redirectUris: ["https://app.example.com/callback"],
+        allowedOrigins: ["https://app.example.com"],
+        googleClientId: "google-client-id",
+        googleClientSecret: "google-client-secret",
+      },
+      { id: "owner-1" },
+    );
+
+    const stored = socialCredentialUpsertMock.mock.calls[0]?.[0];
+    expect(stored.create.encryptedSecret).not.toContain("google-client-secret");
+    expect(result.socialProviderCredentials).toEqual([
+      { provider: "google", clientId: "google-client-id", configured: true },
+    ]);
+    expect(JSON.stringify(result)).not.toContain("google-client-secret");
   });
 
   it("updates client fields and normalizes URLs", async () => {

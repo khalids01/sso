@@ -12,6 +12,8 @@ const authApi =
       signInEmail: ReturnType<typeof mock>;
       signUpEmail: ReturnType<typeof mock>;
       sendVerificationEmail: ReturnType<typeof mock>;
+      signInSocial: ReturnType<typeof mock>;
+      getOAuthClientPublicPrelogin: ReturnType<typeof mock>;
     };
   }).__serverTestAuthApi ??= {
     getSession: mock(async () => null),
@@ -19,8 +21,13 @@ const authApi =
     signInEmail: mock(async () => new Response()),
     signUpEmail: mock(async () => new Response()),
     sendVerificationEmail: mock(async () => ({ status: true })),
+    signInSocial: mock(async () => new Response()),
+    getOAuthClientPublicPrelogin: mock(async () => ({
+      client_id: "sso_client_1",
+    })),
   });
 const sessionDeleteManyMock = mock(async () => ({ count: 1 }));
+const socialCredentialFindFirstMock = mock(async () => null);
 
 mock.module("@db/server", () => ({
   default: {
@@ -36,6 +43,9 @@ mock.module("@db/server", () => ({
     session: {
       deleteMany: sessionDeleteManyMock,
     },
+    applicationSocialProviderCredential: {
+      findFirst: socialCredentialFindFirstMock,
+    },
   },
   Prisma,
 }));
@@ -46,6 +56,9 @@ mock.module("@auth/server", () => ({
   },
   getAuthSession: mock(async () => null),
   getPolarCustomerState: mock(async () => null),
+  runWithApplicationSocialProviderCredentials: mock(
+    (_provider: string, _credentials: unknown, operation: () => unknown) => operation(),
+  ),
 }));
 
 mock.module("@env/server", () => ({
@@ -55,6 +68,8 @@ mock.module("@env/server", () => ({
     SMTP_HOST: "smtp.example.com",
     EMAIL: "sso@example.com",
     EMAIL_PASSWORD: "test-password",
+    BETTER_AUTH_SECRET: "test-better-auth-secret-that-is-long-enough",
+    NODE_ENV: "test",
   },
 }));
 
@@ -65,11 +80,78 @@ afterEach(() => {
   authApi.signInEmail.mockReset();
   authApi.signUpEmail.mockReset();
   authApi.sendVerificationEmail.mockReset();
+  authApi.signInSocial.mockReset();
+  authApi.getOAuthClientPublicPrelogin.mockReset();
   sessionDeleteManyMock.mockReset();
   applicationClientFindUniqueMock.mockReset();
+  socialCredentialFindFirstMock.mockReset();
 });
 
 describe("authController", () => {
+  it("starts social authentication with the requesting client's credentials", async () => {
+    authApi.getOAuthClientPublicPrelogin.mockResolvedValue({
+      client_id: "sso_client_1",
+    });
+    applicationClientFindUniqueMock.mockResolvedValue({
+      clientId: "sso_client_1",
+      status: "active",
+      oauthDisabled: false,
+      application: {
+        status: "active",
+        signInMethods: ["google"],
+        signUpMethods: ["google"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: true,
+      },
+    });
+    const { encryptSocialProviderSecret } = await import(
+      "../src/modules/auth/social-provider-credentials.service"
+    );
+    socialCredentialFindFirstMock.mockResolvedValue({
+      clientId: "google-client-id",
+      encryptedSecret: encryptSocialProviderSecret("google-client-secret"),
+    });
+    authApi.signInSocial.mockResolvedValue(
+      Response.json({ url: "https://accounts.google.com/oauth", redirect: false }),
+    );
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const callbackURL =
+      "http://localhost:5002/authorize?client_id=sso_client_1&state=signed";
+    const response = await authController.handle(
+      new Request("http://localhost/auth/social", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ provider: "google", callbackURL }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toContain("sso_social_google=");
+    expect(JSON.stringify(await response.json())).not.toContain("google-client-secret");
+    expect(authApi.signInSocial).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects social authentication when the signed continuation is invalid", async () => {
+    authApi.getOAuthClientPublicPrelogin.mockRejectedValue(
+      new Error("invalid signature"),
+    );
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const response = await authController.handle(
+      new Request("http://localhost/auth/social", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          provider: "google",
+          callbackURL:
+            "http://localhost:5002/authorize?client_id=sso_client_1&sig=forged",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(authApi.signInSocial).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when magic-link login is requested for an unknown user", async () => {
     findUniqueMock.mockResolvedValue(null);
 

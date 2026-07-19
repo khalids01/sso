@@ -60,6 +60,13 @@ for billing-eligible `platform.user` identities. Platform admins and owners do
 not require Polar customers, and a confirmed missing customer means no active
 subscription; other Polar failures remain errors.
 
+Google, Facebook, and GitHub credentials are configured on each application
+client in the admin UI. Provider secrets are encrypted at rest and are
+write-only after saving. Register the callback displayed by the client form,
+for example `https://sso.example.com/api/auth/callback/google`. Keep
+`SOCIAL_PROVIDER_CREDENTIALS_KEY` stable when it is configured; otherwise the
+server derives the encryption key from `BETTER_AUTH_SECRET`.
+
 ## RBAC
 
 Permissions and system role definitions live in `packages/rbac`. The role map is the seed default; runtime authorization reads from PostgreSQL and Redis.
@@ -170,6 +177,9 @@ client-application access:
 - Application login can independently expose magic-link or password sign-in,
   while registration can be closed, invitation-only, or open. Password signup
   and its email-verification requirement are configured per application.
+- Google, Facebook, and GitHub become toggleable for an application only after
+  at least one of its clients has saved provider credentials. A client without
+  its own credentials cannot start that provider flow.
 
 See `docs/plan.md`, `docs/architecture.md`, and `docs/todo-progress.md` for the
 working plan. Upgrade-specific decisions are recorded in

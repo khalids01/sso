@@ -10,11 +10,13 @@ import {
   shouldRedirectToAuthorizationUI,
 } from "./lib/application-authorization.server";
 import { hashOAuthToken } from "./lib/oauth-token.server";
+import { dynamicApplicationSocialProviders } from "./lib/dynamic-social-providers.server";
 
 export const auth = betterAuth({
   ...authOptions,
   plugins: [
     ...(authOptions.plugins ?? []),
+    dynamicApplicationSocialProviders(),
     jwt({
       disableSettingJwtHeader: true,
       jwks: {

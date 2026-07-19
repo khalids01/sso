@@ -139,6 +139,7 @@ export async function getPublicClientMetadata(clientId: string) {
       applicationId: true,
       status: true,
       oauthDisabled: true,
+      socialProviderCredentials: { select: { provider: true } },
       application: {
         select: {
           status: true,
@@ -156,7 +157,9 @@ export async function getPublicClientMetadata(clientId: string) {
     client.status === "active" &&
     !client.oauthDisabled &&
     client.application.status === "active";
-  const availableMethodIds = getAvailableApplicationAuthMethodIds();
+  const availableMethodIds = getAvailableApplicationAuthMethodIds(
+    client.socialProviderCredentials.map((credential) => credential.provider),
+  );
 
   return {
     client_id: client.clientId,

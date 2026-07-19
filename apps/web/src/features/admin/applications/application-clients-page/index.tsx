@@ -81,6 +81,9 @@ export function ApplicationClientsPage({
     onSuccess: (_client, input) => {
       toast.success("Client updated");
       invalidateApplicationClients(queryClient, input.applicationId);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.applications.all(),
+      });
       setEditClient(null);
     },
     onError: showMutationError("Failed to update client"),

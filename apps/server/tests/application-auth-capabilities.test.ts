@@ -12,12 +12,15 @@ const baseEnv = {
   NODE_ENV: "test",
 };
 
-async function readCapabilities(env: Record<string, string | undefined>) {
+async function readCapabilities(
+  env: Record<string, string | undefined>,
+  configuredProviders: string[] = [],
+) {
   const proc = Bun.spawn({
     cmd: [
       "bun",
       "-e",
-      "import { getApplicationAuthCapabilities as get } from './packages/auth/src/lib/application-auth-capabilities.server.ts'; console.log(JSON.stringify(get()));",
+      `import { getApplicationAuthCapabilities as get } from './packages/auth/src/lib/application-auth-capabilities.server.ts'; console.log(JSON.stringify(get(${JSON.stringify(configuredProviders)})));`,
     ],
     cwd: new URL("../../..", import.meta.url).pathname,
     env,
@@ -37,21 +40,11 @@ async function readCapabilities(env: Record<string, string | undefined>) {
 }
 
 describe("application authentication capabilities", () => {
-  it("enables Google only when both credentials are configured", async () => {
-    const withoutSecret = await readCapabilities({
-      ...baseEnv,
-      GOOGLE_CLIENT_ID: "google-client",
-      GOOGLE_CLIENT_SECRET: undefined,
-    });
-    expect(withoutSecret.find((item) => item.id === "google")?.available).toBe(
-      false,
-    );
+  it("enables Google only when a client has saved credentials", async () => {
+    const withoutCredentials = await readCapabilities(baseEnv);
+    expect(withoutCredentials.find((item) => item.id === "google")?.available).toBe(false);
 
-    const configured = await readCapabilities({
-      ...baseEnv,
-      GOOGLE_CLIENT_ID: "google-client",
-      GOOGLE_CLIENT_SECRET: "google-secret",
-    });
+    const configured = await readCapabilities(baseEnv, ["google"]);
     expect(configured.find((item) => item.id === "google")?.available).toBe(
       true,
     );

@@ -148,10 +148,26 @@ model ApplicationClient {
   updatedAt               DateTime    @updatedAt
 
   oauthConsents OAuthConsent[]
+  socialProviderCredentials ApplicationSocialProviderCredential[]
 
   @@index([applicationId])
   @@index([status])
   @@map("application_client")
+}
+
+model ApplicationSocialProviderCredential {
+  id                  String            @id @default(cuid())
+  applicationClientId String
+  applicationClient   ApplicationClient @relation(fields: [applicationClientId], references: [id], onDelete: Cascade)
+  provider            String
+  clientId            String
+  encryptedSecret     String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([applicationClientId, provider])
+  @@index([provider])
+  @@map("application_social_provider_credential")
 }
 
 model OAuthConsent {

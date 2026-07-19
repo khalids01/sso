@@ -12,12 +12,12 @@ const socialProviders = [
   {
     id: "google",
     label: "Google",
-    configured: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
+    configured: false,
   },
   {
     id: "facebook",
     label: "Facebook",
-    configured: Boolean(env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET),
+    configured: false,
   },
   {
     id: "linkedin",
@@ -27,11 +27,14 @@ const socialProviders = [
   {
     id: "github",
     label: "GitHub",
-    configured: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET),
+    configured: false,
   },
 ] as const;
 
-export function getApplicationAuthCapabilities(): ApplicationAuthCapability[] {
+export function getApplicationAuthCapabilities(
+  configuredApplicationProviders: Iterable<string> = [],
+): ApplicationAuthCapability[] {
+  const configured = new Set(configuredApplicationProviders);
   return [
     {
       id: "magic_link",
@@ -50,7 +53,7 @@ export function getApplicationAuthCapabilities(): ApplicationAuthCapability[] {
     ...socialProviders.map((provider) => ({
       id: provider.id,
       label: provider.label,
-      available: provider.configured,
+      available: provider.configured || configured.has(provider.id),
       supportsSignUp: true,
       unavailableReason: `${provider.label} client ID and client secret are not configured`,
     })),
@@ -64,9 +67,11 @@ export function getApplicationAuthCapabilities(): ApplicationAuthCapability[] {
   ];
 }
 
-export function getAvailableApplicationAuthMethodIds() {
+export function getAvailableApplicationAuthMethodIds(
+  configuredApplicationProviders: Iterable<string> = [],
+) {
   return new Set(
-    getApplicationAuthCapabilities()
+    getApplicationAuthCapabilities(configuredApplicationProviders)
       .filter((capability) => capability.available)
       .map((capability) => capability.id),
   );

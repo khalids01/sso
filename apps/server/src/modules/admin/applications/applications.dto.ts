@@ -66,6 +66,12 @@ export const CreateApplicationClientDto = t.Object({
   status: t.Optional(ApplicationStatusSchema),
   redirectUris: t.Array(t.String({ minLength: 1 }), { minItems: 1 }),
   allowedOrigins: t.Optional(t.Array(t.String({ minLength: 1 }))),
+  googleClientId: t.Optional(t.String({ maxLength: 500 })),
+  googleClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
+  facebookClientId: t.Optional(t.String({ maxLength: 500 })),
+  facebookClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
+  githubClientId: t.Optional(t.String({ maxLength: 500 })),
+  githubClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
 });
 
 export const UpdateApplicationDto = t.Object({
@@ -107,6 +113,15 @@ export const UpdateApplicationClientDto = t.Object({
   status: t.Optional(ApplicationStatusSchema),
   redirectUris: t.Optional(t.Array(t.String({ minLength: 1 }), { minItems: 1 })),
   allowedOrigins: t.Optional(t.Array(t.String({ minLength: 1 }))),
+  googleClientId: t.Optional(t.String({ maxLength: 500 })),
+  googleClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
+  removeGoogleCredentials: t.Optional(t.Boolean()),
+  facebookClientId: t.Optional(t.String({ maxLength: 500 })),
+  facebookClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
+  removeFacebookCredentials: t.Optional(t.Boolean()),
+  githubClientId: t.Optional(t.String({ maxLength: 500 })),
+  githubClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
+  removeGithubCredentials: t.Optional(t.Boolean()),
 });
 
 export const UpdateRevocationEndpointDto = t.Object({

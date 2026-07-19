@@ -17,7 +17,7 @@ export function CreateClientDialog(props: {
 }) {
   return (
     <Dialog open={Boolean(props.application)} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Create client</DialogTitle>
           <DialogDescription>

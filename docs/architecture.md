@@ -153,8 +153,12 @@ integration can proceed directly using the locally verified public-client
 contract. Authenticated introspection remains deferred until a real sensitive
 client requires it. Google, Facebook, LinkedIn, and GitHub use optional
 server-side Better Auth provider registrations. A provider is exposed to an
-application only when both credentials are configured and the application has
-enabled it. Instagram and Apple remain deferred.
+application only when a client has its own saved credentials and the application
+has enabled it. Google, Facebook, and GitHub credentials are stored per client;
+secrets use authenticated encryption, remain write-only through the admin API,
+and are restored only inside the matching OAuth request and callback context.
+LinkedIn remains an optional server-level provider. Instagram and Apple remain
+deferred.
 
 ## Old SSO Behavioral Reference
 

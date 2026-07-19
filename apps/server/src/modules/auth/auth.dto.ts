@@ -27,3 +27,14 @@ export const PasswordSignupDto = t.Object({
   password: t.String({ minLength: 15, maxLength: 128 }),
   callbackURL: t.String(),
 });
+
+export const SocialLoginDto = t.Object({
+  provider: t.Union([
+    t.Literal("google"),
+    t.Literal("facebook"),
+    t.Literal("github"),
+    t.Literal("linkedin"),
+  ]),
+  callbackURL: t.String(),
+  requestSignUp: t.Optional(t.Boolean()),
+});

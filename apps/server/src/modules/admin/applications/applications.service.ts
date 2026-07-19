@@ -28,6 +28,7 @@ import {
   getApplicationAuthCapabilities,
   getAvailableApplicationAuthMethodIds,
 } from "@auth/application-capabilities";
+import { encryptSocialProviderSecret } from "../../auth/social-provider-credentials.service";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
@@ -68,6 +69,9 @@ const applicationSelect = {
       members: true,
     },
   },
+  clients: {
+    select: { socialProviderCredentials: { select: { provider: true } } },
+  },
 } satisfies Prisma.ApplicationSelect;
 
 const clientSelect = {
@@ -81,6 +85,10 @@ const clientSelect = {
   allowedOrigins: true,
   createdAt: true,
   updatedAt: true,
+  socialProviderCredentials: {
+    select: { provider: true, clientId: true },
+    orderBy: { provider: "asc" },
+  },
 } satisfies Prisma.ApplicationClientSelect;
 
 const memberSelect = {
@@ -180,7 +188,12 @@ function normalizeAuthPolicy(input: {
     throw new ApplicationsPolicyError("Invalid application sign-in method");
   }
   const availableMethods = getAvailableApplicationAuthMethodIds();
-  if (signInMethods?.some((method) => !availableMethods.has(method))) {
+  if (
+    signInMethods?.some(
+      (method) =>
+        !socialAuthMethods.includes(method) && !availableMethods.has(method),
+    )
+  ) {
     throw new ApplicationsPolicyError(
       "One or more sign-in methods are not configured on the SSO server",
     );
@@ -241,7 +254,13 @@ function mapApplication(row: {
   createdAt: Date;
   updatedAt: Date;
   _count?: { clients: number; members: number };
+  clients?: Array<{
+    socialProviderCredentials: Array<{ provider: string }>;
+  }>;
 }) {
+  const configuredProviders = (row.clients ?? []).flatMap((client) =>
+    client.socialProviderCredentials.map((credential) => credential.provider),
+  );
   return {
     id: row.id,
     slug: row.slug,
@@ -255,7 +274,7 @@ function mapApplication(row: {
     registrationMode: row.registrationMode,
     passwordEmailVerificationRequired:
       row.passwordEmailVerificationRequired,
-    authCapabilities: getApplicationAuthCapabilities(),
+    authCapabilities: getApplicationAuthCapabilities(configuredProviders),
     clientCount: row._count?.clients ?? 0,
     memberCount: row._count?.members ?? 0,
     createdAt: row.createdAt.toISOString(),
@@ -274,12 +293,79 @@ function mapClient(row: {
   allowedOrigins: string[];
   createdAt: Date;
   updatedAt: Date;
+  socialProviderCredentials?: Array<{ provider: string; clientId: string }>;
 }) {
   return {
     ...row,
+    socialProviderCredentials: (row.socialProviderCredentials ?? []).map(
+      (credential) => ({
+        ...credential,
+        configured: true as const,
+      }),
+    ),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+const credentialFields = [
+  [
+    "google",
+    "googleClientId",
+    "googleClientSecret",
+    "removeGoogleCredentials",
+  ],
+  [
+    "facebook",
+    "facebookClientId",
+    "facebookClientSecret",
+    "removeFacebookCredentials",
+  ],
+  ["github", "githubClientId", "githubClientSecret", "removeGithubCredentials"],
+] as const;
+
+async function applySocialProviderCredentials(
+  tx: Prisma.TransactionClient,
+  applicationClientId: string,
+  input: CreateApplicationClientInput | UpdateApplicationClientInput,
+) {
+  const updateInput = input as UpdateApplicationClientInput;
+  for (const [provider, idField, secretField, removeField] of credentialFields) {
+    if (updateInput[removeField]) {
+      await tx.applicationSocialProviderCredential.deleteMany({
+        where: { applicationClientId, provider },
+      });
+      continue;
+    }
+    const clientId = input[idField]?.trim();
+    const clientSecret = input[secretField]?.trim();
+    if (!clientId && !clientSecret) continue;
+    const existing = await tx.applicationSocialProviderCredential.findUnique({
+      where: { applicationClientId_provider: { applicationClientId, provider } },
+      select: { encryptedSecret: true },
+    });
+    if (!clientId || (!clientSecret && !existing)) {
+      throw new ApplicationsPolicyError(
+        `${provider} client ID and client secret are required`,
+      );
+    }
+    const encryptedSecret = clientSecret
+      ? encryptSocialProviderSecret(clientSecret)
+      : existing!.encryptedSecret;
+    await tx.applicationSocialProviderCredential.upsert({
+      where: { applicationClientId_provider: { applicationClientId, provider } },
+      create: {
+        applicationClientId,
+        provider,
+        clientId,
+        encryptedSecret,
+      },
+      update: {
+        clientId,
+        ...(clientSecret ? { encryptedSecret } : {}),
+      },
+    });
+  }
 }
 
 function mapMember(row: {
@@ -313,6 +399,18 @@ function mapMember(row: {
 
 function generateClientId() {
   return `sso_client_${crypto.randomUUID().replaceAll("-", "")}`;
+}
+
+function hasSocialProviderCredentialMutation(
+  input: CreateApplicationClientInput | UpdateApplicationClientInput,
+) {
+  return credentialFields.some(([, idField, secretField, removeField]) =>
+    Boolean(
+      input[idField] ||
+        input[secretField] ||
+        (input as UpdateApplicationClientInput)[removeField],
+    ),
+  );
 }
 
 async function recordApplicationActivity(input: {
@@ -446,6 +544,11 @@ export class AdminApplicationsService {
       ["magic_link", "password", ...socialAuthMethods].filter((method) =>
         availableMethods.has(method),
       );
+    if (signInMethods.some((method) => socialAuthMethods.includes(method))) {
+      throw new ApplicationsPolicyError(
+        "Create a client and configure its social provider credentials before enabling social sign-in",
+      );
+    }
     if (signInMethods.length === 0) {
       throw new ApplicationsPolicyError(
         "Configure at least one SSO authentication method before creating applications",
@@ -544,10 +647,40 @@ export class AdminApplicationsService {
     const application = await prisma.$transaction(async (tx) => {
       const current = await tx.application.findUniqueOrThrow({
         where: { id },
-        select: { status: true, signInMethods: true, signUpMethods: true },
+        select: {
+          status: true,
+          signInMethods: true,
+          signUpMethods: true,
+          clients: {
+            select: {
+              socialProviderCredentials: { select: { provider: true } },
+            },
+          },
+        },
       });
+      const configuredProviders = new Set(
+        (current.clients ?? []).flatMap((client) =>
+          client.socialProviderCredentials.map(
+            (credential) => credential.provider,
+          ),
+        ),
+      );
+      const nextSignInMethods = policy.signInMethods ?? current.signInMethods;
+      const availableMethods = getAvailableApplicationAuthMethodIds(
+        configuredProviders,
+      );
+      if (
+        nextSignInMethods.some(
+          (method) =>
+            socialAuthMethods.includes(method) && !availableMethods.has(method),
+        )
+      ) {
+        throw new ApplicationsPolicyError(
+          "Configure client credentials before enabling a social sign-in method",
+        );
+      }
       assertSignupMethodsAreSignInMethods(
-        policy.signInMethods ?? current.signInMethods,
+        nextSignInMethods,
         policy.signUpMethods ?? current.signUpMethods,
       );
       const updated = await tx.application.update({
@@ -1193,26 +1326,36 @@ export class AdminApplicationsService {
       throw new ApplicationsPolicyError("Application not found", 404);
     }
 
-    const client = await prisma.applicationClient.create({
-      data: {
-        applicationId,
-        clientId: generateClientId(),
-        name: input.name.trim(),
-        clientType: input.clientType?.trim() || "public",
-        status,
-        oauthDisabled: status !== "active",
-        skipConsent: true,
-        enableEndSession: false,
-        scopes: ["openid"],
-        tokenEndpointAuthMethod: "none",
-        grantTypes: ["authorization_code"],
-        responseTypes: ["code"],
-        public: true,
-        metadata: { applicationId },
-        redirectUris: redirectUris ?? [],
-        allowedOrigins: allowedOrigins ?? [],
-      },
-      select: clientSelect,
+    const client = await prisma.$transaction(async (tx) => {
+      const created = await tx.applicationClient.create({
+        data: {
+          applicationId,
+          clientId: generateClientId(),
+          name: input.name.trim(),
+          clientType: input.clientType?.trim() || "public",
+          status,
+          oauthDisabled: status !== "active",
+          skipConsent: true,
+          enableEndSession: false,
+          scopes: ["openid"],
+          tokenEndpointAuthMethod: "none",
+          grantTypes: ["authorization_code"],
+          responseTypes: ["code"],
+          public: true,
+          metadata: { applicationId },
+          redirectUris: redirectUris ?? [],
+          allowedOrigins: allowedOrigins ?? [],
+        },
+        select: clientSelect,
+      });
+      await applySocialProviderCredentials(tx, created.id, input);
+      if (!hasSocialProviderCredentialMutation(input)) return created;
+      return (
+        (await tx.applicationClient.findUnique({
+          where: { id: created.id },
+          select: clientSelect,
+        })) ?? created
+      );
     });
 
     await recordApplicationActivity({
@@ -1255,10 +1398,20 @@ export class AdminApplicationsService {
       data.allowedOrigins = allowedOrigins;
     }
 
-    const client = await prisma.applicationClient.update({
-      where: { id: clientId, applicationId },
-      data,
-      select: clientSelect,
+    const client = await prisma.$transaction(async (tx) => {
+      const updated = await tx.applicationClient.update({
+        where: { id: clientId, applicationId },
+        data,
+        select: clientSelect,
+      });
+      await applySocialProviderCredentials(tx, clientId, input);
+      if (!hasSocialProviderCredentialMutation(input)) return updated;
+      return (
+        (await tx.applicationClient.findUnique({
+          where: { id: clientId },
+          select: clientSelect,
+        })) ?? updated
+      );
     });
 
     await recordApplicationActivity({

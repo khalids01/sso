@@ -6,7 +6,9 @@ import {
   type FieldError as HookFormFieldError,
   type UseFormRegisterReturn,
 } from "react-hook-form";
-import { Plus, X } from "lucide-react";
+import { Copy, Plus, X } from "lucide-react";
+import { toast } from "sonner";
+import { env } from "@env/public";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -59,6 +61,11 @@ export function ApplicationClientForm({
 
   const redirectUris = form.watch("redirectUris") ?? [""];
   const allowedOrigins = form.watch("allowedOrigins") ?? [""];
+  const providerFields = [
+    { id: "google", label: "Google", idLabel: "Client ID" },
+    { id: "facebook", label: "Facebook", idLabel: "App ID" },
+    { id: "github", label: "GitHub", idLabel: "Client ID" },
+  ] as const;
 
   function updateUrlList(
     name: "redirectUris" | "allowedOrigins",
@@ -129,6 +136,87 @@ export function ApplicationClientForm({
           )
         }
       />
+
+      <div className="grid gap-3 border-t pt-4">
+        <div>
+          <h3 className="text-sm font-medium">Social provider credentials</h3>
+          <p className="text-xs text-muted-foreground">
+            Secrets are encrypted and will not be shown again after saving.
+          </p>
+        </div>
+        {providerFields.map((provider) => {
+          const idName = `${provider.id}ClientId` as const;
+          const secretName = `${provider.id}ClientSecret` as const;
+          const removeName =
+            `remove${provider.id[0].toUpperCase()}${provider.id.slice(1)}Credentials` as
+              | "removeGoogleCredentials"
+              | "removeFacebookCredentials"
+              | "removeGithubCredentials";
+          const callbackURL = `${new URL(env.VITE_SERVER_URL).origin}/api/auth/callback/${provider.id}`;
+          const configured = Boolean(initialValues[idName]?.trim());
+          const removing = form.watch(removeName);
+          return (
+            <section
+              key={provider.id}
+              className="grid gap-3 rounded-lg border p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="font-medium">{provider.label}</h4>
+                {configured ? (
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input type="checkbox" {...form.register(removeName)} />
+                    Remove saved credentials
+                  </label>
+                ) : null}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel>{provider.idLabel}</FieldLabel>
+                  <Input
+                    autoComplete="off"
+                    disabled={removing}
+                    {...form.register(idName)}
+                  />
+                  <FieldError errors={[form.formState.errors[idName]]} />
+                </Field>
+                <Field>
+                  <FieldLabel>
+                    {provider.id === "facebook" ? "App secret" : "Client secret"}
+                  </FieldLabel>
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    disabled={removing}
+                    placeholder={
+                      configured
+                        ? "Leave blank to keep the saved secret"
+                        : "Enter the provider secret"
+                    }
+                    {...form.register(secretName)}
+                  />
+                </Field>
+              </div>
+              <div className="grid gap-1">
+                <span className="text-xs text-muted-foreground">OAuth callback URL</span>
+                <div className="flex gap-2">
+                  <Input readOnly className="font-mono text-xs" value={callbackURL} />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(callbackURL);
+                      toast.success(`${provider.label} callback URL copied`);
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
       <UrlInputList
         label="Allowed origins"

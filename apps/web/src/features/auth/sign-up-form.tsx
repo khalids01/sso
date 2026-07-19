@@ -87,7 +87,7 @@ export default function SignUpForm({
         <div className="space-y-5">
           {socialMethods.length > 0 ? (
             <>
-              <SocialAuthButtons methods={socialMethods} />
+              <SocialAuthButtons methods={socialMethods} requestSignUp />
               {showMagicSignup || showPasswordSignup ? (
                 <AuthMethodDivider label="or sign up with email" />
               ) : null}

@@ -12,9 +12,10 @@ Local automated and browser validation is the current acceptance gate; staging
 verification is deferred. Do not access or mutate the old production SSO. It is
 only a behavioral reference, and no pilot or compatibility migration is
 required. Authenticated introspection remains deferred until a real sensitive
-client requires it. Google, Facebook, LinkedIn, and GitHub are available only
-when their server credentials are configured and an application enables them.
-Instagram and Apple remain deferred.
+client requires it. Google, Facebook, and GitHub credentials are configured per
+application client and those methods become toggleable only after credentials
+are saved. LinkedIn remains server-configured. Instagram and Apple remain
+deferred.
 
 ## Guardrails
 
@@ -108,7 +109,7 @@ Instagram and Apple remain deferred.
 
 ## Latest Verification
 
-- Server tests: `214 pass`, `0 fail` across 50 files.
+- Server tests: `220 pass`, `0 fail` across 51 files.
 - OAuth Provider runtime initialization succeeded.
 - Better Auth's built-in token endpoint and generic session-JWT endpoint return
   `404`; the SSO token endpoint also returns `404` while its deployment flag is off.
@@ -134,8 +135,11 @@ Instagram and Apple remain deferred.
   lifecycle is explicitly skipped as not applicable, while the same OAuth/JWKS
   journey succeeds independently of platform RBAC. Sign-out, protected-route
   redirects, run-owned cleanup, and actor-lock release pass.
-- Prisma reports all 21 migrations applied to the local loopback PostgreSQL
+- Prisma reports all 22 migrations applied to the local loopback PostgreSQL
   database; the schema is up to date.
+- Application clients now accept Google, Facebook, and GitHub IDs and secrets.
+  Secrets are encrypted at rest, never returned by admin APIs, and bound to the
+  initiating client through a short-lived signed HttpOnly callback context.
 - Local built E2E starts the API with `ENABLE_POLAR=false` explicitly. Protected
   routes skip Polar state for admins and owners, missing Polar customers resolve
   to no subscription, and unrelated Polar failures remain visible.

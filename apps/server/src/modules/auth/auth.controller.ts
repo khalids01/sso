@@ -9,8 +9,15 @@ import {
   MagicLinkSignupDto,
   PasswordLoginDto,
   PasswordSignupDto,
+  SocialLoginDto,
 } from "./auth.dto";
 import { recordLoginDenied } from "./auth-observability.service";
+import { runWithApplicationSocialProviderCredentials } from "@auth/server";
+import {
+  createSocialProviderContext,
+  getClientSocialProviderCredentials,
+  socialProviderContextCookie,
+} from "./social-provider-credentials.service";
 
 function resolveCallbackURL(callbackURL?: string) {
   if (!callbackURL) {
@@ -38,6 +45,9 @@ async function getApplicationPolicy(callbackURL?: string) {
   return prisma.applicationClient.findUnique({
     where: { clientId },
     select: {
+      clientId: true,
+      status: true,
+      oauthDisabled: true,
       application: {
         select: {
           status: true,
@@ -52,6 +62,96 @@ async function getApplicationPolicy(callbackURL?: string) {
 }
 
 export const authController = new Elysia({ prefix: "/auth" })
+  .post(
+    "/social",
+    async ({ body, request, set }) => {
+      const callbackURL = resolveCallbackURL(body.callbackURL);
+      const callback = new URL(callbackURL);
+      const oauthQuery = callback.search.slice(1);
+      const requestedClientId = callback.searchParams.get("client_id");
+      if (!oauthQuery || !requestedClientId) {
+        set.status = 403;
+        return { message: "Invalid application authentication request" };
+      }
+      try {
+        await auth.api.getOAuthClientPublicPrelogin({
+          body: { client_id: requestedClientId, oauth_query: oauthQuery },
+          headers: request.headers,
+        });
+      } catch {
+        set.status = 403;
+        return {
+          message: "Invalid or expired application authentication request",
+        };
+      }
+      const policy = await getApplicationPolicy(callbackURL);
+      const allowedMethods = body.requestSignUp
+        ? policy?.application.signUpMethods
+        : policy?.application.signInMethods;
+      if (
+        !policy ||
+        policy.status !== "active" ||
+        policy.oauthDisabled ||
+        policy.application.status !== "active" ||
+        (body.requestSignUp &&
+          policy.application.registrationMode === "closed") ||
+        !allowedMethods?.includes(body.provider)
+      ) {
+        set.status = 403;
+        return {
+          message: `${body.provider} authentication is not available for this application`,
+        };
+      }
+      if (body.provider === "linkedin") {
+        return auth.api.signInSocial({
+          body: {
+            provider: body.provider,
+            callbackURL,
+            requestSignUp: body.requestSignUp,
+            disableRedirect: true,
+          },
+          headers: request.headers,
+          asResponse: true,
+        });
+      }
+      const credentials = await getClientSocialProviderCredentials(
+        policy.clientId,
+        body.provider,
+      );
+      if (!credentials) {
+        set.status = 403;
+        return {
+          message: `${body.provider} credentials are not configured for this client`,
+        };
+      }
+      const response = await runWithApplicationSocialProviderCredentials(
+        body.provider,
+        credentials,
+        () =>
+          auth.api.signInSocial({
+            body: {
+              provider: body.provider,
+              callbackURL,
+              requestSignUp: body.requestSignUp,
+              disableRedirect: true,
+            },
+            headers: request.headers,
+            asResponse: true,
+          }),
+      );
+      if (response.ok) {
+        response.headers.append(
+          "set-cookie",
+          socialProviderContextCookie(
+            body.provider,
+            createSocialProviderContext(body.provider, policy.clientId),
+          ),
+        );
+      }
+      return response;
+    },
+    { body: SocialLoginDto },
+  )
   .post(
     "/check-email",
     async ({ body }) => {

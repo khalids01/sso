@@ -9,6 +9,7 @@ export const env = createEnv({
     REDIS_URL: z.string().url(),
     REDIS_KEY_PREFIX: z.string().default("sso:"),
     BETTER_AUTH_SECRET: z.string().min(32),
+    SOCIAL_PROVIDER_CREDENTIALS_KEY: z.string().min(32).optional(),
     BETTER_AUTH_URL: z.url(),
     SSO_ISSUER: z.url(),
     AUTH_SESSION_COOKIE_NAME: z.string().min(1).default("better-auth.session_token"),
@@ -16,14 +17,8 @@ export const env = createEnv({
       .string()
       .default("false")
       .transform((value) => value === "true"),
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
-    FACEBOOK_CLIENT_ID: z.string().optional(),
-    FACEBOOK_CLIENT_SECRET: z.string().optional(),
     LINKEDIN_CLIENT_ID: z.string().optional(),
     LINKEDIN_CLIENT_SECRET: z.string().optional(),
-    GITHUB_CLIENT_ID: z.string().optional(),
-    GITHUB_CLIENT_SECRET: z.string().optional(),
     ENABLE_OAUTH_TOKEN_ISSUANCE: z
       .string()
       .default("false")

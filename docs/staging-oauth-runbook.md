@@ -9,6 +9,11 @@ use staging verification as a pilot or compatibility migration.
 
 ## Deployment configuration
 
+For Google, Facebook, or GitHub login, save that provider's client ID and secret
+on the SSO application client before enabling the method in application
+settings. Register the exact HTTPS callback URL shown by the client form. No
+provider secret belongs in the consuming application's environment.
+
 Configure the staging API with stable, exact values:
 
 ```env

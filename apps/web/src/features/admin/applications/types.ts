@@ -53,6 +53,11 @@ export type ApplicationClient = {
   status: ApplicationStatus;
   redirectUris: string[];
   allowedOrigins: string[];
+  socialProviderCredentials: Array<{
+    provider: "google" | "facebook" | "github";
+    clientId: string;
+    configured: true;
+  }>;
   createdAt: string;
   updatedAt: string;
 };

@@ -87,6 +87,15 @@ export const createApplicationClientDefaults: CreateApplicationClientFormValues 
   status: "active",
   redirectUris: [""],
   allowedOrigins: [""],
+  googleClientId: "",
+  googleClientSecret: "",
+  removeGoogleCredentials: false,
+  facebookClientId: "",
+  facebookClientSecret: "",
+  removeFacebookCredentials: false,
+  githubClientId: "",
+  githubClientSecret: "",
+  removeGithubCredentials: false,
 };
 
 export const createApplicationClientSchema = z
@@ -95,6 +104,15 @@ export const createApplicationClientSchema = z
     status: applicationStatusSchema.default("active"),
     redirectUris: z.array(z.string()),
     allowedOrigins: z.array(z.string()),
+    googleClientId: z.string().max(500),
+    googleClientSecret: z.string().max(1_000),
+    removeGoogleCredentials: z.boolean(),
+    facebookClientId: z.string().max(500),
+    facebookClientSecret: z.string().max(1_000),
+    removeFacebookCredentials: z.boolean(),
+    githubClientId: z.string().max(500),
+    githubClientSecret: z.string().max(1_000),
+    removeGithubCredentials: z.boolean(),
   })
   .superRefine((value, ctx) => {
     const redirectUris = trimValues(value.redirectUris);
@@ -148,6 +166,22 @@ export const createApplicationClientSchema = z
         });
       }
     }
+
+    for (const provider of ["google", "facebook", "github"] as const) {
+      const clientId = value[`${provider}ClientId`].trim();
+      const clientSecret = value[`${provider}ClientSecret`].trim();
+      const removing =
+        value[
+          `remove${provider[0].toUpperCase()}${provider.slice(1)}Credentials` as keyof typeof value
+        ];
+      if (!removing && clientSecret && !clientId) {
+        ctx.addIssue({
+          code: "custom",
+          path: [`${provider}ClientId`],
+          message: "Client ID is required when entering a secret",
+        });
+      }
+    }
   })
   .transform((value) => {
     const allowedOrigins = trimValues(value.allowedOrigins);
@@ -157,6 +191,15 @@ export const createApplicationClientSchema = z
       status: value.status,
       redirectUris: trimValues(value.redirectUris),
       allowedOrigins: allowedOrigins.length > 0 ? allowedOrigins : undefined,
+      googleClientId: value.googleClientId.trim() || undefined,
+      googleClientSecret: value.googleClientSecret.trim() || undefined,
+      removeGoogleCredentials: value.removeGoogleCredentials || undefined,
+      facebookClientId: value.facebookClientId.trim() || undefined,
+      facebookClientSecret: value.facebookClientSecret.trim() || undefined,
+      removeFacebookCredentials: value.removeFacebookCredentials || undefined,
+      githubClientId: value.githubClientId.trim() || undefined,
+      githubClientSecret: value.githubClientSecret.trim() || undefined,
+      removeGithubCredentials: value.removeGithubCredentials || undefined,
     };
   });
 

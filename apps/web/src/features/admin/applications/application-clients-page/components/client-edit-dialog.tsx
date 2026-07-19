@@ -28,6 +28,15 @@ export function ClientEditDialog(props: {
             allowedOrigins: props.value.client.allowedOrigins.length
               ? props.value.client.allowedOrigins
               : [""],
+            googleClientId: props.value.client.socialProviderCredentials.find((item) => item.provider === "google")?.clientId ?? "",
+            googleClientSecret: "",
+            removeGoogleCredentials: false,
+            facebookClientId: props.value.client.socialProviderCredentials.find((item) => item.provider === "facebook")?.clientId ?? "",
+            facebookClientSecret: "",
+            removeFacebookCredentials: false,
+            githubClientId: props.value.client.socialProviderCredentials.find((item) => item.provider === "github")?.clientId ?? "",
+            githubClientSecret: "",
+            removeGithubCredentials: false,
           }
         : undefined,
     [props.value],
@@ -35,7 +44,7 @@ export function ClientEditDialog(props: {
 
   return (
     <Dialog open={Boolean(props.value)} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Edit client</DialogTitle>
           <DialogDescription>{props.value?.application.name}</DialogDescription>

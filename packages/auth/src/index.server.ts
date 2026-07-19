@@ -35,3 +35,10 @@ export {
   getAvailableApplicationAuthMethodIds,
   type ApplicationAuthCapability,
 } from "./lib/application-auth-capabilities.server";
+export {
+  applicationSocialProviderIds,
+  dynamicApplicationSocialProviders,
+  runWithApplicationSocialProviderCredentials,
+  type ApplicationSocialProviderCredentials,
+  type ApplicationSocialProviderId,
+} from "./lib/dynamic-social-providers.server";

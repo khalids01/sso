@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
+import { client } from "@/lib/client";
 import { getAuthCallbackURL } from "./auth-callback";
 
 export type SocialAuthMethod = "google" | "facebook" | "linkedin" | "github";
@@ -12,7 +12,13 @@ const labels: Record<SocialAuthMethod, string> = {
   github: "GitHub",
 };
 
-export function SocialAuthButtons({ methods }: { methods: SocialAuthMethod[] }) {
+export function SocialAuthButtons({
+  methods,
+  requestSignUp = false,
+}: {
+  methods: SocialAuthMethod[];
+  requestSignUp?: boolean;
+}) {
   if (methods.length === 0) return null;
 
   return (
@@ -23,12 +29,24 @@ export function SocialAuthButtons({ methods }: { methods: SocialAuthMethod[] }) 
           type="button"
           variant="outline"
           onClick={async () => {
-            const { error } = await authClient.signIn.social({
+            const { data, error } = await client.auth.social.post({
               provider: method,
               callbackURL: getAuthCallbackURL(),
+              requestSignUp,
             });
             if (error) {
-              toast.error(`${labels[method]} authentication failed`);
+              const message =
+                typeof error.value === "object" &&
+                error.value &&
+                "message" in error.value
+                  ? String(error.value.message)
+                  : `${labels[method]} authentication failed`;
+              toast.error(message);
+              return;
+            }
+            if (data instanceof Response) return;
+            if (data && "url" in data && typeof data.url === "string") {
+              window.location.assign(data.url);
             }
           }}
         >
