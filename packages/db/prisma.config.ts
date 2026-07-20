@@ -2,8 +2,12 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { defineConfig, env } from "prisma/config";
 
+
+dotenv.config()
+
 dotenv.config({
-  path: "../../apps/server/.env",
+  path: path.resolve("../../apps/server/.env"),
+  override: false
 });
 
 export default defineConfig({

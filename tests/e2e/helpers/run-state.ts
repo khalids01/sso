@@ -9,6 +9,7 @@ export type RunState = {
   applicationIds: string[];
   clientIds: string[];
   membershipIds: string[];
+  signupUserEmail?: string;
   oauthFixture?: {
     applicationId: string;
     memberId: string;

@@ -38,6 +38,8 @@ test("uses dedicated application auth and preserves the signed continuation", as
     await expect(
       page.getByRole("heading", { name: `Continue to E2E OAuth Client ${e2eEnv.runId}` }),
     ).toBeVisible();
+    await expect(page.getByRole("form", { name: "Password sign in" })).toBeVisible();
+    await expect(page.getByRole("form", { name: "Magic link sign in" })).toHaveCount(0);
 
     const loginQuery = new URL(page.url()).searchParams;
     expect(loginQuery.get("sig")).toBeTruthy();
@@ -45,6 +47,8 @@ test("uses dedicated application auth and preserves the signed continuation", as
     await page.getByRole("link", { name: "Need an account? Sign Up" }).click();
     await expect(page).toHaveURL(/\/application\/signup\?/);
     expect([...new URL(page.url()).searchParams.entries()]).toEqual([...loginQuery.entries()]);
+    await expect(page.getByRole("form", { name: "Password signup" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Send Magic Link" })).toHaveCount(0);
 
     await page.getByRole("link", { name: "Already have an account? Sign In" }).click();
     await expect(page).toHaveURL(/\/application\/login\?/);
@@ -69,10 +73,10 @@ test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) =>
       application_id: fixture.applicationId,
       audience: `urn:sso:application:${fixture.applicationId}`,
       issuer: e2eEnv.SSO_ISSUER,
-      sign_in_methods: ["magic_link", "password"],
-      sign_up_methods: ["magic_link"],
+      sign_in_methods: ["password"],
+      sign_up_methods: ["password"],
       registration_mode: "open",
-      password_email_verification_required: true,
+      password_email_verification_required: false,
     });
 
     const missing = await page.request.get(

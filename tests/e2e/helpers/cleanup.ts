@@ -32,10 +32,23 @@ export async function cleanupRunOwnedResources() {
       });
     }
 
+    let signupUsers = 0;
+    if (state.signupUserEmail) {
+      const expectedMarker = `+${e2eEnv.runPrefix}signup@`;
+      if (!state.signupUserEmail.includes(expectedMarker)) {
+        throw new Error(`Refusing cleanup for non-owned signup identity ${state.signupUserEmail}`);
+      }
+      const result = await prisma.user.deleteMany({
+        where: { email: state.signupUserEmail },
+      });
+      signupUsers = result.count;
+    }
+
     return {
       applications: ids.length,
       clients: applications.flatMap((item) => item.clients).length,
       memberships: applications.flatMap((item) => item.members).length,
+      signupUsers,
     };
   } finally {
     await prisma.$disconnect();

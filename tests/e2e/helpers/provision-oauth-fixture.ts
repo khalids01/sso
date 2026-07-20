@@ -17,7 +17,10 @@ export async function provisionOAuthFixture(actorId: string, revocationUserId: s
         slug,
         name: `E2E OAuth ${e2eEnv.runId}`,
         description: "Run-owned OAuth browser fixture",
+        signInMethods: ["password"],
+        signUpMethods: ["password"],
         registrationMode: "open",
+        passwordEmailVerificationRequired: false,
         clients: {
           create: {
             clientId,

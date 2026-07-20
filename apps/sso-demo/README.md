@@ -53,7 +53,9 @@ E2E-created client, the client ID can instead be supplied temporarily as
 
 The guarded Playwright suite provisions a run-owned application, client, and
 membership. It registers `http://localhost:5003/auth/callback`, performs visible
-password login, checks verified claims and session persistence, and signs out.
+password login and password signup without email verification, checks verified
+claims and session persistence, and signs out. Signup identities are unique to
+the run and removed during guarded cleanup.
 
 ```bash
 bun e2e -- specs/sso-demo.spec.ts

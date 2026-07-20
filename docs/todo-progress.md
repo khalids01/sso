@@ -113,8 +113,9 @@ deferred.
 - `apps/sso-demo` now completes the public-client authorization-code flow with
   server-side PKCE, state and nonce validation, JWKS verification, an encrypted
   HttpOnly local session, safe claim display, reload persistence, and local sign-out.
-- The focused visible-password demo browser journey passes on isolated local
-  loopback ports: `3 passed`, `0 failed`, including setup and run-owned cleanup.
+- The full local browser suite passes: `10 passed`, `0 failed`, including
+  password-only application login and signup without email verification,
+  protocol checks, and run-owned cleanup.
 
 - Server tests: `220 pass`, `0 fail` across 51 files.
 - OAuth Provider runtime initialization succeeded.
