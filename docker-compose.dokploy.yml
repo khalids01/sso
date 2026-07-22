@@ -67,6 +67,8 @@ services:
       - EMAIL
       - EMAIL_PASSWORD
       - EMAIL_FROM
+      - OWNER_EMAIL
+      - OWNER_NAME
     labels:
       - traefik.enable=true
       - traefik.docker.network=dokploy-network

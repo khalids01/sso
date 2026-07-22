@@ -26,21 +26,16 @@ function readOption(name: string) {
 function getOwnerArgs(): OwnerArgs {
   if (process.argv.includes("--help") || process.argv.includes("-h")) {
     console.log("Usage: bun make-owner [--email owner@example.com] [--name Owner]");
-    console.log("Defaults: OWNER_EMAIL or EMAIL, and OWNER_NAME or EMAIL_FROM.");
+    console.log("Defaults: OWNER_EMAIL and OWNER_NAME.");
     process.exit(0);
   }
 
-  const email =
-    readOption("email") ?? process.env.OWNER_EMAIL ?? process.env.EMAIL;
-  const name =
-    readOption("name") ??
-    process.env.OWNER_NAME ??
-    process.env.EMAIL_FROM ??
-    "Owner";
+  const email = readOption("email") ?? process.env.OWNER_EMAIL;
+  const name = readOption("name") ?? process.env.OWNER_NAME ?? "Owner";
 
   if (!email) {
     throw new Error(
-      "Owner email is required. Set OWNER_EMAIL or EMAIL, or pass --email someone@example.com.",
+      "Owner email is required. Set OWNER_EMAIL or pass --email someone@example.com.",
     );
   }
 
@@ -109,6 +104,55 @@ async function main() {
       });
     } else {
       await invalidateUser(user.id);
+    }
+
+    const smtpEmail = process.env.EMAIL?.trim().toLowerCase();
+
+    if (smtpEmail && smtpEmail !== owner.email) {
+      const mistakenOwner = await prisma.user.findFirst({
+        where: {
+          email: smtpEmail,
+          rbacRoles: {
+            some: {
+              role: { slug: Roles.PlatformOwner },
+            },
+          },
+        },
+        select: { id: true, email: true },
+      });
+
+      if (mistakenOwner) {
+        await prisma.$transaction([
+          // Visitor analytics stores denormalized user IDs without foreign keys.
+          prisma.visitorSession.updateMany({
+            where: { userId: mistakenOwner.id },
+            data: { userId: null },
+          }),
+          prisma.visitorIdentity.updateMany({
+            where: { firstUserId: mistakenOwner.id },
+            data: { firstUserId: null },
+          }),
+          prisma.visitorIdentity.updateMany({
+            where: { lastUserId: mistakenOwner.id },
+            data: { lastUserId: null },
+          }),
+          // All declared user relations cascade or become null from this delete.
+          prisma.user.delete({ where: { id: mistakenOwner.id } }),
+        ]);
+
+        try {
+          await invalidateUser(mistakenOwner.id);
+        } catch (error) {
+          console.warn(
+            `Deleted mistaken SMTP owner ${mistakenOwner.email}, but Redis cache invalidation failed:`,
+            error,
+          );
+        }
+
+        console.log(
+          `Removed mistaken SMTP owner and associated records: ${mistakenOwner.email}`,
+        );
+      }
     }
 
     console.log(`Upserted platform.owner: ${user.name} <${user.email}>`);
