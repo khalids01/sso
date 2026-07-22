@@ -59,7 +59,6 @@ COPY --from=build /app/apps/web/dist ./apps/web/dist
 # Install runtime dependencies explicitly from the lockfile.
 COPY package.json bun.lock turbo.json tsconfig.json bunfig.toml ./
 COPY apps/server/package.json ./apps/server/package.json
-COPY apps/server/tsconfig.json ./apps/server/tsconfig.json
 COPY apps/web/package.json ./apps/web/package.json
 COPY apps/sso-demo/package.json ./apps/sso-demo/package.json
 COPY packages/auth/package.json ./packages/auth/package.json

@@ -5,5 +5,5 @@ export default defineConfig({
   format: "esm",
   outDir: "./dist",
   clean: true,
-  noExternal: [/@sso\/.*/],
+  noExternal: [/^@(auth|config|db|email|env|rbac|redis)(?:\/|$)/, /@sso\/.*/],
 });
