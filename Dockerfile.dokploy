@@ -45,6 +45,7 @@ ENV NODE_ENV=production
 
 # Bun is retained for the server and Prisma migration commands.
 COPY --from=base /usr/local/bin/bun /usr/local/bin/bun
+RUN ln -s /usr/local/bin/bun /usr/local/bin/bunx
 
 # Required by Prisma runtime dependencies and static web serving.
 RUN apt-get update -y \

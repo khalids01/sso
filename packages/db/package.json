@@ -16,7 +16,6 @@
   "devDependencies": {
     "@config": "workspace:*",
     "@types/pg": "^8.16.0",
-    "prisma": "^7.8.0",
     "typescript": "^6.0.2"
   },
   "dependencies": {
@@ -27,6 +26,7 @@
     "@redis": "workspace:*",
     "dotenv": "^17.3.1",
     "pg": "^8.18.0",
+    "prisma": "^7.8.0",
     "zod": "^4.3.6"
   }
 }
