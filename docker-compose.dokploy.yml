@@ -1,0 +1,120 @@
+name: sso
+
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile.dokploy
+  target: runtime
+  args:
+    VITE_SERVER_URL: ${VITE_SERVER_URL}
+    VITE_ENABLE_PASSWORD_AUTH: ${VITE_ENABLE_PASSWORD_AUTH:-false}
+    VITE_ENABLE_POLAR: ${VITE_ENABLE_POLAR:-true}
+
+services:
+  migrate:
+    build: *app-build
+    image: khalids01/sso-server:latest
+    command: >
+      sh -c "
+      cd /app/packages/db &&
+      bunx prisma migrate deploy --schema prisma/schema
+      "
+    restart: "no"
+    networks:
+      - dokploy-network
+    environment:
+      - DATABASE_URL
+
+  server:
+    build: *app-build
+    image: khalids01/sso-server:latest
+    command: >
+      sh -c "
+      bun run apps/server/dist/index.mjs
+      "
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - DATABASE_URL
+      - REDIS_URL
+      - REDIS_KEY_PREFIX
+      - BETTER_AUTH_SECRET
+      - SOCIAL_PROVIDER_CREDENTIALS_KEY
+      - BETTER_AUTH_URL
+      - SSO_ISSUER
+      - AUTH_SESSION_COOKIE_NAME
+      - ENABLE_PASSWORD_AUTH
+      - LINKEDIN_CLIENT_ID
+      - LINKEDIN_CLIENT_SECRET
+      - ENABLE_OAUTH_TOKEN_ISSUANCE
+      - ENABLE_APPLICATION_REVOCATION_DELIVERY
+      - ALLOW_LOCAL_APPLICATION_WEBHOOKS
+      - ENABLE_POLAR
+      - POLAR_ACCESS_TOKEN
+      - POLAR_WEBHOOK_SECRET
+      - POLAR_SUCCESS_URL
+      - POLAR_PRO_MONTHLY_ID
+      - POLAR_PRO_YEARLY_ID
+      - POLAR_MODE
+      - CORS_ORIGIN
+      - SMTP_HOST
+      - SMTP_PORT
+      - EMAIL
+      - EMAIL_PASSWORD
+      - EMAIL_FROM
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.sso-api.rule=Host(`${API_HOST}`)
+      - traefik.http.routers.sso-api.entrypoints=web
+      - traefik.http.routers.sso-api.middlewares=redirect-to-https@file
+      - traefik.http.routers.sso-api-secure.rule=Host(`${API_HOST}`)
+      - traefik.http.routers.sso-api-secure.entrypoints=websecure
+      - traefik.http.routers.sso-api-secure.tls=true
+      - traefik.http.routers.sso-api-secure.tls.certresolver=letsencrypt
+      - traefik.http.services.sso-api.loadbalancer.server.port=5001
+
+  web:
+    build: *app-build
+    image: khalids01/sso-web:latest
+    command: >
+      sh -c "
+      PORT=5002 node apps/web/node_modules/srvx/bin/srvx.mjs serve
+      --prod
+      --entry=apps/web/dist/server/server.js
+      --static=../client
+      --port=5002
+      "
+    depends_on:
+      server:
+        condition: service_started
+    environment:
+      - NODE_ENV=production
+      - PORT=5002
+      - VITE_SERVER_URL
+      - VITE_ENABLE_PASSWORD_AUTH
+      - VITE_ENABLE_POLAR
+      - AUTH_SESSION_COOKIE_NAME
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.sso-web.rule=Host(`${WEB_HOST}`,`${WEB_HOST_WWW}`)
+      - traefik.http.routers.sso-web.entrypoints=web
+      - traefik.http.routers.sso-web.middlewares=redirect-to-https@file
+      - traefik.http.routers.sso-web-secure.rule=Host(`${WEB_HOST}`,`${WEB_HOST_WWW}`)
+      - traefik.http.routers.sso-web-secure.entrypoints=websecure
+      - traefik.http.routers.sso-web-secure.tls=true
+      - traefik.http.routers.sso-web-secure.tls.certresolver=letsencrypt
+      - traefik.http.services.sso-web.loadbalancer.server.port=5002
+
+networks:
+  dokploy-network:
+    external: true
