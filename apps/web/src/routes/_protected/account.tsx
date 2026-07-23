@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_protected/account")({
@@ -54,6 +55,23 @@ function AccountPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-6 flex items-center gap-4 rounded-lg border bg-muted/20 p-4">
+            <Avatar className="size-16">
+              <AvatarImage
+                src={session?.user?.image ?? undefined}
+                alt={session?.user?.name ?? "Profile avatar"}
+              />
+              <AvatarFallback className="text-lg">
+                {(session?.user?.name ?? "User").slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium">{session?.user?.name}</p>
+              <p className="text-sm text-muted-foreground">
+                Profile image provided by your connected OAuth provider.
+              </p>
+            </div>
+          </div>
           <form
             id="profile-form"
             onSubmit={handleUpdateProfile}

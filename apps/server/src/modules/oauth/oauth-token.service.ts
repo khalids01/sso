@@ -257,6 +257,9 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
                 user: {
                   select: {
                     id: true,
+                    name: true,
+                    email: true,
+                    image: true,
                     archived: true,
                     banned: true,
                     emailVerified: true,
@@ -357,6 +360,10 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
             exp,
             auth_time: Math.floor(session.createdAt.getTime() / 1000),
             nonce: stored.query.nonce,
+            name: member.user.name,
+            email: member.user.email,
+            email_verified: member.user.emailVerified,
+            picture: member.user.image,
           },
         },
       }),

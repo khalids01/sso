@@ -13,7 +13,7 @@ import { authClient } from "@/lib/auth-client";
 import { useSession } from "@/providers/session-provider";
 
 import { Button } from "../ui/button";
-import { User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { cn } from "@/lib/utils";
 import { Permissions } from "@rbac";
 import { env } from "@env/public";
@@ -101,7 +101,15 @@ export default function UserMenu() {
             aria-label="User menu"
             className="h-10 w-10 shrink-0 rounded-md"
           >
-            <User className="size-5" />
+            <Avatar className="size-8">
+              <AvatarImage
+                src={session.user.image ?? undefined}
+                alt={session.user.name}
+              />
+              <AvatarFallback>
+                {session.user.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
           </Button>
         }
       ></DropdownMenuTrigger>

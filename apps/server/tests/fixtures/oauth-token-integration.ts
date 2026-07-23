@@ -86,6 +86,7 @@ try {
       name: "OAuth Token Test User",
       email: `oauth-token-${runId}@example.test`,
       emailVerified: true,
+      image: "https://example.test/avatar.png",
     },
   });
   await prisma.application.create({
@@ -307,6 +308,10 @@ try {
       sub: idPayload.sub,
       aud: idPayload.aud,
       nonce: idPayload.nonce,
+      name: idPayload.name,
+      email: idPayload.email,
+      emailVerified: idPayload.email_verified,
+      picture: idPayload.picture,
     },
     refreshTokenPresent: Boolean(tokens.refresh_token),
     resourceIndicator: resourceIndicator.status,

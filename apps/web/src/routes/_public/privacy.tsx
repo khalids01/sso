@@ -78,6 +78,7 @@ function PrivacyPolicyPage() {
                   <li><strong>Full Name & Email Address:</strong> Used as primary account identifiers and for authentication notifications.</li>
                   <li><strong>Profile Picture URL:</strong> Provided by your chosen OAuth provider to display your avatar.</li>
                   <li><strong>OAuth Provider Identifiers:</strong> Unique ID keys assigned by Google, GitHub, Meta, or LinkedIn to pair your login with your SSO account.</li>
+                  <li><strong>OAuth Profile Payload:</strong> The basic profile response returned under the approved identity scopes is stored for account synchronization, support, and security auditing.</li>
                 </ul>
               </div>
 

@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { facebook, github, google } from "better-auth/social-providers";
 import type { BetterAuthPlugin } from "better-auth";
+import { captureOAuthProfile } from "./oauth-profile.server";
 
 export const applicationSocialProviderIds = [
   "google",
@@ -55,16 +56,25 @@ export function dynamicApplicationSocialProviders(): BetterAuthPlugin {
               google({
                 ...requireCredentials("google"),
                 disableImplicitSignUp: true,
+                overrideUserInfoOnSignIn: true,
+                mapProfileToUser: (profile) =>
+                  captureOAuthProfile("google", profile),
               }),
             () =>
               facebook({
                 ...requireCredentials("facebook"),
                 disableImplicitSignUp: true,
+                overrideUserInfoOnSignIn: true,
+                mapProfileToUser: (profile) =>
+                  captureOAuthProfile("facebook", profile),
               }),
             () =>
               github({
                 ...requireCredentials("github"),
                 disableImplicitSignUp: true,
+                overrideUserInfoOnSignIn: true,
+                mapProfileToUser: (profile) =>
+                  captureOAuthProfile("github", profile),
               }),
           ],
         },

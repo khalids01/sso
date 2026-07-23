@@ -16,6 +16,10 @@ import {
 import { defaultUserRoleOnSignup } from "./lib/default-user-role.server";
 import { polarClient } from "./lib/payments.server";
 import { polarCustomersForBillingUsers } from "./lib/polar-customers.server";
+import {
+  attachCapturedOAuthProfileOnCreate,
+  captureOAuthProfile,
+} from "./lib/oauth-profile.server";
 
 function getUserIdFromPolarSubscription(
   subscription: WebhookSubscriptionCreatedPayload["data"],
@@ -75,6 +79,9 @@ export const authOptions = {
           linkedin: {
             clientId: env.LINKEDIN_CLIENT_ID,
             clientSecret: env.LINKEDIN_CLIENT_SECRET,
+            overrideUserInfoOnSignIn: true,
+            mapProfileToUser: (profile) =>
+              captureOAuthProfile("linkedin", profile),
           },
         }
       : {}),
@@ -156,6 +163,32 @@ export const authOptions = {
         type: "string",
         input: false,
         returned: true,
+      },
+    },
+  },
+  account: {
+    encryptOAuthTokens: true,
+    additionalFields: {
+      rawProfile: {
+        type: "json",
+        required: false,
+        input: false,
+        returned: false,
+      },
+      profileUpdatedAt: {
+        type: "date",
+        required: false,
+        input: false,
+        returned: false,
+      },
+    },
+  },
+  databaseHooks: {
+    account: {
+      create: {
+        async before(account) {
+          return attachCapturedOAuthProfileOnCreate(account);
+        },
       },
     },
   },
