@@ -47,16 +47,11 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <>
-        <Link to="/login">
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-            Log in
-          </Button>
-        </Link>
-        <Link to="/login">
-          <Button size="sm">Get Started</Button>
-        </Link>
-      </>
+      <Link to="/login">
+        <Button size="sm" className="rounded-lg font-medium">
+          Login
+        </Button>
+      </Link>
     );
   }
 

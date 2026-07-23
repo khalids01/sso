@@ -1,125 +1,96 @@
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, Globe, MessageCircle } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 export const Footer = () => {
   return (
-    <footer className="bg-background border-t border-border pt-20 pb-10">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          <div className="col-span-1 md:col-span-1">
-            <Link
-              to="/"
-              className="text-2xl font-bold tracking-tight mb-6 inline-block"
-            >
-              SSO
+    <footer className="bg-background border-t border-border/60 pt-16 pb-12 text-left">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+          {/* Col 1 */}
+          <div className="col-span-1 md:col-span-1 space-y-4">
+            <Link to="/" className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <span className="text-xl font-bold tracking-tight">SSO</span>
             </Link>
-            <p className="text-muted-foreground mt-4 max-w-xs">
-              Centralized identity, access control, and SSO management for
-              internal and customer-facing applications.
+            <p className="text-muted-foreground text-xs leading-relaxed max-w-xs">
+              Centralized identity, single sign-on, and access management for internal and customer-facing applications.
             </p>
-            <div className="flex items-center gap-4 mt-8">
-              <a
-                href="#"
-                className="p-2 rounded-full bg-muted hover:bg-primary hover:text-primary-foreground transition-all"
-              >
-                <Globe className="h-4 w-4" />
-              </a>
-              <a
-                href="#"
-                className="p-2 rounded-full bg-muted hover:bg-primary hover:text-primary-foreground transition-all"
-              >
-                <MessageCircle className="h-4 w-4" />
-              </a>
-              <a
-                href="#"
-                className="p-2 rounded-full bg-muted hover:bg-primary hover:text-primary-foreground transition-all"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
           </div>
 
+          {/* Col 2 */}
           <div>
-            <h4 className="font-bold mb-6">Product</h4>
-            <ul className="space-y-4 text-muted-foreground text-sm">
+            <h4 className="font-bold text-sm mb-4 text-foreground">Navigation</h4>
+            <ul className="space-y-2.5 text-muted-foreground text-xs font-medium">
               <li>
-                <a
-                  href="#features"
-                  className="hover:text-primary transition-colors"
-                >
-                  Features
+                <a href="#features" className="hover:text-primary transition-colors">
+                  Platform Features
                 </a>
               </li>
               <li>
-                <a
-                  href="#pricing"
-                  className="hover:text-primary transition-colors"
-                >
-                  Pricing
+                <a href="#security" className="hover:text-primary transition-colors">
+                  Security & Data Privacy
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Documentation
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  API Reference
+                <a href="#faq" className="hover:text-primary transition-colors">
+                  Frequently Asked Questions
                 </a>
               </li>
             </ul>
           </div>
 
+          {/* Col 3 */}
           <div>
-            <h4 className="font-bold mb-6">Company</h4>
-            <ul className="space-y-4 text-muted-foreground text-sm">
+            <h4 className="font-bold text-sm mb-4 text-foreground">Compliance & Legal</h4>
+            <ul className="space-y-2.5 text-muted-foreground text-xs font-medium">
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  About Us
-                </a>
+                <Link to="/privacy" className="hover:text-primary transition-colors">
+                  Privacy Policy
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Blog
-                </a>
+                <Link to="/terms" className="hover:text-primary transition-colors">
+                  Terms of Service
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Careers
-                </a>
+                <Link to="/data-deletion" className="hover:text-primary transition-colors">
+                  Data Deletion Instructions
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Contact
+                <a 
+                  href="https://developers.google.com/terms/api-services-user-data-policy" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
+                  Google Limited Use Policy
                 </a>
               </li>
             </ul>
           </div>
 
+          {/* Col 4 */}
           <div>
-            <h4 className="font-bold mb-6">Subscribe to our newsletter</h4>
-            <p className="text-muted-foreground text-sm mb-4">
-              Get the latest updates and resources delivered to your inbox.
+            <h4 className="font-bold text-sm mb-4 text-foreground">Supported Providers</h4>
+            <p className="text-muted-foreground text-xs mb-3 leading-relaxed">
+              Sign in with your preferred social identity or magic link.
             </p>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                placeholder="you@example.com"
-                className="bg-muted border border-border rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity">
-                Subscribe
-              </button>
+            <div className="flex flex-wrap gap-2 font-mono text-[11px]">
+              <span className="px-2.5 py-1 rounded bg-muted border border-border text-foreground font-medium">Google</span>
+              <span className="px-2.5 py-1 rounded bg-muted border border-border text-foreground font-medium">GitHub</span>
+              <span className="px-2.5 py-1 rounded bg-muted border border-border text-foreground font-medium">Meta</span>
+              <span className="px-2.5 py-1 rounded bg-muted border border-border text-foreground font-medium">LinkedIn</span>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-border pt-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} SSO. All rights reserved.
-          </p>
-          <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+        <div className="border-t border-border/60 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+          <p>© {new Date().getFullYear()} SSO Identity Service. All rights reserved.</p>
+          <div className="flex items-center gap-6 font-medium">
             <Link to="/privacy" className="hover:text-primary transition-colors">
               Privacy Policy
             </Link>

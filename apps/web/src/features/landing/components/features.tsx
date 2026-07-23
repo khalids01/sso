@@ -1,55 +1,54 @@
-import { Zap, Shield, Rocket, Layers, BarChart3, Users } from "lucide-react";
+import { Shield, KeyRound, Sparkles, UserCheck, Lock, Globe } from "lucide-react";
 
 const features = [
   {
-    title: "OAuth 2.0 & Social Identity",
+    title: "Centralized Single Sign-On",
     description:
-      "Seamless authentication via Google, GitHub, Meta (Facebook), LinkedIn, OpenID Connect, and passwordless magic links.",
-    icon: <Users className="h-6 w-6" />,
+      "Sign in once to gain secure, seamless access across all connected applications in your company ecosystem.",
+    icon: <UserCheck className="h-5 w-5 text-primary" />,
   },
   {
-    title: "Centralized Identity",
+    title: "Social Authentication",
     description:
-      "Manage user identities for internal tools and customer-facing applications from one control plane.",
-    icon: <Zap className="h-6 w-6" />,
+      "Instant sign-in via Google, GitHub, Meta (Facebook), or LinkedIn OAuth providers with per-application controls.",
+    icon: <Globe className="h-5 w-5 text-primary" />,
   },
   {
-    title: "Secure by Default",
+    title: "Passwordless Magic Links",
     description:
-      "Built on Better Auth, Prisma, RBAC guards, protected owner rules, and safe session controls.",
-    icon: <Shield className="h-6 w-6" />,
+      "Frictionless, high-security email sign-in links delivered straight to the user's inbox.",
+    icon: <KeyRound className="h-5 w-5 text-primary" />,
   },
   {
-    title: "Application Access",
+    title: "Session Security & Revocation",
     description:
-      "Prepare app-specific access, roles, scopes, and claims without mixing them into platform admin RBAC.",
-    icon: <Rocket className="h-6 w-6" />,
+      "Monitor active login sessions, view active device details, and revoke sessions instantaneously.",
+    icon: <Shield className="h-5 w-5 text-primary" />,
   },
   {
-    title: "Modular Architecture",
+    title: "Encrypted Data Protection",
     description:
-      "A modular TypeScript monorepo with clear boundaries between auth, RBAC, data, email, Redis, API, and web.",
-    icon: <Layers className="h-6 w-6" />,
+      "All credentials, tokens, and OAuth keys are cryptographically secured and encrypted at rest.",
+    icon: <Lock className="h-5 w-5 text-primary" />,
   },
   {
-    title: "Operational Visibility",
+    title: "OAuth Verification Compliant",
     description:
-      "Admin activity, visitor analytics, webhooks, rate-limit stats, and session device visibility are built in.",
-    icon: <BarChart3 className="h-6 w-6" />,
+      "Built to strictly meet Google Limited Use requirements, Meta Data Deletion callbacks, and global privacy standards.",
+    icon: <Sparkles className="h-5 w-5 text-primary" />,
   },
 ];
 
 export const Features = () => {
   return (
-    <section id="features" className="py-24 bg-muted/30">
-      <div className="container mx-auto px-4">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">
-            Everything needed to manage access
+    <section id="features" className="py-24 bg-muted/30 border-t border-border/40 text-left">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground">
+            Everything You Need for Application Identity
           </h2>
-          <p className="text-muted-foreground text-lg">
-            Keep identity, platform administration, and application access
-            separate while managing them from one place.
+          <p className="text-muted-foreground text-base sm:text-lg">
+            A unified identity platform delivering modern authentication, social login, and session control.
           </p>
         </div>
 
@@ -57,15 +56,17 @@ export const Features = () => {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="p-8 rounded-2xl border border-border bg-card hover:border-primary/50 hover:shadow-lg transition-all duration-300 group"
+              className="p-7 rounded-2xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-lg transition-all duration-300 group flex flex-col justify-between"
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                {feature.icon}
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-foreground">{feature.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {feature.description}
+                </p>
               </div>
-              <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {feature.description}
-              </p>
             </div>
           ))}
         </div>

@@ -1,67 +1,66 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { HelpCircle } from "lucide-react";
 
 const faqs = [
   {
-    question: "What is included in SSO?",
+    question: "What is Single Sign-On (SSO)?",
     answer:
-      "SSO includes platform authentication, RBAC, owner/admin controls, user management, invitations, activity logs, Redis-backed caching, rate limits, and a TanStack admin UI.",
+      "SSO allows users to sign in once with a central identity account and gain secure, instant access across all authorized company applications without needing separate credentials for each app.",
   },
   {
-    question: "Can end users exist without admin access?",
+    question: "Which authentication methods are supported?",
     answer:
-      "Yes. Identity, SSO platform access, and client application access are separate concerns. A user can authenticate for an app without being allowed into the SSO admin dashboard.",
+      "Users can sign in using social providers including Google, GitHub, Meta (Facebook), and LinkedIn, or via passwordless magic links delivered directly to their email.",
   },
   {
-    question: "Can this replace the old production SSO?",
+    question: "How is my account data kept secure?",
     answer:
-      "That is the goal. The old production app is only a behavioral reference; applications will integrate directly with this safer replacement after staging verification.",
+      "All profile data, tokens, and credentials are encrypted in transit using TLS 1.3 and at rest. We adhere strictly to data privacy standards and never share or monetize user data.",
   },
   {
-    question: "What is planned next?",
+    question: "Can users manage their active sessions and data?",
     answer:
-      "The next product layer is application/client management, app-specific access, and secure app-scoped token flows.",
+      "Yes. Users can manage active login sessions, view account activity, and initiate self-service data deletion or provider access revocation at any time.",
   },
   {
-    question: "What is the tech stack?",
+    question: "Does SSO comply with Google and Meta OAuth requirements?",
     answer:
-      "The stack includes TanStack Start, React 19, Elysia, Prisma, PostgreSQL, Redis, Better Auth, Tailwind 4, and Bun.",
+      "Yes. The platform includes fully compliant Privacy Policy, Terms of Service, and User Data Deletion Instructions required by Google Cloud Console verification and Meta App Review.",
+  },
+  {
+    question: "How do I access the SSO platform?",
+    answer:
+      "Click the Login button at the top of the page to access your SSO account, sign in via your preferred method, and access your connected applications.",
   },
 ];
 
 export const FAQ = () => {
   return (
-    <section id="faq" className="py-24">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">
+    <section id="faq" className="py-24 bg-muted/30 border-t border-border/40 text-left">
+      <div className="container mx-auto px-4 max-w-5xl">
+        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+            <HelpCircle className="w-3.5 h-3.5" />
             Frequently Asked Questions
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground">
+            Questions & Answers
           </h2>
-          <p className="text-muted-foreground text-lg">
-            Find answers to common questions about SSO.
+          <p className="text-muted-foreground text-base sm:text-lg">
+            Everything you need to know about using SSO.
           </p>
         </div>
 
-        <Accordion className="w-full space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {faqs.map((faq, index) => (
-            <AccordionItem
+            <div
               key={index}
-              value={`item-${index}`}
-              className="px-6 border border-border rounded-xl"
+              className="p-6 rounded-2xl border border-border/80 bg-card space-y-3 shadow-xs"
             >
-              <AccordionTrigger className="text-left font-semibold text-lg hover:no-underline">
-                {faq.question}
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground leading-relaxed">
-                {faq.answer}
-              </AccordionContent>
-            </AccordionItem>
+              <h3 className="text-lg font-bold text-foreground">{faq.question}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{faq.answer}</p>
+            </div>
           ))}
-        </Accordion>
+        </div>
       </div>
     </section>
   );

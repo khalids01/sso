@@ -1,46 +1,35 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 
 export const CTA = () => {
   return (
-    <section className="py-24 container mx-auto px-4">
-      <div className="bg-primary rounded-[3rem] p-12 md:p-24 text-center text-primary-foreground relative overflow-hidden shadow-2xl">
-        {/* Decorative circles */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
+    <section className="py-24 bg-background border-t border-border/40 relative overflow-hidden text-left">
+      <div className="container mx-auto px-4 max-w-5xl relative">
+        <div className="p-10 md:p-16 rounded-3xl bg-gradient-to-b from-card via-card to-muted/40 border border-border/80 shadow-xl text-center space-y-8 relative overflow-hidden">
+          {/* Subtle Background Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 max-w-3xl mx-auto">
-          <h2 className="text-4xl md:text-6xl font-bold mb-8 tracking-tight">
-            Ready to centralize access?
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+            <ShieldCheck className="w-4 h-4" />
+            Centralized Identity Management
+          </div>
+
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground max-w-3xl mx-auto leading-tight">
+            Ready to Sign In to Your Applications?
           </h2>
-          <p className="text-primary-foreground/80 text-lg md:text-xl mb-12">
-            Bring authentication, admin controls, and application access into
-            one SSO control plane.
+
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+            Access all connected services seamlessly with your single SSO account.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+
+          <div className="flex items-center justify-center pt-2">
             <Link to="/login">
-              <Button
-                size="lg"
-                variant="secondary"
-                className="rounded-full px-10 h-14 text-lg font-bold w-full sm:w-auto transition-transform hover:scale-105 cursor-pointer"
-              >
-                Open SSO
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-full px-10 h-14 text-lg font-bold border-primary-foreground/20 hover:bg-white/10 w-full sm:w-auto cursor-pointer"
-              >
-                Sign in today <ArrowRight className="ml-2 h-5 w-5" />
+              <Button size="lg" className="rounded-xl px-8 h-13 text-base font-semibold shadow-lg shadow-primary/20 gap-2 cursor-pointer">
+                Sign In to SSO <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>
-          <p className="mt-8 text-sm text-primary-foreground/60 italic">
-            No credit card required. Cancel anytime.
-          </p>
         </div>
       </div>
     </section>
