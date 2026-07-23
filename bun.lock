@@ -87,6 +87,7 @@
         "@hookform/resolvers": "^5.4.0",
         "@polar-sh/better-auth": "^1.8.1",
         "@rbac": "workspace:*",
+        "@t3-oss/env-core": "^0.13.10",
         "@tailwindcss/vite": "^4.3.3",
         "@tanstack/react-form": "^1.28.3",
         "@tanstack/react-query": "^5.90.21",
