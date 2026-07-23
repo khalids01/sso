@@ -1,4 +1,3 @@
-import { Grid2X2, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ApplicationMemberStatus, ApplicationStatus } from "../types";
@@ -68,37 +67,6 @@ export function MemberSegmentedFilter({
         onClick={() => onChange("revoked")}
       >
         Revoked
-      </Button>
-    </div>
-  );
-}
-
-export function ViewModeToggle({
-  value,
-  onChange,
-}: {
-  value: "list" | "grid";
-  onChange: (value: "list" | "grid") => void;
-}) {
-  return (
-    <div className="inline-flex rounded-md border bg-background p-1">
-      <Button
-        type="button"
-        aria-label="List view"
-        size="icon-sm"
-        variant={value === "list" ? "secondary" : "ghost"}
-        onClick={() => onChange("list")}
-      >
-        <List className="h-4 w-4" />
-      </Button>
-      <Button
-        type="button"
-        aria-label="Grid view"
-        size="icon-sm"
-        variant={value === "grid" ? "secondary" : "ghost"}
-        onClick={() => onChange("grid")}
-      >
-        <Grid2X2 className="h-4 w-4" />
       </Button>
     </div>
   );

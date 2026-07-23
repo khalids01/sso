@@ -7,14 +7,13 @@ import { queryKeys } from "@/constants/query-keys";
 import { client } from "@/lib/client";
 import { cn } from "@/lib/utils";
 import { CreateApplicationDialog } from "../create-application-dialog";
-import { useApplicationsViewStore } from "../applications-view-store";
 import type { AdminApplication, ApplicationsListResponse } from "../types";
 import { ApplicationEditDialog } from "./components/application-edit-dialog";
 import { ApplicationItem } from "./components/application-item";
 import { ApplicationViewDialog } from "./components/application-view-dialog";
 import { ApplicationAuthSettingsDialog } from "./components/application-auth-settings-dialog";
 import { LifecycleConfirmDialog } from "../components/lifecycle-confirm-dialog";
-import { SegmentedFilter, ViewModeToggle } from "../components/ui-controls";
+import { SegmentedFilter } from "../components/ui-controls";
 import { createApplication, updateApplication } from "../crud/applications";
 import {
   lifecycleSuccessMessage,
@@ -33,7 +32,6 @@ export function AdminApplicationsPage() {
     Permissions.AdminApplicationsManage,
   );
   const queryClient = useQueryClient();
-  const { viewMode, setViewMode } = useApplicationsViewStore();
   const [filter, setFilter] = useState<LifecycleFilter>("current");
   const [viewApplication, setViewApplication] =
     useState<AdminApplication | null>(null);
@@ -102,7 +100,6 @@ export function AdminApplicationsPage() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <SegmentedFilter value={filter} onChange={setFilter} />
-          <ViewModeToggle value={viewMode} onChange={setViewMode} />
           <Button
             variant="outline"
             className="gap-2"
@@ -140,19 +137,12 @@ export function AdminApplicationsPage() {
           found.
         </div>
       ) : (
-        <div
-          className={cn(
-            viewMode === "grid"
-              ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3"
-              : "rounded-md border",
-          )}
-        >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {applications.map((application) => (
             <ApplicationItem
               key={application.id}
               application={application}
               filter={filter}
-              viewMode={viewMode}
               canManage={canManage}
               onView={() => setViewApplication(application)}
               onEdit={() => setEditApplication(application)}
