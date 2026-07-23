@@ -53,15 +53,15 @@ export const Hero = () => {
         <div className="mt-16 flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm text-muted-foreground animate-in fade-in duration-1000 delay-500">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span>TanStack Start + Router</span>
+            <span>Google, GitHub, Meta & LinkedIn OAuth</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span>Better Auth + Prisma</span>
+            <span>Better Auth + OpenID Connect</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span>RBAC + Admin Controls</span>
+            <span>RBAC + Security Controls</span>
           </div>
         </div>
 

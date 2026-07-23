@@ -2,6 +2,12 @@ import { Zap, Shield, Rocket, Layers, BarChart3, Users } from "lucide-react";
 
 const features = [
   {
+    title: "OAuth 2.0 & Social Identity",
+    description:
+      "Seamless authentication via Google, GitHub, Meta (Facebook), LinkedIn, OpenID Connect, and passwordless magic links.",
+    icon: <Users className="h-6 w-6" />,
+  },
+  {
     title: "Centralized Identity",
     description:
       "Manage user identities for internal tools and customer-facing applications from one control plane.",
@@ -30,11 +36,6 @@ const features = [
     description:
       "Admin activity, visitor analytics, webhooks, rate-limit stats, and session device visibility are built in.",
     icon: <BarChart3 className="h-6 w-6" />,
-  },
-  {
-    title: "Migration Ready",
-    description: "Designed to replace the old production SSO while preserving the flows existing apps depend on.",
-    icon: <Users className="h-6 w-6" />,
   },
 ];
 
