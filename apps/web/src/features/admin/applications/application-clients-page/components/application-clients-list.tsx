@@ -1,9 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { KeyRound, Link2 } from "lucide-react";
+import {
+  Archive,
+  Eye,
+  KeyRound,
+  Link2,
+  Pencil,
+  RotateCcw,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardFooter,
   CardHeader,
@@ -17,7 +24,6 @@ import type {
   ApplicationClientsResponse,
 } from "../../types";
 import type { LifecycleFilter, PendingAction } from "../../page-types";
-import { ClientActionsMenu } from "./client-actions-menu";
 import { StatusBadge, UrlList } from "../../components/ui-controls";
 
 export function ApplicationClientsList(props: {
@@ -75,13 +81,48 @@ export function ApplicationClientsList(props: {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {items.map((item) => (
-        <Card
+      {items.map((item) => {
+        const lifecycleLabel =
+          props.filter === "current" ? `Archive ${item.name}` : `Restore ${item.name}`;
+        const actions = [
+          {
+            label: `View ${item.name}`,
+            icon: Eye,
+            disabled: false,
+            onClick: () => props.onView(item),
+          },
+          {
+            label: props.canEdit
+              ? `Edit ${item.name}`
+              : "Editing is unavailable for this client",
+            ariaLabel: `Edit ${item.name}`,
+            icon: Pencil,
+            disabled: !props.canEdit,
+            onClick: () => props.onEdit(item),
+          },
+          {
+            label: lifecycleLabel,
+            icon: props.filter === "current" ? Archive : RotateCcw,
+            disabled: !props.canManage,
+            onClick: () =>
+              props.onLifecycle({
+                type:
+                  props.filter === "current"
+                    ? "archive-client"
+                    : "restore-client",
+                application: props.application,
+                client: item,
+              }),
+          },
+        ];
+
+        return (
+          <Card
           key={item.id}
           aria-label={`Client ${item.name}`}
           className="min-h-64 transition-colors hover:ring-foreground/20"
         >
-          <CardHeader className="grid-cols-[1fr_auto] gap-3">
+          <CardHeader>
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <KeyRound className="size-5" />
@@ -93,18 +134,6 @@ export function ApplicationClientsList(props: {
                 </p>
               </div>
             </div>
-            <CardAction>
-              <ClientActionsMenu
-                application={props.application}
-                client={item}
-                filter={props.filter}
-                canEdit={props.canEdit}
-                canManage={props.canManage}
-                onView={() => props.onView(item)}
-                onEdit={() => props.onEdit(item)}
-                onLifecycle={props.onLifecycle}
-              />
-            </CardAction>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col gap-4">
             <div className="flex flex-wrap gap-2">
@@ -120,16 +149,38 @@ export function ApplicationClientsList(props: {
             </div>
           </CardContent>
           <CardFooter className="justify-between gap-3 bg-muted/20">
-            <span className="text-xs text-muted-foreground">
-              Updated {new Date(item.updatedAt).toLocaleDateString()}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {item.allowedOrigins.length}{" "}
-              {item.allowedOrigins.length === 1 ? "origin" : "origins"}
-            </span>
+            <div className="min-w-0 text-xs text-muted-foreground">
+              <span className="block truncate">
+                Updated {new Date(item.updatedAt).toLocaleDateString()}
+              </span>
+              <span>
+                {item.allowedOrigins.length}{" "}
+                {item.allowedOrigins.length === 1 ? "origin" : "origins"}
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {actions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Button
+                    key={action.ariaLabel ?? action.label}
+                    type="button"
+                    size="icon-sm"
+                    variant="outline"
+                    disabled={action.disabled}
+                    title={action.label}
+                    aria-label={action.ariaLabel ?? action.label}
+                    onClick={action.onClick}
+                  >
+                    <Icon />
+                  </Button>
+                );
+              })}
+            </div>
           </CardFooter>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { Eye, RotateCcw, ShieldOff, Trash2, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -17,7 +19,6 @@ import type {
   ApplicationMembersResponse,
 } from "../../types";
 import type { MemberFilter, PendingAction } from "../../page-types";
-import { MemberActionsMenu } from "./member-actions-menu";
 import { MemberStatusBadge } from "../../components/ui-controls";
 
 export function ApplicationMembersList(props: {
@@ -86,14 +87,60 @@ export function ApplicationMembersList(props: {
             <TableHead className="hidden sm:table-cell">Status</TableHead>
             <TableHead className="hidden md:table-cell">Granted</TableHead>
             <TableHead className="hidden lg:table-cell">Updated</TableHead>
-            <TableHead className="w-12">
+            <TableHead className="w-32 text-right">
               <span className="sr-only">Actions</span>
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.id} aria-label={`Member ${item.user.email}`}>
+          {items.map((item) => {
+            const statusActionLabel =
+              item.status === "active"
+                ? `Suspend ${item.user.name}`
+                : `Restore ${item.user.name}`;
+            const destructiveActionLabel =
+              props.filter === "current"
+                ? `Revoke ${item.user.name}`
+                : `Permanently delete ${item.user.name}`;
+            const actions = [
+              {
+                label: `View ${item.user.name}`,
+                icon: Eye,
+                disabled: false,
+                onClick: () => props.onView(item),
+              },
+              {
+                label: statusActionLabel,
+                icon: item.status === "active" ? ShieldOff : RotateCcw,
+                disabled: !props.canManage,
+                onClick: () =>
+                  props.onLifecycle({
+                    type:
+                      item.status === "active"
+                        ? "suspend-member"
+                        : "restore-member",
+                    application: props.application,
+                    member: item,
+                  }),
+              },
+              {
+                label: destructiveActionLabel,
+                icon: props.filter === "current" ? UserX : Trash2,
+                disabled: !props.canManage,
+                onClick: () =>
+                  props.onLifecycle({
+                    type:
+                      props.filter === "current"
+                        ? "revoke-member"
+                        : "delete-member",
+                    application: props.application,
+                    member: item,
+                  }),
+              },
+            ];
+
+            return (
+              <TableRow key={item.id} aria-label={`Member ${item.user.email}`}>
               <TableCell className="min-w-56 px-4 py-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="size-9">
@@ -130,18 +177,30 @@ export function ApplicationMembersList(props: {
               <TableCell className="hidden text-muted-foreground lg:table-cell">
                 {new Date(item.updatedAt).toLocaleDateString()}
               </TableCell>
-              <TableCell className="pr-3 text-right">
-                <MemberActionsMenu
-                  application={props.application}
-                  member={item}
-                  filter={props.filter}
-                  canManage={props.canManage}
-                  onView={() => props.onView(item)}
-                  onLifecycle={props.onLifecycle}
-                />
+              <TableCell className="pr-3">
+                <div className="flex justify-end gap-1">
+                  {actions.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <Button
+                        key={action.label}
+                        type="button"
+                        size="icon-sm"
+                        variant="outline"
+                        disabled={action.disabled}
+                        title={action.label}
+                        aria-label={action.label}
+                        onClick={action.onClick}
+                      >
+                        <Icon />
+                      </Button>
+                    );
+                  })}
+                </div>
               </TableCell>
-            </TableRow>
-          ))}
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
