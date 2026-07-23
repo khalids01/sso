@@ -90,6 +90,7 @@ services:
       --prod
       --entry=apps/web/dist/server/server.js
       --static=../client
+      --host=0.0.0.0
       --port=5002
       "
     depends_on:

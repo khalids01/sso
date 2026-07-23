@@ -5,6 +5,7 @@
   "scripts": {
     "build": "vite build",
     "serve": "vite preview",
+    "start": "node node_modules/srvx/bin/srvx.mjs serve --prod --entry=dist/server/server.js --static=../client --host=0.0.0.0 --port=5002",
     "dev": "vite dev",
     "check-boundaries": "bun run scripts/check-boundaries.ts"
   },
