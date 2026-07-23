@@ -13,6 +13,7 @@ export const env = createEnv({
     BETTER_AUTH_URL: z.url(),
     SSO_ISSUER: z.url(),
     AUTH_SESSION_COOKIE_NAME: z.string().min(1).default("better-auth.session_token"),
+    AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
     ENABLE_PASSWORD_AUTH: z
       .string()
       .default("false")

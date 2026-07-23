@@ -96,6 +96,14 @@ export const authOptions = {
   },
   trustedOrigins: [env.CORS_ORIGIN],
   advanced: {
+    ...(env.AUTH_COOKIE_DOMAIN
+      ? {
+          crossSubDomainCookies: {
+            enabled: true,
+            domain: env.AUTH_COOKIE_DOMAIN,
+          },
+        }
+      : {}),
     cookies: {
       session_token: {
         name: env.AUTH_SESSION_COOKIE_NAME,
