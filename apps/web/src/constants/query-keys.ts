@@ -52,6 +52,13 @@ export const queryKeys = {
       revocationDeliveries: (applicationId: string) =>
         [...queryKeys.admin.applications.revocation(applicationId), "deliveries"] as const,
     },
+    oauthConnections: {
+      all: () => ["admin-oauth-connections"] as const,
+      list: (filter: "current" | "archived") =>
+        [...queryKeys.admin.oauthConnections.all(), "list", filter] as const,
+      options: () =>
+        [...queryKeys.admin.oauthConnections.all(), "options"] as const,
+    },
     visitors: {
       overview: (params: {
         dateFrom: string;

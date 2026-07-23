@@ -38,7 +38,7 @@ export {
 export {
   applicationSocialProviderIds,
   dynamicApplicationSocialProviders,
-  runWithApplicationSocialProviderCredentials,
-  type ApplicationSocialProviderCredentials,
+  runWithOAuthProviderConnection,
+  type OAuthProviderConnectionCredentials,
   type ApplicationSocialProviderId,
 } from "./lib/dynamic-social-providers.server";

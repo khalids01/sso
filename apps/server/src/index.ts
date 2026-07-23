@@ -13,56 +13,42 @@ import { oauthTokenController } from "./modules/oauth/oauth-token.controller";
 import { startApplicationRevocationWorker } from "./modules/application-revocation/revocation.service";
 import { observeBetterAuthFailure } from "./modules/auth/auth-observability.service";
 import {
-  runWithApplicationSocialProviderCredentials,
+  runWithOAuthProviderConnection,
   type ApplicationSocialProviderId,
 } from "@auth/server";
 import {
-  clearSocialProviderContextCookie,
-  getClientSocialProviderCredentials,
-  readCookie,
-  socialProviderContextCookieName,
-  verifySocialProviderContext,
+  consumeSocialProviderContext,
+  getOAuthProviderConnectionForCallback,
 } from "./modules/auth/social-provider-credentials.service";
 
 async function handleBetterAuthRequest(request: Request) {
   const match = new URL(request.url).pathname.match(
-    /^\/api\/auth\/callback\/(google|facebook|github)\/?$/,
+    /^\/api\/auth\/callback\/(google|facebook|github|linkedin)\/?$/,
   );
   if (!match) return auth.handler(request);
   const provider = match[1] as ApplicationSocialProviderId;
-  const signedContext = readCookie(
-    request,
-    socialProviderContextCookieName(provider),
-  );
-  const context = signedContext
-    ? verifySocialProviderContext(signedContext)
-    : null;
+  const state = new URL(request.url).searchParams.get("state");
+  const context = state ? await consumeSocialProviderContext(state) : null;
   if (!context || context.provider !== provider) {
     return Response.json(
       { message: "Invalid or expired social authentication context" },
       { status: 400 },
     );
   }
-  const credentials = await getClientSocialProviderCredentials(
-    context.clientId,
-    provider,
-  );
-  if (!credentials) {
+  const connection = await getOAuthProviderConnectionForCallback(context);
+  if (!connection) {
     return Response.json(
-      { message: "Social provider credentials are no longer available" },
+      {
+        message:
+          "OAuth connection changed or is no longer available; start sign-in again",
+      },
       { status: 400 },
     );
   }
-  const response = await runWithApplicationSocialProviderCredentials(
-    provider,
-    credentials,
+  return runWithOAuthProviderConnection(
+    connection,
     () => auth.handler(request),
   );
-  response.headers.append(
-    "set-cookie",
-    clearSocialProviderContextCookie(provider),
-  );
-  return response;
 }
 
 const shouldLogRequests = env.NODE_ENV === "development";

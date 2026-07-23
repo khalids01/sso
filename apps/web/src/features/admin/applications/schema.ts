@@ -44,6 +44,12 @@ export const createApplicationDefaults: CreateApplicationFormValues = {
   signUpMethods: ["magic_link"],
   registrationMode: "closed",
   passwordEmailVerificationRequired: true,
+  oauthConnections: {
+    google: null,
+    facebook: null,
+    github: null,
+    linkedin: null,
+  },
 };
 
 export const createApplicationSchema = z
@@ -76,6 +82,14 @@ export const createApplicationSchema = z
     ),
     registrationMode: z.enum(["closed", "invite_only", "open"]),
     passwordEmailVerificationRequired: z.boolean(),
+    oauthConnections: z
+      .object({
+        google: z.string().nullable().optional(),
+        facebook: z.string().nullable().optional(),
+        github: z.string().nullable().optional(),
+        linkedin: z.string().nullable().optional(),
+      })
+      .optional(),
   })
   .refine(
     (value) => value.signUpMethods.every((method) => value.signInMethods.includes(method)),
@@ -87,12 +101,6 @@ export const createApplicationClientDefaults: CreateApplicationClientFormValues 
   status: "active",
   redirectUris: [""],
   allowedOrigins: [""],
-  googleClientId: "",
-  googleClientSecret: "",
-  facebookClientId: "",
-  facebookClientSecret: "",
-  githubClientId: "",
-  githubClientSecret: "",
 };
 
 export const createApplicationClientSchema = z
@@ -101,12 +109,6 @@ export const createApplicationClientSchema = z
     status: applicationStatusSchema.default("active"),
     redirectUris: z.array(z.string()),
     allowedOrigins: z.array(z.string()),
-    googleClientId: z.string().max(500),
-    googleClientSecret: z.string().max(1_000),
-    facebookClientId: z.string().max(500),
-    facebookClientSecret: z.string().max(1_000),
-    githubClientId: z.string().max(500),
-    githubClientSecret: z.string().max(1_000),
   })
   .superRefine((value, ctx) => {
     const redirectUris = trimValues(value.redirectUris);
@@ -161,17 +163,6 @@ export const createApplicationClientSchema = z
       }
     }
 
-    for (const provider of ["google", "facebook", "github"] as const) {
-      const clientId = value[`${provider}ClientId`].trim();
-      const clientSecret = value[`${provider}ClientSecret`].trim();
-      if (clientSecret && !clientId) {
-        ctx.addIssue({
-          code: "custom",
-          path: [`${provider}ClientId`],
-          message: "Client ID is required when entering a secret",
-        });
-      }
-    }
   })
   .transform((value) => {
     const allowedOrigins = trimValues(value.allowedOrigins);
@@ -181,12 +172,6 @@ export const createApplicationClientSchema = z
       status: value.status,
       redirectUris: trimValues(value.redirectUris),
       allowedOrigins: allowedOrigins.length > 0 ? allowedOrigins : undefined,
-      googleClientId: value.googleClientId.trim() || undefined,
-      googleClientSecret: value.googleClientSecret.trim() || undefined,
-      facebookClientId: value.facebookClientId.trim() || undefined,
-      facebookClientSecret: value.facebookClientSecret.trim() || undefined,
-      githubClientId: value.githubClientId.trim() || undefined,
-      githubClientSecret: value.githubClientSecret.trim() || undefined,
     };
   });
 

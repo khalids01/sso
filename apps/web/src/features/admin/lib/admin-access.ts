@@ -93,6 +93,18 @@ export function canShowApplicationsNav(session: ClientSession | null | undefined
   );
 }
 
+export function canShowOAuthManagerNav(
+  session: ClientSession | null | undefined,
+) {
+  return (
+    isPlatformOwner(session) ||
+    sessionHasAnyPermissionPrefix(
+      session?.permissions,
+      "admin.oauth_connections.",
+    )
+  );
+}
+
 export function canShowVisitorsNav(session: ClientSession | null | undefined) {
   return (
     isPlatformOwner(session) ||

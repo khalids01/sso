@@ -18,8 +18,6 @@ export const env = createEnv({
       .string()
       .default("false")
       .transform((value) => value === "true"),
-    LINKEDIN_CLIENT_ID: z.string().optional(),
-    LINKEDIN_CLIENT_SECRET: z.string().optional(),
     ENABLE_OAUTH_TOKEN_ISSUANCE: z
       .string()
       .default("false")

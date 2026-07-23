@@ -12,29 +12,40 @@ const socialProviders = [
   {
     id: "google",
     label: "Google",
-    configured: false,
   },
   {
     id: "facebook",
     label: "Facebook",
-    configured: false,
   },
   {
     id: "linkedin",
     label: "LinkedIn",
-    configured: Boolean(env.LINKEDIN_CLIENT_ID && env.LINKEDIN_CLIENT_SECRET),
   },
   {
     id: "github",
     label: "GitHub",
-    configured: false,
   },
 ] as const;
 
+type ApplicationProviderConnection = {
+  provider: string;
+  name: string;
+  status: string;
+};
+
 export function getApplicationAuthCapabilities(
-  configuredApplicationProviders: Iterable<string> = [],
+  configuredApplicationProviders: Iterable<
+    string | ApplicationProviderConnection
+  > = [],
 ): ApplicationAuthCapability[] {
-  const configured = new Set(configuredApplicationProviders);
+  const connections = new Map<string, ApplicationProviderConnection>();
+  for (const item of configuredApplicationProviders) {
+    const connection =
+      typeof item === "string"
+        ? { provider: item, name: item, status: "active" }
+        : item;
+    connections.set(connection.provider, connection);
+  }
   return [
     {
       id: "magic_link",
@@ -50,13 +61,19 @@ export function getApplicationAuthCapabilities(
       supportsSignUp: true,
       unavailableReason: "Password authentication is disabled on the SSO server",
     },
-    ...socialProviders.map((provider) => ({
-      id: provider.id,
-      label: provider.label,
-      available: provider.configured || configured.has(provider.id),
-      supportsSignUp: true,
-      unavailableReason: `${provider.label} client ID and client secret are not configured`,
-    })),
+    ...socialProviders.map((provider) => {
+      const connection = connections.get(provider.id);
+      const available = connection?.status === "active";
+      return {
+        id: provider.id,
+        label: provider.label,
+        available,
+        supportsSignUp: true,
+        unavailableReason: !connection
+          ? `No ${provider.label} OAuth connection is assigned to this application`
+          : `The selected ${provider.label} connection "${connection.name}" is ${connection.status}`,
+      };
+    }),
     {
       id: "instagram",
       label: "Instagram",
@@ -68,7 +85,9 @@ export function getApplicationAuthCapabilities(
 }
 
 export function getAvailableApplicationAuthMethodIds(
-  configuredApplicationProviders: Iterable<string> = [],
+  configuredApplicationProviders: Iterable<
+    string | ApplicationProviderConnection
+  > = [],
 ) {
   return new Set(
     getApplicationAuthCapabilities(configuredApplicationProviders)

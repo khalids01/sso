@@ -21,10 +21,10 @@ export const Architecture = () => {
       desc: "Stores rate-limit counters, effective RBAC permissions, session revocation flags, and short-lived authorization codes.",
     },
     {
-      title: "Per-App Social Federation",
+      title: "Managed Social Federation",
       detail: "Google, GitHub, Meta, LinkedIn OAuth",
       icon: <Globe2 className="w-5 h-5 text-primary" />,
-      desc: "Encrypted at rest per-client social provider credentials, enabling custom OAuth provider triggers for each reliance application.",
+      desc: "Reusable, encrypted OAuth Manager connections are assigned per application while downstream clients communicate only with SSO.",
     },
     {
       title: "Durable Revocation Webhooks",

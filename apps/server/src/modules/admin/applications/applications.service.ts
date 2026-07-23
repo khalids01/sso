@@ -28,10 +28,6 @@ import {
   getApplicationAuthCapabilities,
   getAvailableApplicationAuthMethodIds,
 } from "@auth/application-capabilities";
-import {
-  decryptSocialProviderSecret,
-  encryptSocialProviderSecret,
-} from "../../auth/social-provider-credentials.service";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
@@ -72,8 +68,18 @@ const applicationSelect = {
       members: true,
     },
   },
-  clients: {
-    select: { socialProviderCredentials: { select: { provider: true } } },
+  oauthProviderConnections: {
+    select: {
+      provider: true,
+      oauthProviderConnection: {
+        select: {
+          id: true,
+          name: true,
+          provider: true,
+          status: true,
+        },
+      },
+    },
   },
 } satisfies Prisma.ApplicationSelect;
 
@@ -88,10 +94,6 @@ const clientSelect = {
   allowedOrigins: true,
   createdAt: true,
   updatedAt: true,
-  socialProviderCredentials: {
-    select: { provider: true, clientId: true },
-    orderBy: { provider: "asc" },
-  },
 } satisfies Prisma.ApplicationClientSelect;
 
 const memberSelect = {
@@ -257,12 +259,23 @@ function mapApplication(row: {
   createdAt: Date;
   updatedAt: Date;
   _count?: { clients: number; members: number };
-  clients?: Array<{
-    socialProviderCredentials: Array<{ provider: string }>;
+  oauthProviderConnections?: Array<{
+    provider: string;
+    oauthProviderConnection: {
+      id: string;
+      name: string;
+      provider: string;
+      status: string;
+    };
   }>;
 }) {
-  const configuredProviders = (row.clients ?? []).flatMap((client) =>
-    client.socialProviderCredentials.map((credential) => credential.provider),
+  const oauthConnections = (row.oauthProviderConnections ?? []).map(
+    (assignment) => ({
+      id: assignment.oauthProviderConnection.id,
+      name: assignment.oauthProviderConnection.name,
+      provider: assignment.provider,
+      status: assignment.oauthProviderConnection.status,
+    }),
   );
   return {
     id: row.id,
@@ -277,7 +290,8 @@ function mapApplication(row: {
     registrationMode: row.registrationMode,
     passwordEmailVerificationRequired:
       row.passwordEmailVerificationRequired,
-    authCapabilities: getApplicationAuthCapabilities(configuredProviders),
+    oauthConnections,
+    authCapabilities: getApplicationAuthCapabilities(oauthConnections),
     clientCount: row._count?.clients ?? 0,
     memberCount: row._count?.members ?? 0,
     createdAt: row.createdAt.toISOString(),
@@ -296,76 +310,84 @@ function mapClient(row: {
   allowedOrigins: string[];
   createdAt: Date;
   updatedAt: Date;
-  socialProviderCredentials?: Array<{ provider: string; clientId: string }>;
 }) {
   return {
     ...row,
-    socialProviderCredentials: (row.socialProviderCredentials ?? []).map(
-      (credential) => ({
-        ...credential,
-        configured: true as const,
-      }),
-    ),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-const credentialFields = [
-  [
-    "google",
-    "googleClientId",
-    "googleClientSecret",
-    "removeGoogleCredentials",
-  ],
-  [
-    "facebook",
-    "facebookClientId",
-    "facebookClientSecret",
-    "removeFacebookCredentials",
-  ],
-  ["github", "githubClientId", "githubClientSecret", "removeGithubCredentials"],
-] as const;
+type OAuthConnectionSelections =
+  | CreateApplicationInput["oauthConnections"]
+  | UpdateApplicationInput["oauthConnections"];
 
-async function applySocialProviderCredentials(
+async function resolveOAuthConnectionSelections(
   tx: Prisma.TransactionClient,
-  applicationClientId: string,
-  input: CreateApplicationClientInput | UpdateApplicationClientInput,
+  selections: OAuthConnectionSelections,
 ) {
-  const updateInput = input as UpdateApplicationClientInput;
-  for (const [provider, idField, secretField, removeField] of credentialFields) {
-    if (updateInput[removeField]) {
-      await tx.applicationSocialProviderCredential.deleteMany({
-        where: { applicationClientId, provider },
+  const resolved: Array<{
+    provider: string;
+    oauthProviderConnectionId: string;
+  }> = [];
+  if (!selections) return resolved;
+
+  for (const [provider, connectionId] of Object.entries(selections)) {
+    if (!connectionId) continue;
+    const connection = await tx.oAuthProviderConnection.findUnique({
+      where: { id: connectionId },
+      select: { id: true, provider: true, status: true },
+    });
+    if (!connection) {
+      throw new ApplicationsPolicyError(
+        `The selected ${provider} OAuth connection does not exist`,
+      );
+    }
+    if (connection.provider !== provider) {
+      throw new ApplicationsPolicyError(
+        `The selected connection is not a ${provider} connection`,
+      );
+    }
+    if (connection.status !== "active") {
+      throw new ApplicationsPolicyError(
+        `The selected ${provider} OAuth connection is not active`,
+      );
+    }
+    resolved.push({
+      provider,
+      oauthProviderConnectionId: connection.id,
+    });
+  }
+  return resolved;
+}
+
+async function applyOAuthConnectionSelections(
+  tx: Prisma.TransactionClient,
+  applicationId: string,
+  selections: OAuthConnectionSelections,
+) {
+  if (!selections) return;
+  const resolved = await resolveOAuthConnectionSelections(tx, selections);
+  const resolvedByProvider = new Map(
+    resolved.map((item) => [item.provider, item.oauthProviderConnectionId]),
+  );
+
+  for (const [provider, connectionId] of Object.entries(selections)) {
+    if (!connectionId) {
+      await tx.applicationOAuthProviderConnection.deleteMany({
+        where: { applicationId, provider },
       });
       continue;
     }
-    const clientId = input[idField]?.trim();
-    const clientSecret = input[secretField]?.trim();
-    if (!clientId && !clientSecret) continue;
-    const existing = await tx.applicationSocialProviderCredential.findUnique({
-      where: { applicationClientId_provider: { applicationClientId, provider } },
-      select: { encryptedSecret: true },
-    });
-    if (!clientId || (!clientSecret && !existing)) {
-      throw new ApplicationsPolicyError(
-        `${provider} client ID and client secret are required`,
-      );
-    }
-    const encryptedSecret = clientSecret
-      ? encryptSocialProviderSecret(clientSecret)
-      : existing!.encryptedSecret;
-    await tx.applicationSocialProviderCredential.upsert({
-      where: { applicationClientId_provider: { applicationClientId, provider } },
+    await tx.applicationOAuthProviderConnection.upsert({
+      where: { applicationId_provider: { applicationId, provider } },
       create: {
-        applicationClientId,
+        applicationId,
         provider,
-        clientId,
-        encryptedSecret,
+        oauthProviderConnectionId: resolvedByProvider.get(provider)!,
       },
       update: {
-        clientId,
-        ...(clientSecret ? { encryptedSecret } : {}),
+        oauthProviderConnectionId: resolvedByProvider.get(provider)!,
       },
     });
   }
@@ -402,18 +424,6 @@ function mapMember(row: {
 
 function generateClientId() {
   return `sso_client_${crypto.randomUUID().replaceAll("-", "")}`;
-}
-
-function hasSocialProviderCredentialMutation(
-  input: CreateApplicationClientInput | UpdateApplicationClientInput,
-) {
-  return credentialFields.some(([, idField, secretField, removeField]) =>
-    Boolean(
-      input[idField] ||
-        input[secretField] ||
-        (input as UpdateApplicationClientInput)[removeField],
-    ),
-  );
 }
 
 async function recordApplicationActivity(input: {
@@ -541,57 +551,63 @@ export class AdminApplicationsService {
 
   async create(input: CreateApplicationInput, actor: AdminApplicationsActor) {
     const policy = normalizeAuthPolicy(input);
-    const availableMethods = getAvailableApplicationAuthMethodIds();
-    const signInMethods =
-      policy.signInMethods ??
-      ["magic_link", "password", ...socialAuthMethods].filter((method) =>
-        availableMethods.has(method),
+    const application = await prisma.$transaction(async (tx) => {
+      const selectedConnections = await resolveOAuthConnectionSelections(
+        tx,
+        input.oauthConnections,
       );
-    if (signInMethods.some((method) => socialAuthMethods.includes(method))) {
-      throw new ApplicationsPolicyError(
-        "Create a client and configure its social provider credentials before enabling social sign-in",
+      const availableMethods = getAvailableApplicationAuthMethodIds(
+        selectedConnections.map((connection) => connection.provider),
       );
-    }
-    if (signInMethods.length === 0) {
-      throw new ApplicationsPolicyError(
-        "Configure at least one SSO authentication method before creating applications",
-      );
-    }
-    const signUpMethods =
-      policy.signUpMethods ??
-      ["magic_link", "password"].filter((method) =>
-        availableMethods.has(method),
-      );
-    assertSignupMethodsAreSignInMethods(signInMethods, signUpMethods);
-    const application = await prisma.application.create({
-      data: {
-        slug: normalizeSlug(input.slug ?? input.name),
-        name: input.name.trim(),
-        description: input.description?.trim() || null,
-        status: normalizeStatus(input.status),
-        logoUrl: input.logoUrl ?? null,
-        homepageUrl: input.homepageUrl ?? null,
-        signInMethods,
-        signUpMethods,
-        registrationMode: policy.registrationMode ?? "closed",
-        passwordEmailVerificationRequired:
-          policy.passwordEmailVerificationRequired ?? emailDeliveryConfigured,
-      },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        status: true,
-        logoUrl: true,
-        homepageUrl: true,
-        signInMethods: true,
-        signUpMethods: true,
-        registrationMode: true,
-        passwordEmailVerificationRequired: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      const signInMethods =
+        policy.signInMethods ??
+        ["magic_link", "password"].filter((method) =>
+          availableMethods.has(method),
+        );
+      if (
+        signInMethods.some(
+          (method) =>
+            socialAuthMethods.includes(method) && !availableMethods.has(method),
+        )
+      ) {
+        throw new ApplicationsPolicyError(
+          "Assign an active OAuth connection before enabling a social sign-in method",
+        );
+      }
+      if (signInMethods.length === 0) {
+        throw new ApplicationsPolicyError(
+          "Configure at least one SSO authentication method before creating applications",
+        );
+      }
+      const signUpMethods =
+        policy.signUpMethods ??
+        ["magic_link", "password"].filter((method) =>
+          availableMethods.has(method),
+        );
+      assertSignupMethodsAreSignInMethods(signInMethods, signUpMethods);
+      return tx.application.create({
+        data: {
+          slug: normalizeSlug(input.slug ?? input.name),
+          name: input.name.trim(),
+          description: input.description?.trim() || null,
+          status: normalizeStatus(input.status),
+          logoUrl: input.logoUrl ?? null,
+          homepageUrl: input.homepageUrl ?? null,
+          signInMethods,
+          signUpMethods,
+          registrationMode: policy.registrationMode ?? "closed",
+          passwordEmailVerificationRequired:
+            policy.passwordEmailVerificationRequired ?? emailDeliveryConfigured,
+          ...(selectedConnections.length
+            ? {
+                oauthProviderConnections: {
+                  create: selectedConnections,
+                },
+              }
+            : {}),
+        },
+        select: applicationSelect,
+      });
     });
 
     await recordApplicationActivity({
@@ -654,20 +670,34 @@ export class AdminApplicationsService {
           status: true,
           signInMethods: true,
           signUpMethods: true,
-          clients: {
+          oauthProviderConnections: {
             select: {
-              socialProviderCredentials: { select: { provider: true } },
+              provider: true,
+              oauthProviderConnection: {
+                select: { name: true, provider: true, status: true },
+              },
             },
           },
         },
       });
-      const configuredProviders = new Set(
-        (current.clients ?? []).flatMap((client) =>
-          client.socialProviderCredentials.map(
-            (credential) => credential.provider,
-          ),
-        ),
-      );
+      await applyOAuthConnectionSelections(tx, id, input.oauthConnections);
+      const nextAssignments =
+        input.oauthConnections !== undefined
+          ? await tx.applicationOAuthProviderConnection.findMany({
+              where: { applicationId: id },
+              select: {
+                provider: true,
+                oauthProviderConnection: {
+                  select: { name: true, provider: true, status: true },
+                },
+              },
+            })
+          : current.oauthProviderConnections;
+      const configuredProviders = nextAssignments.map((assignment) => ({
+        provider: assignment.provider,
+        name: assignment.oauthProviderConnection.name,
+        status: assignment.oauthProviderConnection.status,
+      }));
       const nextSignInMethods = policy.signInMethods ?? current.signInMethods;
       const availableMethods = getAvailableApplicationAuthMethodIds(
         configuredProviders,
@@ -679,7 +709,7 @@ export class AdminApplicationsService {
         )
       ) {
         throw new ApplicationsPolicyError(
-          "Configure client credentials before enabling a social sign-in method",
+          "Assign an active OAuth connection before enabling a social sign-in method",
         );
       }
       assertSignupMethodsAreSignInMethods(
@@ -821,45 +851,6 @@ export class AdminApplicationsService {
 
     return {
       items: rows.map(mapClient),
-    };
-  }
-
-  async getClientSocialProviderCredentials(
-    applicationId: string,
-    clientId: string,
-    actor: AdminApplicationsActor,
-  ) {
-    const client = await prisma.applicationClient.findUnique({
-      where: { id: clientId, applicationId },
-      select: {
-        id: true,
-        socialProviderCredentials: {
-          select: {
-            provider: true,
-            clientId: true,
-            encryptedSecret: true,
-          },
-          orderBy: { provider: "asc" },
-        },
-      },
-    });
-    if (!client) {
-      throw new ApplicationsPolicyError("Application client not found", 404);
-    }
-
-    await recordApplicationActivity({
-      type: "application_client.credentials_viewed",
-      actorUserId: actor.id ?? null,
-      message: "Application client credentials viewed",
-      metadata: { applicationId, applicationClientId: clientId },
-    });
-
-    return {
-      items: client.socialProviderCredentials.map((credential) => ({
-        provider: credential.provider,
-        clientId: credential.clientId,
-        clientSecret: decryptSocialProviderSecret(credential.encryptedSecret),
-      })),
     };
   }
 
@@ -1368,36 +1359,26 @@ export class AdminApplicationsService {
       throw new ApplicationsPolicyError("Application not found", 404);
     }
 
-    const client = await prisma.$transaction(async (tx) => {
-      const created = await tx.applicationClient.create({
-        data: {
-          applicationId,
-          clientId: generateClientId(),
-          name: input.name.trim(),
-          clientType: input.clientType?.trim() || "public",
-          status,
-          oauthDisabled: status !== "active",
-          skipConsent: true,
-          enableEndSession: false,
-          scopes: ["openid"],
-          tokenEndpointAuthMethod: "none",
-          grantTypes: ["authorization_code"],
-          responseTypes: ["code"],
-          public: true,
-          metadata: { applicationId },
-          redirectUris: redirectUris ?? [],
-          allowedOrigins: allowedOrigins ?? [],
-        },
-        select: clientSelect,
-      });
-      await applySocialProviderCredentials(tx, created.id, input);
-      if (!hasSocialProviderCredentialMutation(input)) return created;
-      return (
-        (await tx.applicationClient.findUnique({
-          where: { id: created.id },
-          select: clientSelect,
-        })) ?? created
-      );
+    const client = await prisma.applicationClient.create({
+      data: {
+        applicationId,
+        clientId: generateClientId(),
+        name: input.name.trim(),
+        clientType: input.clientType?.trim() || "public",
+        status,
+        oauthDisabled: status !== "active",
+        skipConsent: true,
+        enableEndSession: false,
+        scopes: ["openid"],
+        tokenEndpointAuthMethod: "none",
+        grantTypes: ["authorization_code"],
+        responseTypes: ["code"],
+        public: true,
+        metadata: { applicationId },
+        redirectUris: redirectUris ?? [],
+        allowedOrigins: allowedOrigins ?? [],
+      },
+      select: clientSelect,
     });
 
     await recordApplicationActivity({
@@ -1440,20 +1421,10 @@ export class AdminApplicationsService {
       data.allowedOrigins = allowedOrigins;
     }
 
-    const client = await prisma.$transaction(async (tx) => {
-      const updated = await tx.applicationClient.update({
-        where: { id: clientId, applicationId },
-        data,
-        select: clientSelect,
-      });
-      await applySocialProviderCredentials(tx, clientId, input);
-      if (!hasSocialProviderCredentialMutation(input)) return updated;
-      return (
-        (await tx.applicationClient.findUnique({
-          where: { id: clientId },
-          select: clientSelect,
-        })) ?? updated
-      );
+    const client = await prisma.applicationClient.update({
+      where: { id: clientId, applicationId },
+      data,
+      select: clientSelect,
     });
 
     await recordApplicationActivity({

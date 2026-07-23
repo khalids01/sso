@@ -87,10 +87,14 @@ model Account {
   password              String?
   rawProfile            Json?
   profileUpdatedAt      DateTime?
+  oauthProviderConnectionId String?
+  oauthProviderConnection   OAuthProviderConnection? @relation(fields: [oauthProviderConnectionId], references: [id], onDelete: Restrict)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  @@unique([oauthProviderConnectionId, providerId, accountId])
   @@index([userId])
+  @@index([oauthProviderConnectionId])
   @@map("account")
 }
 

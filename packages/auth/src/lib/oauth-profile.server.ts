@@ -10,6 +10,7 @@ export type OAuthProfileProvider =
 type CapturedOAuthProfile = {
   provider: OAuthProfileProvider;
   accountId: string;
+  oauthProviderConnectionId: string;
   profile: Record<string, unknown>;
 };
 
@@ -19,22 +20,18 @@ function profileKey(provider: string, accountId: string) {
   return `${provider}:${accountId}`;
 }
 
-function getProviderAccountId(
-  provider: OAuthProfileProvider,
-  profile: Record<string, unknown>,
+export function namespaceOAuthAccountId(
+  oauthProviderConnectionId: string,
+  providerAccountId: string,
 ) {
-  const value =
-    provider === "google" || provider === "linkedin"
-      ? profile.sub
-      : profile.id;
-  if (typeof value !== "string" && typeof value !== "number") return null;
-  const accountId = String(value);
-  return accountId ? accountId : null;
+  return `${oauthProviderConnectionId}:${providerAccountId}`;
 }
 
 export function stageOAuthProfile(
   provider: OAuthProfileProvider,
   profile: unknown,
+  oauthProviderConnectionId: string,
+  providerAccountId: string,
 ) {
   let serializedProfile: unknown;
   try {
@@ -53,10 +50,17 @@ export function stageOAuthProfile(
   }
 
   const profileRecord = serializedProfile as Record<string, unknown>;
-  const accountId = getProviderAccountId(provider, profileRecord);
-  if (!accountId) return null;
+  const accountId = namespaceOAuthAccountId(
+    oauthProviderConnectionId,
+    providerAccountId,
+  );
 
-  const captured = { provider, accountId, profile: profileRecord };
+  const captured = {
+    provider,
+    accountId,
+    oauthProviderConnectionId,
+    profile: profileRecord,
+  };
   pendingProfiles.set(profileKey(provider, accountId), captured);
   if (pendingProfiles.size > 1_000) {
     const oldestKey = pendingProfiles.keys().next().value;
@@ -68,14 +72,22 @@ export function stageOAuthProfile(
 export async function captureOAuthProfile(
   provider: OAuthProfileProvider,
   profile: unknown,
+  oauthProviderConnectionId: string,
+  providerAccountId: string,
 ) {
-  const captured = stageOAuthProfile(provider, profile);
+  const captured = stageOAuthProfile(
+    provider,
+    profile,
+    oauthProviderConnectionId,
+    providerAccountId,
+  );
   if (!captured) return {};
 
   const updated = await prisma.account.updateMany({
     where: {
       providerId: captured.provider,
       accountId: captured.accountId,
+      oauthProviderConnectionId: captured.oauthProviderConnectionId,
     },
     data: {
       rawProfile: captured.profile as Prisma.InputJsonValue,
@@ -101,6 +113,7 @@ export function attachCapturedOAuthProfileOnCreate<
       ...account,
       rawProfile: captured.profile,
       profileUpdatedAt: new Date(),
+      oauthProviderConnectionId: captured.oauthProviderConnectionId,
     },
   };
 }

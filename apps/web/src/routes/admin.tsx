@@ -28,6 +28,7 @@ import {
   History,
   Webhook,
   Shield,
+  KeyRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import UserMenu from "@/components/core/user-menu";
@@ -37,6 +38,7 @@ import Logo from "@/components/core/logo";
 import {
   canShowActivityNav,
   canShowApplicationsNav,
+  canShowOAuthManagerNav,
   canShowFeedbackNav,
   canShowRateLimitsNav,
   canShowRolesNav,
@@ -96,6 +98,12 @@ function getAdminNavItems(session: ClientSession | null | undefined): AdminNavIt
       icon: AppWindow,
       url: "/admin/applications",
       show: canShowApplicationsNav(session),
+    },
+    {
+      title: "OAuth Manager",
+      icon: KeyRound,
+      url: "/admin/oauth-manager",
+      show: canShowOAuthManagerNav(session),
     },
     {
       title: "Feedback",

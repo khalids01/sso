@@ -24,6 +24,7 @@ import type { LifecycleFilter, PendingAction } from "../page-types";
 import { useSession } from "@/providers/session-provider";
 import { Permissions } from "@rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
+import type { OAuthConnectionOption } from "../../oauth-connections/types";
 
 export function AdminApplicationsPage() {
   const { session } = useSession();
@@ -50,6 +51,15 @@ export function AdminApplicationsPage() {
 
       if (error) throw new Error("Failed to load applications");
       return data as ApplicationsListResponse;
+    },
+  });
+  const oauthConnectionOptionsQuery = useQuery({
+    queryKey: queryKeys.admin.oauthConnections.options(),
+    queryFn: async () => {
+      const { data, error } =
+        await client.admin["oauth-connections"].options.get();
+      if (error) throw error;
+      return (data as { items: OAuthConnectionOption[] }).items;
     },
   });
 
@@ -118,6 +128,7 @@ export function AdminApplicationsPage() {
             <CreateApplicationDialog
               isLoading={createApplicationMutation.isPending}
               onCreate={(input) => createApplicationMutation.mutate(input)}
+              oauthConnectionOptions={oauthConnectionOptionsQuery.data}
             />
           ) : null}
         </div>
@@ -171,6 +182,7 @@ export function AdminApplicationsPage() {
         application={settingsApplication}
         canManage={canManage && settingsApplication?.status !== "archived"}
         isLoading={updateApplicationMutation.isPending}
+        oauthConnectionOptions={oauthConnectionOptionsQuery.data}
         onOpenChange={(open) => !open && setSettingsApplication(null)}
         onSave={(payload) => {
           if (!settingsApplication) return;

@@ -9,6 +9,14 @@ export type ApplicationAuthMethod =
   | "github";
 export type ApplicationSignupMethod = ApplicationAuthMethod;
 export type ApplicationRegistrationMode = "closed" | "invite_only" | "open";
+export type ApplicationOAuthProvider =
+  | "google"
+  | "facebook"
+  | "github"
+  | "linkedin";
+export type ApplicationOAuthConnections = Partial<
+  Record<ApplicationOAuthProvider, string | null>
+>;
 export type ApplicationAuthCapability = {
   id: string;
   label: string;
@@ -29,6 +37,12 @@ export type AdminApplication = {
   signUpMethods: ApplicationSignupMethod[];
   registrationMode: ApplicationRegistrationMode;
   passwordEmailVerificationRequired: boolean;
+  oauthConnections: Array<{
+    id: string;
+    name: string;
+    provider: ApplicationOAuthProvider;
+    status: ApplicationStatus;
+  }>;
   authCapabilities: ApplicationAuthCapability[];
   clientCount: number;
   memberCount: number;
@@ -53,11 +67,6 @@ export type ApplicationClient = {
   status: ApplicationStatus;
   redirectUris: string[];
   allowedOrigins: string[];
-  socialProviderCredentials: Array<{
-    provider: "google" | "facebook" | "github";
-    clientId: string;
-    configured: true;
-  }>;
   createdAt: string;
   updatedAt: string;
 };

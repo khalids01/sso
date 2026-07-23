@@ -39,6 +39,13 @@ const ApplicationRegistrationModeSchema = t.Union([
   t.Literal("open"),
 ]);
 
+const ApplicationOAuthConnectionsSchema = t.Object({
+  google: t.Optional(t.Union([t.String({ minLength: 1 }), t.Null()])),
+  github: t.Optional(t.Union([t.String({ minLength: 1 }), t.Null()])),
+  facebook: t.Optional(t.Union([t.String({ minLength: 1 }), t.Null()])),
+  linkedin: t.Optional(t.Union([t.String({ minLength: 1 }), t.Null()])),
+});
+
 export const ApplicationsQueryDto = t.Object({
   page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
   limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 20 })),
@@ -58,6 +65,7 @@ export const CreateApplicationDto = t.Object({
   signUpMethods: t.Optional(t.Array(ApplicationSignupMethodSchema)),
   registrationMode: t.Optional(ApplicationRegistrationModeSchema),
   passwordEmailVerificationRequired: t.Optional(t.Boolean()),
+  oauthConnections: t.Optional(ApplicationOAuthConnectionsSchema),
 });
 
 export const CreateApplicationClientDto = t.Object({
@@ -66,12 +74,6 @@ export const CreateApplicationClientDto = t.Object({
   status: t.Optional(ApplicationStatusSchema),
   redirectUris: t.Array(t.String({ minLength: 1 }), { minItems: 1 }),
   allowedOrigins: t.Optional(t.Array(t.String({ minLength: 1 }))),
-  googleClientId: t.Optional(t.String({ maxLength: 500 })),
-  googleClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
-  facebookClientId: t.Optional(t.String({ maxLength: 500 })),
-  facebookClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
-  githubClientId: t.Optional(t.String({ maxLength: 500 })),
-  githubClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
 });
 
 export const UpdateApplicationDto = t.Object({
@@ -85,6 +87,7 @@ export const UpdateApplicationDto = t.Object({
   signUpMethods: t.Optional(t.Array(ApplicationSignupMethodSchema)),
   registrationMode: t.Optional(ApplicationRegistrationModeSchema),
   passwordEmailVerificationRequired: t.Optional(t.Boolean()),
+  oauthConnections: t.Optional(ApplicationOAuthConnectionsSchema),
 });
 
 export const CreateApplicationInvitationDto = t.Object({
@@ -113,15 +116,6 @@ export const UpdateApplicationClientDto = t.Object({
   status: t.Optional(ApplicationStatusSchema),
   redirectUris: t.Optional(t.Array(t.String({ minLength: 1 }), { minItems: 1 })),
   allowedOrigins: t.Optional(t.Array(t.String({ minLength: 1 }))),
-  googleClientId: t.Optional(t.String({ maxLength: 500 })),
-  googleClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
-  removeGoogleCredentials: t.Optional(t.Boolean()),
-  facebookClientId: t.Optional(t.String({ maxLength: 500 })),
-  facebookClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
-  removeFacebookCredentials: t.Optional(t.Boolean()),
-  githubClientId: t.Optional(t.String({ maxLength: 500 })),
-  githubClientSecret: t.Optional(t.String({ maxLength: 1_000 })),
-  removeGithubCredentials: t.Optional(t.Boolean()),
 });
 
 export const UpdateRevocationEndpointDto = t.Object({

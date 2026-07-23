@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Controller,
@@ -7,17 +7,9 @@ import {
   type UseFormRegisterReturn,
 } from "react-hook-form";
 import {
-  Copy,
-  Eye,
-  EyeOff,
-  LoaderCircle,
-  LockKeyhole,
-  LockKeyholeOpen,
   Plus,
   X,
 } from "lucide-react";
-import { toast } from "sonner";
-import { env } from "@env/public";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -35,7 +27,6 @@ import {
   type CreateApplicationClientFormValues,
   type CreateApplicationClientInput,
 } from "./schema";
-import type { SocialProviderId } from "./crud/clients";
 
 type ApplicationClientFormProps = {
   isLoading: boolean;
@@ -45,7 +36,6 @@ type ApplicationClientFormProps = {
   initialValues?: CreateApplicationClientFormValues;
   submitLabel?: string;
   loadingLabel?: string;
-  loadProviderSecret?: (provider: SocialProviderId) => Promise<string>;
 };
 
 export function ApplicationClientForm({
@@ -56,7 +46,6 @@ export function ApplicationClientForm({
   initialValues = createApplicationClientDefaults,
   submitLabel = "Save client",
   loadingLabel = "Saving...",
-  loadProviderSecret,
 }: ApplicationClientFormProps) {
   const form = useForm<
     CreateApplicationClientFormValues,
@@ -66,34 +55,12 @@ export function ApplicationClientForm({
     resolver: zodResolver(createApplicationClientSchema),
     defaultValues: initialValues,
   });
-  const [revealedSecrets, setRevealedSecrets] = useState<
-    Partial<Record<SocialProviderId, string>>
-  >({});
-  const [visibleSecrets, setVisibleSecrets] = useState<
-    Partial<Record<SocialProviderId, boolean>>
-  >({});
-  const [unlockedSecrets, setUnlockedSecrets] = useState<
-    Partial<Record<SocialProviderId, boolean>>
-  >({});
-  const [loadingSecret, setLoadingSecret] = useState<SocialProviderId | null>(
-    null,
-  );
-
   useEffect(() => {
     form.reset(initialValues);
-    setRevealedSecrets({});
-    setVisibleSecrets({});
-    setUnlockedSecrets({});
-    setLoadingSecret(null);
   }, [form, initialValues, resetKey]);
 
   const redirectUris = form.watch("redirectUris") ?? [""];
   const allowedOrigins = form.watch("allowedOrigins") ?? [""];
-  const providerFields = [
-    { id: "google", label: "Google", idLabel: "Client ID" },
-    { id: "facebook", label: "Facebook", idLabel: "App ID" },
-    { id: "github", label: "GitHub", idLabel: "Client ID" },
-  ] as const;
 
   function updateUrlList(
     name: "redirectUris" | "allowedOrigins",
@@ -164,195 +131,6 @@ export function ApplicationClientForm({
           )
         }
       />
-
-      <div className="grid gap-3 border-t pt-4">
-        <div>
-          <h3 className="text-sm font-medium">Social provider credentials</h3>
-          <p className="text-xs text-muted-foreground">
-            Saved credentials are encrypted and locked by default.
-          </p>
-        </div>
-        {providerFields.map((provider) => {
-          const idName = `${provider.id}ClientId` as const;
-          const secretName = `${provider.id}ClientSecret` as const;
-          const callbackURL = `${new URL(env.VITE_SERVER_URL).origin}/api/auth/callback/${provider.id}`;
-          const configured = Boolean(initialValues[idName]?.trim());
-          const unlocked = !configured || Boolean(unlockedSecrets[provider.id]);
-          const visible = Boolean(visibleSecrets[provider.id]);
-          const loading = loadingSecret === provider.id;
-
-          async function loadSecret() {
-            const existing = revealedSecrets[provider.id];
-            if (existing !== undefined) return existing;
-            if (!loadProviderSecret) return "";
-            setLoadingSecret(provider.id);
-            try {
-              const secret = await loadProviderSecret(provider.id);
-              setRevealedSecrets((current) => ({
-                ...current,
-                [provider.id]: secret,
-              }));
-              return secret;
-            } catch {
-              toast.error(`Could not load the ${provider.label} secret`);
-              return null;
-            } finally {
-              setLoadingSecret(null);
-            }
-          }
-
-          return (
-            <section
-              key={provider.id}
-              className="grid gap-3 rounded-lg border p-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h4 className="font-medium">{provider.label}</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {unlocked ? "Credentials unlocked for editing" : "Credentials locked"}
-                  </p>
-                </div>
-                {configured ? (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    disabled={loading}
-                    title={
-                      unlocked
-                        ? `Lock ${provider.label} credentials`
-                        : `Unlock ${provider.label} credentials`
-                    }
-                    aria-label={
-                      unlocked
-                        ? `Lock ${provider.label} credentials`
-                        : `Unlock ${provider.label} credentials`
-                    }
-                    onClick={async () => {
-                      if (unlocked) {
-                        setRevealedSecrets((current) => ({
-                          ...current,
-                          [provider.id]: form.getValues(secretName),
-                        }));
-                        setUnlockedSecrets((current) => ({
-                          ...current,
-                          [provider.id]: false,
-                        }));
-                        return;
-                      }
-
-                      const secret = await loadSecret();
-                      if (secret === null) return;
-                      if (!form.getValues(secretName)) {
-                        form.setValue(secretName, secret, {
-                          shouldDirty: false,
-                          shouldValidate: true,
-                        });
-                      }
-                      setUnlockedSecrets((current) => ({
-                        ...current,
-                        [provider.id]: true,
-                      }));
-                    }}
-                  >
-                    {loading ? (
-                      <LoaderCircle className="animate-spin" />
-                    ) : unlocked ? (
-                      <LockKeyholeOpen />
-                    ) : (
-                      <LockKeyhole />
-                    )}
-                  </Button>
-                ) : null}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel>{provider.idLabel}</FieldLabel>
-                  <Input
-                    autoComplete="off"
-                    readOnly={!unlocked}
-                    {...form.register(idName)}
-                  />
-                  <FieldError errors={[form.formState.errors[idName]]} />
-                </Field>
-                <Field>
-                  <FieldLabel>
-                    {provider.id === "facebook" ? "App secret" : "Client secret"}
-                  </FieldLabel>
-                  <div className="flex gap-2">
-                    {unlocked ? (
-                      <Input
-                        type={visible ? "text" : "password"}
-                        autoComplete="new-password"
-                        placeholder="Enter the provider secret"
-                        {...form.register(secretName)}
-                      />
-                    ) : (
-                      <Input
-                        type={visible ? "text" : "password"}
-                        readOnly
-                        value={
-                          visible
-                            ? revealedSecrets[provider.id] ?? ""
-                            : "••••••••••••••••"
-                        }
-                        aria-label={`Locked ${provider.label} secret`}
-                      />
-                    )}
-                    {configured ? (
-                      <>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          disabled={loading}
-                          title={visible ? "Hide saved secret" : "Reveal saved secret"}
-                          onClick={async () => {
-                            if (!visible) {
-                              const secret = await loadSecret();
-                              if (secret === null) return;
-                            }
-                            setVisibleSecrets((current) => ({
-                              ...current,
-                              [provider.id]: !visible,
-                            }));
-                          }}
-                        >
-                          {loading ? (
-                            <LoaderCircle className="animate-spin" />
-                          ) : visible ? (
-                            <EyeOff />
-                          ) : (
-                            <Eye />
-                          )}
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
-                </Field>
-              </div>
-              <div className="grid gap-1">
-                <span className="text-xs text-muted-foreground">OAuth callback URL</span>
-                <div className="flex gap-2">
-                  <Input readOnly className="font-mono text-xs" value={callbackURL} />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(callbackURL);
-                      toast.success(`${provider.label} callback URL copied`);
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </section>
-          );
-        })}
-      </div>
 
       <UrlInputList
         label="Allowed origins"

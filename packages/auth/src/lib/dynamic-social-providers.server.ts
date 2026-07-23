@@ -1,40 +1,50 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { facebook, github, google } from "better-auth/social-providers";
+import {
+  facebook,
+  github,
+  google,
+  linkedin,
+} from "better-auth/social-providers";
 import type { BetterAuthPlugin } from "better-auth";
-import { captureOAuthProfile } from "./oauth-profile.server";
+import {
+  captureOAuthProfile,
+  namespaceOAuthAccountId,
+} from "./oauth-profile.server";
 
 export const applicationSocialProviderIds = [
   "google",
   "facebook",
   "github",
+  "linkedin",
 ] as const;
 
 export type ApplicationSocialProviderId =
   (typeof applicationSocialProviderIds)[number];
 
-export type ApplicationSocialProviderCredentials = {
+export type OAuthProviderConnectionCredentials = {
+  id: string;
+  provider: ApplicationSocialProviderId;
   clientId: string;
   clientSecret: string;
+  credentialVersion: number;
 };
 
-const credentialContext = new AsyncLocalStorage<
-  Partial<Record<ApplicationSocialProviderId, ApplicationSocialProviderCredentials>>
->();
+const connectionContext =
+  new AsyncLocalStorage<OAuthProviderConnectionCredentials>();
 
-export function runWithApplicationSocialProviderCredentials<T>(
-  provider: ApplicationSocialProviderId,
-  credentials: ApplicationSocialProviderCredentials,
+export function runWithOAuthProviderConnection<T>(
+  connection: OAuthProviderConnectionCredentials,
   operation: () => T,
 ) {
-  return credentialContext.run({ [provider]: credentials }, operation);
+  return connectionContext.run(connection, operation);
 }
 
-function requireCredentials(provider: ApplicationSocialProviderId) {
-  const credentials = credentialContext.getStore()?.[provider];
-  if (!credentials) {
-    throw new Error(`Missing ${provider} credentials for this OAuth request`);
+function requireConnection(provider: ApplicationSocialProviderId) {
+  const connection = connectionContext.getStore();
+  if (!connection || connection.provider !== provider) {
+    throw new Error(`Missing ${provider} connection for this OAuth request`);
   }
-  return credentials;
+  return connection;
 }
 
 export function dynamicApplicationSocialProviders(): BetterAuthPlugin {
@@ -52,30 +62,146 @@ export function dynamicApplicationSocialProviders(): BetterAuthPlugin {
         context: {
           socialProviders: [
             ...retainedProviders,
-            () =>
-              google({
-                ...requireCredentials("google"),
+            () => {
+              const connection = requireConnection("google");
+              const provider = google({
+                clientId: connection.clientId,
+                clientSecret: connection.clientSecret,
+                disableDefaultScope: true,
                 disableImplicitSignUp: true,
                 overrideUserInfoOnSignIn: true,
-                mapProfileToUser: (profile) =>
-                  captureOAuthProfile("google", profile),
-              }),
-            () =>
-              facebook({
-                ...requireCredentials("facebook"),
+              });
+              const getUserInfo = provider.getUserInfo;
+              return {
+                ...provider,
+                async getUserInfo(token: Parameters<typeof getUserInfo>[0]) {
+                  const result = await getUserInfo(token);
+                  if (!result) return null;
+                  const providerAccountId = String(result.user.id);
+                  await captureOAuthProfile(
+                    "google",
+                    result.data ?? result.user,
+                    connection.id,
+                    providerAccountId,
+                  );
+                  return {
+                    ...result,
+                    user: {
+                      ...result.user,
+                      id: namespaceOAuthAccountId(
+                        connection.id,
+                        providerAccountId,
+                      ),
+                    },
+                  };
+                },
+              };
+            },
+            () => {
+              const connection = requireConnection("facebook");
+              const provider = facebook({
+                clientId: connection.clientId,
+                clientSecret: connection.clientSecret,
+                disableDefaultScope: true,
                 disableImplicitSignUp: true,
                 overrideUserInfoOnSignIn: true,
-                mapProfileToUser: (profile) =>
-                  captureOAuthProfile("facebook", profile),
-              }),
-            () =>
-              github({
-                ...requireCredentials("github"),
+              });
+              const getUserInfo = provider.getUserInfo;
+              return {
+                ...provider,
+                async getUserInfo(token: Parameters<typeof getUserInfo>[0]) {
+                  const result = await getUserInfo(token);
+                  if (!result) return null;
+                  const providerAccountId = String(result.user.id);
+                  await captureOAuthProfile(
+                    "facebook",
+                    result.data ?? result.user,
+                    connection.id,
+                    providerAccountId,
+                  );
+                  return {
+                    ...result,
+                    user: {
+                      ...result.user,
+                      id: namespaceOAuthAccountId(
+                        connection.id,
+                        providerAccountId,
+                      ),
+                    },
+                  };
+                },
+              };
+            },
+            () => {
+              const connection = requireConnection("github");
+              const provider = github({
+                clientId: connection.clientId,
+                clientSecret: connection.clientSecret,
+                disableDefaultScope: true,
                 disableImplicitSignUp: true,
                 overrideUserInfoOnSignIn: true,
-                mapProfileToUser: (profile) =>
-                  captureOAuthProfile("github", profile),
-              }),
+              });
+              const getUserInfo = provider.getUserInfo;
+              return {
+                ...provider,
+                async getUserInfo(token: Parameters<typeof getUserInfo>[0]) {
+                  const result = await getUserInfo(token);
+                  if (!result) return null;
+                  const providerAccountId = String(result.user.id);
+                  await captureOAuthProfile(
+                    "github",
+                    result.data ?? result.user,
+                    connection.id,
+                    providerAccountId,
+                  );
+                  return {
+                    ...result,
+                    user: {
+                      ...result.user,
+                      id: namespaceOAuthAccountId(
+                        connection.id,
+                        providerAccountId,
+                      ),
+                    },
+                  };
+                },
+              };
+            },
+            () => {
+              const connection = requireConnection("linkedin");
+              const provider = linkedin({
+                clientId: connection.clientId,
+                clientSecret: connection.clientSecret,
+                disableDefaultScope: true,
+                disableImplicitSignUp: true,
+                overrideUserInfoOnSignIn: true,
+              });
+              const getUserInfo = provider.getUserInfo;
+              return {
+                ...provider,
+                async getUserInfo(token: Parameters<typeof getUserInfo>[0]) {
+                  const result = await getUserInfo(token);
+                  if (!result) return null;
+                  const providerAccountId = String(result.user.id);
+                  await captureOAuthProfile(
+                    "linkedin",
+                    result.data ?? result.user,
+                    connection.id,
+                    providerAccountId,
+                  );
+                  return {
+                    ...result,
+                    user: {
+                      ...result.user,
+                      id: namespaceOAuthAccountId(
+                        connection.id,
+                        providerAccountId,
+                      ),
+                    },
+                  };
+                },
+              };
+            },
           ],
         },
       } as never;

@@ -11,15 +11,18 @@ import {
 } from "@/components/ui/dialog";
 import { CreateApplicationForm } from "./application.form";
 import type { CreateApplicationInput } from "./schema";
+import type { OAuthConnectionOption } from "../oauth-connections/types";
 
 type CreateApplicationDialogProps = {
   isLoading: boolean;
   onCreate: (input: CreateApplicationInput) => void;
+  oauthConnectionOptions?: OAuthConnectionOption[];
 };
 
 export function CreateApplicationDialog({
   isLoading,
   onCreate,
+  oauthConnectionOptions,
 }: CreateApplicationDialogProps) {
   const [open, setOpen] = useState(false);
 
@@ -46,6 +49,7 @@ export function CreateApplicationDialog({
           onCreate={onCreate}
           onCreated={() => setOpen(false)}
           resetKey={open ? "open" : "closed"}
+          oauthConnectionOptions={oauthConnectionOptions}
         />
       </DialogContent>
     </Dialog>

@@ -19,6 +19,14 @@ import {
   type CreateApplicationFormValues,
   type CreateApplicationInput,
 } from "./schema";
+import type { OAuthConnectionOption } from "../oauth-connections/types";
+
+const oauthProviders = [
+  { id: "google", label: "Google" },
+  { id: "facebook", label: "Facebook" },
+  { id: "github", label: "GitHub" },
+  { id: "linkedin", label: "LinkedIn" },
+] as const;
 
 type ApplicationFormProps = {
   isLoading: boolean;
@@ -28,6 +36,8 @@ type ApplicationFormProps = {
   initialValues?: CreateApplicationFormValues;
   submitLabel?: string;
   loadingLabel?: string;
+  oauthConnectionOptions?: OAuthConnectionOption[];
+  showOAuthConnections?: boolean;
 };
 
 export function ApplicationForm({
@@ -38,6 +48,8 @@ export function ApplicationForm({
   initialValues = createApplicationDefaults,
   submitLabel = "Save application",
   loadingLabel = "Saving...",
+  oauthConnectionOptions = [],
+  showOAuthConnections = true,
 }: ApplicationFormProps) {
   const form = useForm<
     CreateApplicationFormValues,
@@ -118,6 +130,51 @@ export function ApplicationForm({
         )}
       />
 
+      {showOAuthConnections ? (
+      <div className="grid gap-3 border-t pt-4">
+        <div>
+          <h3 className="text-sm font-medium">OAuth connections</h3>
+          <p className="text-xs text-muted-foreground">
+            Select the reusable upstream connection for each provider.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {oauthProviders.map((provider) => (
+            <Controller
+              key={provider.id}
+              control={form.control}
+              name={`oauthConnections.${provider.id}`}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>{provider.label}</FieldLabel>
+                  <Select
+                    value={field.value ?? "none"}
+                    onValueChange={(value) =>
+                      field.onChange(value === "none" ? null : value)
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not assigned</SelectItem>
+                      {oauthConnectionOptions
+                        .filter((option) => option.provider === provider.id)
+                        .map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+            />
+          ))}
+        </div>
+      </div>
+      ) : null}
+
       <DialogFooter>
         <Button disabled={isLoading} type="submit">
           {isLoading ? loadingLabel : submitLabel}
@@ -132,6 +189,7 @@ type CreateApplicationFormProps = {
   onCreate: (input: CreateApplicationInput) => void;
   onCreated: () => void;
   resetKey: string;
+  oauthConnectionOptions?: OAuthConnectionOption[];
 };
 
 export function CreateApplicationForm(props: CreateApplicationFormProps) {
@@ -143,6 +201,7 @@ export function CreateApplicationForm(props: CreateApplicationFormProps) {
       resetKey={props.resetKey}
       submitLabel="Create application"
       loadingLabel="Creating..."
+      oauthConnectionOptions={props.oauthConnectionOptions}
     />
   );
 }

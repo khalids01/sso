@@ -18,7 +18,6 @@ import { polarClient } from "./lib/payments.server";
 import { polarCustomersForBillingUsers } from "./lib/polar-customers.server";
 import {
   attachCapturedOAuthProfileOnCreate,
-  captureOAuthProfile,
 } from "./lib/oauth-profile.server";
 
 function getUserIdFromPolarSubscription(
@@ -73,19 +72,7 @@ export const authOptions = {
       });
     },
   },
-  socialProviders: {
-    ...(env.LINKEDIN_CLIENT_ID && env.LINKEDIN_CLIENT_SECRET
-      ? {
-          linkedin: {
-            clientId: env.LINKEDIN_CLIENT_ID,
-            clientSecret: env.LINKEDIN_CLIENT_SECRET,
-            overrideUserInfoOnSignIn: true,
-            mapProfileToUser: (profile) =>
-              captureOAuthProfile("linkedin", profile),
-          },
-        }
-      : {}),
-  },
+  socialProviders: {},
   rateLimit: {
     enabled: true,
     window: 10,
@@ -168,6 +155,14 @@ export const authOptions = {
   },
   account: {
     encryptOAuthTokens: true,
+    // State is keyed independently so concurrent OAuth flows in separate tabs
+    // cannot overwrite one another's cookie-backed state.
+    storeStateStrategy: "database",
+    skipStateCookieCheck: true,
+    accountLinking: {
+      enabled: true,
+      allowDifferentEmails: false,
+    },
     additionalFields: {
       rawProfile: {
         type: "json",
@@ -177,6 +172,12 @@ export const authOptions = {
       },
       profileUpdatedAt: {
         type: "date",
+        required: false,
+        input: false,
+        returned: false,
+      },
+      oauthProviderConnectionId: {
+        type: "string",
         required: false,
         input: false,
         returned: false,

@@ -14,7 +14,9 @@ const baseEnv = {
 
 async function readCapabilities(
   env: Record<string, string | undefined>,
-  configuredProviders: string[] = [],
+  configuredProviders: Array<
+    string | { provider: string; name: string; status: string }
+  > = [],
 ) {
   const proc = Bun.spawn({
     cmd: [
@@ -40,13 +42,20 @@ async function readCapabilities(
 }
 
 describe("application authentication capabilities", () => {
-  it("enables Google only when a client has saved credentials", async () => {
+  it("enables Google only when an active connection is assigned", async () => {
     const withoutCredentials = await readCapabilities(baseEnv);
     expect(withoutCredentials.find((item) => item.id === "google")?.available).toBe(false);
 
     const configured = await readCapabilities(baseEnv, ["google"]);
     expect(configured.find((item) => item.id === "google")?.available).toBe(
       true,
+    );
+
+    const archived = await readCapabilities(baseEnv, [
+      { provider: "google", name: "Production Google", status: "archived" },
+    ]);
+    expect(archived.find((item) => item.id === "google")?.available).toBe(
+      false,
     );
   });
 

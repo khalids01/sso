@@ -3,6 +3,7 @@ import { Prisma } from "../../../packages/db/prisma/generated/client";
 
 const findUniqueMock = mock(async () => null);
 const applicationClientFindUniqueMock = mock(async () => null);
+const applicationClientFindFirstMock = mock(async () => null);
 const activityCreateMock = mock(async () => ({ id: "activity-1" }));
 const authApi =
   ((globalThis as typeof globalThis & {
@@ -27,7 +28,7 @@ const authApi =
     })),
   });
 const sessionDeleteManyMock = mock(async () => ({ count: 1 }));
-const socialCredentialFindFirstMock = mock(async () => null);
+const setCacheMock = mock(async () => undefined);
 
 mock.module("@db/server", () => ({
   default: {
@@ -39,12 +40,10 @@ mock.module("@db/server", () => ({
     },
     applicationClient: {
       findUnique: applicationClientFindUniqueMock,
+      findFirst: applicationClientFindFirstMock,
     },
     session: {
       deleteMany: sessionDeleteManyMock,
-    },
-    applicationSocialProviderCredential: {
-      findFirst: socialCredentialFindFirstMock,
     },
   },
   Prisma,
@@ -56,9 +55,17 @@ mock.module("@auth/server", () => ({
   },
   getAuthSession: mock(async () => null),
   getPolarCustomerState: mock(async () => null),
-  runWithApplicationSocialProviderCredentials: mock(
-    (_provider: string, _credentials: unknown, operation: () => unknown) => operation(),
+  runWithOAuthProviderConnection: mock(
+    (_connection: unknown, operation: () => unknown) => operation(),
   ),
+}));
+
+mock.module("@redis/server", () => ({
+  setCache: setCacheMock,
+  getCache: mock(async () => null),
+  deleteCache: mock(async () => undefined),
+  connectRedis: mock(async () => undefined),
+  getRedis: () => ({ getdel: mock(async () => null) }),
 }));
 
 mock.module("@env/server", () => ({
@@ -84,11 +91,12 @@ afterEach(() => {
   authApi.getOAuthClientPublicPrelogin.mockReset();
   sessionDeleteManyMock.mockReset();
   applicationClientFindUniqueMock.mockReset();
-  socialCredentialFindFirstMock.mockReset();
+  applicationClientFindFirstMock.mockReset();
+  setCacheMock.mockReset();
 });
 
 describe("authController", () => {
-  it("starts social authentication with the requesting client's credentials", async () => {
+  it("starts social authentication with the application's assigned connection", async () => {
     authApi.getOAuthClientPublicPrelogin.mockResolvedValue({
       client_id: "sso_client_1",
     });
@@ -104,15 +112,35 @@ describe("authController", () => {
         passwordEmailVerificationRequired: true,
       },
     });
-    const { encryptSocialProviderSecret } = await import(
+    const credentialsModule = await import(
       "../src/modules/auth/social-provider-credentials.service"
     );
-    socialCredentialFindFirstMock.mockResolvedValue({
-      clientId: "google-client-id",
-      encryptedSecret: encryptSocialProviderSecret("google-client-secret"),
+    applicationClientFindFirstMock.mockResolvedValue({
+      clientId: "sso_client_1",
+      applicationId: "app-1",
+      application: {
+        oauthProviderConnections: [
+          {
+            oauthProviderConnection: {
+              id: "google-connection-1",
+              provider: "google",
+              clientId: "google-client-id",
+              encryptedSecret:
+                credentialsModule.encryptSocialProviderSecret(
+                  "google-client-secret",
+                ),
+              credentialVersion: 1,
+              status: "active",
+            },
+          },
+        ],
+      },
     });
     authApi.signInSocial.mockResolvedValue(
-      Response.json({ url: "https://accounts.google.com/oauth", redirect: false }),
+      Response.json({
+        url: "https://accounts.google.com/oauth?state=upstream-state",
+        redirect: false,
+      }),
     );
     const { authController } = await import("../src/modules/auth/auth.controller");
     const callbackURL =
@@ -126,7 +154,8 @@ describe("authController", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("set-cookie")).toContain("sso_social_google=");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(setCacheMock).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(await response.json())).not.toContain("google-client-secret");
     expect(authApi.signInSocial).toHaveBeenCalledTimes(1);
   });

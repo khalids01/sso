@@ -1,5 +1,9 @@
 import { Elysia } from "elysia";
-import { auth } from "@auth/server";
+import {
+  auth,
+  runWithOAuthProviderConnection,
+  type ApplicationSocialProviderId,
+} from "@auth/server";
 import prisma from "@db/server";
 import { env } from "@env/server";
 import { randomUUID } from "node:crypto";
@@ -12,12 +16,17 @@ import {
   SocialLoginDto,
 } from "./auth.dto";
 import { recordLoginDenied } from "./auth-observability.service";
-import { runWithApplicationSocialProviderCredentials } from "@auth/server";
 import {
-  createSocialProviderContext,
-  getClientSocialProviderCredentials,
-  socialProviderContextCookie,
+  getApplicationSocialProviderConnection,
+  storeSocialProviderContext,
 } from "./social-provider-credentials.service";
+
+const socialProviderScopes = {
+  google: ["openid", "profile", "email"],
+  linkedin: ["openid", "profile", "email"],
+  github: ["read:user", "user:email"],
+  facebook: ["public_profile", "email"],
+} satisfies Record<ApplicationSocialProviderId, string[]>;
 
 function resolveCallbackURL(callbackURL?: string) {
   if (!callbackURL) {
@@ -102,31 +111,18 @@ export const authController = new Elysia({ prefix: "/auth" })
           message: `${body.provider} authentication is not available for this application`,
         };
       }
-      if (body.provider === "linkedin") {
-        return auth.api.signInSocial({
-          body: {
-            provider: body.provider,
-            callbackURL,
-            requestSignUp: body.requestSignUp,
-            disableRedirect: true,
-          },
-          headers: request.headers,
-          asResponse: true,
-        });
-      }
-      const credentials = await getClientSocialProviderCredentials(
+      const assignedConnection = await getApplicationSocialProviderConnection(
         policy.clientId,
         body.provider,
       );
-      if (!credentials) {
+      if (!assignedConnection) {
         set.status = 403;
         return {
-          message: `${body.provider} credentials are not configured for this client`,
+          message: `${body.provider} does not have an active OAuth connection for this application`,
         };
       }
-      const response = await runWithApplicationSocialProviderCredentials(
-        body.provider,
-        credentials,
+      const response = await runWithOAuthProviderConnection(
+        assignedConnection.connection,
         () =>
           auth.api.signInSocial({
             body: {
@@ -134,19 +130,29 @@ export const authController = new Elysia({ prefix: "/auth" })
               callbackURL,
               requestSignUp: body.requestSignUp,
               disableRedirect: true,
+              scopes: socialProviderScopes[body.provider],
             },
             headers: request.headers,
             asResponse: true,
           }),
       );
       if (response.ok) {
-        response.headers.append(
-          "set-cookie",
-          socialProviderContextCookie(
-            body.provider,
-            createSocialProviderContext(body.provider, policy.clientId),
-          ),
-        );
+        const result = (await response.clone().json()) as { url?: string };
+        const state = result.url
+          ? new URL(result.url).searchParams.get("state")
+          : null;
+        if (!state) {
+          set.status = 502;
+          return { message: "OAuth provider did not return a valid state" };
+        }
+        await storeSocialProviderContext(state, {
+          provider: body.provider,
+          applicationId: assignedConnection.applicationId,
+          downstreamClientId: assignedConnection.downstreamClientId,
+          oauthProviderConnectionId: assignedConnection.connection.id,
+          credentialVersion:
+            assignedConnection.connection.credentialVersion,
+        });
       }
       return response;
     },

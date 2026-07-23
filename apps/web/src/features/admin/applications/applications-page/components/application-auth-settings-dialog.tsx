@@ -27,9 +27,19 @@ import { Switch } from "@/components/ui/switch";
 import type {
   AdminApplication,
   ApplicationAuthMethod,
+  ApplicationOAuthConnections,
+  ApplicationOAuthProvider,
   ApplicationRegistrationMode,
   ApplicationSignupMethod,
 } from "../../types";
+import type { OAuthConnectionOption } from "../../../oauth-connections/types";
+
+const socialMethodIds = new Set<ApplicationAuthMethod>([
+  "google",
+  "facebook",
+  "github",
+  "linkedin",
+]);
 
 function methodIcon(id: string) {
   if (id === "magic_link") return Mail;
@@ -55,12 +65,14 @@ export function ApplicationAuthSettingsDialog(props: {
   application: AdminApplication | null;
   canManage: boolean;
   isLoading: boolean;
+  oauthConnectionOptions?: OAuthConnectionOption[];
   onOpenChange: (open: boolean) => void;
   onSave: (input: {
     signInMethods: ApplicationAuthMethod[];
     signUpMethods: ApplicationSignupMethod[];
     registrationMode: ApplicationRegistrationMode;
     passwordEmailVerificationRequired: boolean;
+    oauthConnections?: ApplicationOAuthConnections;
   }) => void;
 }) {
   const [signInMethods, setSignInMethods] = useState<ApplicationAuthMethod[]>([]);
@@ -70,6 +82,8 @@ export function ApplicationAuthSettingsDialog(props: {
     useState<ApplicationRegistrationMode>("closed");
   const [passwordEmailVerificationRequired, setPasswordEmailVerificationRequired] =
     useState(true);
+  const [oauthConnections, setOAuthConnections] =
+    useState<ApplicationOAuthConnections>({});
 
   useEffect(() => {
     const application = props.application;
@@ -90,6 +104,14 @@ export function ApplicationAuthSettingsDialog(props: {
     setRegistrationMode(application.registrationMode);
     setPasswordEmailVerificationRequired(
       application.passwordEmailVerificationRequired,
+    );
+    setOAuthConnections(
+      Object.fromEntries(
+        application.oauthConnections.map((connection) => [
+          connection.provider,
+          connection.id,
+        ]),
+      ),
     );
   }, [props.application]);
 
@@ -152,8 +174,33 @@ export function ApplicationAuthSettingsDialog(props: {
                     ? (capability.id as ApplicationAuthMethod)
                     : null;
                   const signupMethod = method as ApplicationSignupMethod | null;
+                  const socialProvider =
+                    method && socialMethodIds.has(method)
+                      ? (method as ApplicationOAuthProvider)
+                      : null;
+                  const selectedConnectionId = socialProvider
+                    ? oauthConnections[socialProvider]
+                    : null;
+                  const selectedConnection = socialProvider
+                    ? (props.oauthConnectionOptions ?? []).find(
+                        (option) => option.id === selectedConnectionId,
+                      ) ??
+                      application.oauthConnections.find(
+                        (connection) => connection.id === selectedConnectionId,
+                      )
+                    : null;
+                  const capabilityAvailable = socialProvider
+                    ? selectedConnection?.status === "active"
+                    : capability.available;
+                  const capabilityUnavailableReason = socialProvider
+                    ? !selectedConnectionId
+                      ? `No ${capability.label} OAuth connection is assigned to this application.`
+                      : !selectedConnection
+                        ? `The selected ${capability.label} OAuth connection is no longer available.`
+                        : `The selected ${capability.label} connection "${selectedConnection.name}" is ${selectedConnection.status}.`
+                    : capability.unavailableReason;
                   const checked =
-                    capability.available &&
+                    capabilityAvailable &&
                     method !== null &&
                     signInMethods.includes(method);
                   const managementDisabledReason = !props.canManage
@@ -163,8 +210,8 @@ export function ApplicationAuthSettingsDialog(props: {
                     : null;
                   const signInDisabledReason =
                     managementDisabledReason ??
-                    (!capability.available
-                      ? capability.unavailableReason ||
+                    (!capabilityAvailable
+                      ? capabilityUnavailableReason ||
                         `${capability.label} is not configured.`
                       : null) ??
                     (!method
@@ -178,8 +225,8 @@ export function ApplicationAuthSettingsDialog(props: {
                     (registrationMode === "closed"
                       ? "Signup is disabled because account registration is closed."
                       : null) ??
-                    (!capability.available
-                      ? capability.unavailableReason ||
+                    (!capabilityAvailable
+                      ? capabilityUnavailableReason ||
                         `${capability.label} is not configured.`
                       : null) ??
                     (!capability.supportsSignUp
@@ -195,7 +242,7 @@ export function ApplicationAuthSettingsDialog(props: {
                   return (
                     <div
                       key={capability.id}
-                      className="flex items-center gap-3 px-4 py-3"
+                      className="grid grid-cols-[auto_1fr] gap-3 px-4 py-3 sm:grid-cols-[auto_1fr_auto] sm:items-center"
                     >
                       <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                         <Icon className="size-4" />
@@ -206,18 +253,75 @@ export function ApplicationAuthSettingsDialog(props: {
                             {capability.label}
                           </span>
                           <Badge
-                            variant={capability.available ? "secondary" : "outline"}
+                            variant={capabilityAvailable ? "secondary" : "outline"}
                           >
-                            {capability.available ? "Available" : "Not configured"}
+                            {capabilityAvailable ? "Available" : "Not configured"}
                           </Badge>
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {capability.available
+                          {capabilityAvailable
                             ? "Available for this application."
-                            : capability.unavailableReason}
+                            : capabilityUnavailableReason}
                         </p>
+                        {socialProvider ? (
+                          <Select
+                            value={selectedConnectionId ?? "none"}
+                            disabled={!props.canManage}
+                            onValueChange={(value) => {
+                              const connectionId =
+                                value === "none" ? null : value;
+                              setOAuthConnections((current) => ({
+                                ...current,
+                                [socialProvider]: connectionId,
+                              }));
+                              if (!connectionId && method) {
+                                setSignInMethods((current) =>
+                                  current.filter((item) => item !== method),
+                                );
+                                setSignUpMethods((current) =>
+                                  current.filter((item) => item !== method),
+                                );
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="mt-2 w-full sm:max-w-64">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">
+                                No connection assigned
+                              </SelectItem>
+                              {(props.oauthConnectionOptions ?? [])
+                                .filter(
+                                  (option) =>
+                                    option.provider === socialProvider,
+                                )
+                                .map((option) => (
+                                  <SelectItem
+                                    key={option.id}
+                                    value={option.id}
+                                  >
+                                    {option.name}
+                                  </SelectItem>
+                                ))}
+                              {selectedConnection &&
+                              !(props.oauthConnectionOptions ?? []).some(
+                                (option) =>
+                                  option.id === selectedConnection.id,
+                              ) ? (
+                                <SelectItem
+                                  value={selectedConnection.id}
+                                  disabled
+                                >
+                                  {selectedConnection.name} (
+                                  {selectedConnection.status})
+                                </SelectItem>
+                              ) : null}
+                            </SelectContent>
+                          </Select>
+                        ) : null}
                       </div>
-                      <div className="flex shrink-0 items-center gap-4">
+                      <div className="col-span-2 flex shrink-0 items-center justify-end gap-4 sm:col-span-1">
                         <label className="grid justify-items-center gap-1 text-[10px] text-muted-foreground">
                           <span className="flex items-center gap-1">
                             Sign in
@@ -249,7 +353,7 @@ export function ApplicationAuthSettingsDialog(props: {
                           </span>
                           <Switch
                             checked={
-                              capability.available &&
+                              capabilityAvailable &&
                               Boolean(
                                 signupMethod &&
                                   signUpMethods.includes(signupMethod),
@@ -349,13 +453,41 @@ export function ApplicationAuthSettingsDialog(props: {
             type="button"
             disabled={!canSave || props.isLoading}
             onClick={() =>
-              props.onSave({
-                signInMethods,
-                signUpMethods:
-                  registrationMode === "closed" ? [] : signUpMethods,
-                registrationMode,
-                passwordEmailVerificationRequired,
-              })
+              props.onSave((() => {
+                const originalConnections = Object.fromEntries(
+                  (application?.oauthConnections ?? []).map((connection) => [
+                    connection.provider,
+                    connection.id,
+                  ]),
+                ) as ApplicationOAuthConnections;
+                const changedConnections = Object.fromEntries(
+                  ([
+                    "google",
+                    "facebook",
+                    "github",
+                    "linkedin",
+                  ] as const)
+                    .filter(
+                      (provider) =>
+                        (oauthConnections[provider] ?? null) !==
+                        (originalConnections[provider] ?? null),
+                    )
+                    .map((provider) => [
+                      provider,
+                      oauthConnections[provider] ?? null,
+                    ]),
+                ) as ApplicationOAuthConnections;
+                return {
+                  signInMethods,
+                  signUpMethods:
+                    registrationMode === "closed" ? [] : signUpMethods,
+                  registrationMode,
+                  passwordEmailVerificationRequired,
+                  ...(Object.keys(changedConnections).length
+                    ? { oauthConnections: changedConnections }
+                    : {}),
+                };
+              })())
             }
           >
             {props.isLoading ? "Saving..." : "Save settings"}

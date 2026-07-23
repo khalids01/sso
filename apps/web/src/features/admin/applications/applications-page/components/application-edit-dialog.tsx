@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ApplicationForm } from "../../application.form";
-import type { AdminApplication, ApplicationAuthMethod, ApplicationRegistrationMode, ApplicationSignupMethod, ApplicationStatus } from "../../types";
+import type { AdminApplication, ApplicationAuthMethod, ApplicationOAuthConnections, ApplicationRegistrationMode, ApplicationSignupMethod, ApplicationStatus } from "../../types";
 
 export function ApplicationEditDialog(props: {
   application: AdminApplication | null;
@@ -22,6 +22,7 @@ export function ApplicationEditDialog(props: {
     signUpMethods?: ApplicationSignupMethod[];
     registrationMode?: ApplicationRegistrationMode;
     passwordEmailVerificationRequired?: boolean;
+    oauthConnections?: ApplicationOAuthConnections;
   }) => void;
 }) {
   const initialValues = useMemo(
@@ -54,6 +55,7 @@ export function ApplicationEditDialog(props: {
             initialValues={initialValues}
             isLoading={props.isLoading}
             resetKey={props.application?.id ?? "closed"}
+            showOAuthConnections={false}
             onSubmit={({ name, slug, description, status }) =>
               props.onSubmit({ name, slug, description, status })
             }
