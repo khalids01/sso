@@ -119,16 +119,16 @@ export const Footer = () => {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} SSO. All rights reserved.
           </p>
-          <div className="flex items-center gap-8 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-primary transition-colors">
+          <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+            <Link to="/privacy" className="hover:text-primary transition-colors">
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-primary transition-colors">
+            </Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">
               Terms of Service
-            </a>
-            <a href="#" className="hover:text-primary transition-colors">
-              Cookie Policy
-            </a>
+            </Link>
+            <Link to="/data-deletion" className="hover:text-primary transition-colors">
+              Data Deletion
+            </Link>
           </div>
         </div>
       </div>

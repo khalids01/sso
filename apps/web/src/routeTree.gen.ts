@@ -28,6 +28,9 @@ import { Route as AdminOverviewRouteImport } from './routes/admin/overview'
 import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminApplicationsRouteImport } from './routes/admin/applications'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
+import { Route as PublicTermsRouteImport } from './routes/_public/terms'
+import { Route as PublicPrivacyRouteImport } from './routes/_public/privacy'
+import { Route as PublicDataDeletionRouteImport } from './routes/_public/data-deletion'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedBillingRouteImport } from './routes/_protected/billing'
@@ -133,6 +136,21 @@ const AdminActivityRoute = AdminActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AdminRoute,
 } as any)
+const PublicTermsRoute = PublicTermsRouteImport.update({
+  id: '/_public/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicPrivacyRoute = PublicPrivacyRouteImport.update({
+  id: '/_public/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicDataDeletionRoute = PublicDataDeletionRouteImport.update({
+  id: '/_public/data-deletion',
+  path: '/data-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -199,6 +217,9 @@ export interface FileRoutesByFullPath {
   '/billing': typeof ProtectedBillingRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
+  '/data-deletion': typeof PublicDataDeletionRoute
+  '/privacy': typeof PublicPrivacyRoute
+  '/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
@@ -228,6 +249,9 @@ export interface FileRoutesByTo {
   '/billing': typeof ProtectedBillingRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
+  '/data-deletion': typeof PublicDataDeletionRoute
+  '/privacy': typeof PublicPrivacyRoute
+  '/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
@@ -259,6 +283,9 @@ export interface FileRoutesById {
   '/_protected/billing': typeof ProtectedBillingRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
+  '/_public/data-deletion': typeof PublicDataDeletionRoute
+  '/_public/privacy': typeof PublicPrivacyRoute
+  '/_public/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
@@ -292,6 +319,9 @@ export interface FileRouteTypes {
     | '/billing'
     | '/dashboard'
     | '/settings'
+    | '/data-deletion'
+    | '/privacy'
+    | '/terms'
     | '/admin/activity'
     | '/admin/applications'
     | '/admin/feedback'
@@ -321,6 +351,9 @@ export interface FileRouteTypes {
     | '/billing'
     | '/dashboard'
     | '/settings'
+    | '/data-deletion'
+    | '/privacy'
+    | '/terms'
     | '/admin/activity'
     | '/admin/applications'
     | '/admin/feedback'
@@ -351,6 +384,9 @@ export interface FileRouteTypes {
     | '/_protected/billing'
     | '/_protected/dashboard'
     | '/_protected/settings'
+    | '/_public/data-deletion'
+    | '/_public/privacy'
+    | '/_public/terms'
     | '/admin/activity'
     | '/admin/applications'
     | '/admin/feedback'
@@ -379,6 +415,9 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
+  PublicDataDeletionRoute: typeof PublicDataDeletionRoute
+  PublicPrivacyRoute: typeof PublicPrivacyRoute
+  PublicTermsRoute: typeof PublicTermsRoute
   ApplicationLoginRoute: typeof ApplicationLoginRoute
   ApplicationSignupRoute: typeof ApplicationSignupRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
@@ -519,6 +558,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/activity'
       preLoaderRoute: typeof AdminActivityRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/_public/terms': {
+      id: '/_public/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof PublicTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public/privacy': {
+      id: '/_public/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PublicPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public/data-deletion': {
+      id: '/_public/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/data-deletion'
+      preLoaderRoute: typeof PublicDataDeletionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_protected/settings': {
       id: '/_protected/settings'
@@ -668,6 +728,9 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
+  PublicDataDeletionRoute: PublicDataDeletionRoute,
+  PublicPrivacyRoute: PublicPrivacyRoute,
+  PublicTermsRoute: PublicTermsRoute,
   ApplicationLoginRoute: ApplicationLoginRoute,
   ApplicationSignupRoute: ApplicationSignupRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
