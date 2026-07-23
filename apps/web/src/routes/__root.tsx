@@ -31,6 +31,13 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         title: "SSO",
       },
     ],
+    links: [
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: "/favicon.svg",
+      },
+    ],
   }),
   loader: async () => {
     const session = await getRootSession();

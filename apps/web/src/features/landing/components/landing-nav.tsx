@@ -18,7 +18,7 @@ export const LandingNav = () => {
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center text-white shadow-sm group-hover:bg-emerald-600 transition-colors">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="flex flex-col">

@@ -9,7 +9,7 @@ export const Footer = () => {
           {/* Col 1 */}
           <div className="col-span-1 md:col-span-1 space-y-4">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white shadow-sm">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <span className="text-xl font-bold tracking-tight">SSO</span>
