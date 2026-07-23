@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Globe2, LockKeyhole, Mail, Settings2 } from "lucide-react";
+import {
+  CircleAlert,
+  Globe2,
+  LockKeyhole,
+  Mail,
+  Settings2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +35,20 @@ function methodIcon(id: string) {
   if (id === "magic_link") return Mail;
   if (id === "password") return LockKeyhole;
   return Globe2;
+}
+
+function DisabledReason({ reason }: { reason: string | null }) {
+  if (!reason) return null;
+
+  return (
+    <span
+      title={reason}
+      aria-label={reason}
+      className="inline-flex cursor-help text-amber-600 dark:text-amber-400"
+    >
+      <CircleAlert className="size-3" />
+    </span>
+  );
 }
 
 export function ApplicationAuthSettingsDialog(props: {
@@ -80,6 +100,15 @@ export function ApplicationAuthSettingsDialog(props: {
       (capability) => capability.id === "magic_link",
     )?.available,
   );
+  const emailVerificationDisabledReason = !props.canManage
+    ? application?.status === "archived"
+      ? "Authentication settings cannot be changed for an archived application."
+      : "You do not have permission to manage application authentication settings."
+    : !signInMethods.includes("password")
+      ? "Enable password sign-in before requiring email verification."
+      : !emailVerificationAvailable && !passwordEmailVerificationRequired
+        ? "Configure SSO email delivery before enabling email verification."
+        : null;
 
   return (
     <Dialog open={Boolean(application)} onOpenChange={props.onOpenChange}>
@@ -127,6 +156,41 @@ export function ApplicationAuthSettingsDialog(props: {
                     capability.available &&
                     method !== null &&
                     signInMethods.includes(method);
+                  const managementDisabledReason = !props.canManage
+                    ? application.status === "archived"
+                      ? "Authentication settings cannot be changed for an archived application."
+                      : "You do not have permission to manage application authentication settings."
+                    : null;
+                  const signInDisabledReason =
+                    managementDisabledReason ??
+                    (!capability.available
+                      ? capability.unavailableReason ||
+                        `${capability.label} is not configured.`
+                      : null) ??
+                    (!method
+                      ? `${capability.label} is not a supported sign-in method.`
+                      : null) ??
+                    (checked && signInMethods.length === 1
+                      ? "At least one sign-in method must remain enabled."
+                      : null);
+                  const signupDisabledReason =
+                    managementDisabledReason ??
+                    (registrationMode === "closed"
+                      ? "Signup is disabled because account registration is closed."
+                      : null) ??
+                    (!capability.available
+                      ? capability.unavailableReason ||
+                        `${capability.label} is not configured.`
+                      : null) ??
+                    (!capability.supportsSignUp
+                      ? `${capability.label} does not support signup.`
+                      : null) ??
+                    (!signupMethod
+                      ? `${capability.label} is not a supported signup method.`
+                      : null) ??
+                    (!checked
+                      ? `Enable ${capability.label} sign-in before enabling signup.`
+                      : null);
 
                   return (
                     <div
@@ -155,15 +219,13 @@ export function ApplicationAuthSettingsDialog(props: {
                       </div>
                       <div className="flex shrink-0 items-center gap-4">
                         <label className="grid justify-items-center gap-1 text-[10px] text-muted-foreground">
-                          Sign in
+                          <span className="flex items-center gap-1">
+                            Sign in
+                            <DisabledReason reason={signInDisabledReason} />
+                          </span>
                           <Switch
                             checked={checked}
-                            disabled={
-                              !props.canManage ||
-                              !capability.available ||
-                              !method ||
-                              (checked && signInMethods.length === 1)
-                            }
+                            disabled={Boolean(signInDisabledReason)}
                             aria-label={`Enable ${capability.label} sign-in`}
                             onCheckedChange={(enabled) => {
                               if (!method) return;
@@ -181,7 +243,10 @@ export function ApplicationAuthSettingsDialog(props: {
                           />
                         </label>
                         <label className="grid justify-items-center gap-1 text-[10px] text-muted-foreground">
-                          Signup
+                          <span className="flex items-center gap-1">
+                            Signup
+                            <DisabledReason reason={signupDisabledReason} />
+                          </span>
                           <Switch
                             checked={
                               capability.available &&
@@ -190,14 +255,7 @@ export function ApplicationAuthSettingsDialog(props: {
                                   signUpMethods.includes(signupMethod),
                               )
                             }
-                            disabled={
-                              !props.canManage ||
-                              registrationMode === "closed" ||
-                              !capability.available ||
-                              !capability.supportsSignUp ||
-                              !signupMethod ||
-                              !checked
-                            }
+                            disabled={Boolean(signupDisabledReason)}
                             aria-label={`Enable ${capability.label} signup`}
                             onCheckedChange={(enabled) => {
                               if (!signupMethod) return;
@@ -258,17 +316,15 @@ export function ApplicationAuthSettingsDialog(props: {
                     </p>
                   ) : null}
                 </div>
-                <Switch
-                  checked={passwordEmailVerificationRequired}
-                  disabled={
-                    !props.canManage ||
-                    !signInMethods.includes("password") ||
-                    (!emailVerificationAvailable &&
-                      !passwordEmailVerificationRequired)
-                  }
-                  aria-label="Require email verification for password authentication"
-                  onCheckedChange={setPasswordEmailVerificationRequired}
-                />
+                <div className="flex shrink-0 items-center gap-2">
+                  <DisabledReason reason={emailVerificationDisabledReason} />
+                  <Switch
+                    checked={passwordEmailVerificationRequired}
+                    disabled={Boolean(emailVerificationDisabledReason)}
+                    aria-label="Require email verification for password authentication"
+                    onCheckedChange={setPasswordEmailVerificationRequired}
+                  />
+                </div>
               </div>
 
             </section>
