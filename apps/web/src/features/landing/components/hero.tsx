@@ -1,18 +1,54 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import type { CSSProperties } from "react";
 import { ArrowRight, Shield, Lock, Key, CheckCircle2, UserCheck, Sparkles } from "lucide-react";
+
+const particles = Array.from({ length: 72 }, (_, index) => {
+  const random = (salt: number) => {
+    const value = Math.sin((index + 1) * (salt + 17) * 78.233) * 43758.5453;
+    return value - Math.floor(value);
+  };
+
+  const left = random(1) * 100;
+  const inwardDrift = (50 - left) * 0.45;
+
+  return {
+    left: `${left}%`,
+    size: `${0.8 + random(2) * 2.2}px`,
+    duration: `${11 + random(3) * 17}s`,
+    delay: `${-(random(4) * 28)}s`,
+    drift: `${inwardDrift - 18 + random(5) * 36}vw`,
+    opacity: 0.16 + random(6) * 0.3,
+  };
+});
 
 export const Hero = () => {
   return (
     <section className="relative pt-24 pb-20 md:pt-36 md:pb-28 overflow-hidden bg-background">
-      {/* Background Subtle Gradient & Grid */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 pointer-events-none">
+      {/* Background Subtle Gradient, Grid & Particles */}
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[10%] left-[25%] w-[450px] h-[450px] rounded-full bg-primary/10 blur-[130px] opacity-60 dark:opacity-40" />
         <div className="absolute top-[20%] right-[20%] w-[400px] h-[400px] rounded-full bg-blue-500/10 blur-[130px] opacity-50 dark:opacity-30" />
-        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:24px_24px] opacity-30" />
+        <div className="landing-grid absolute inset-0" />
+        <div className="landing-particles absolute inset-0" aria-hidden="true">
+          {particles.map((particle, index) => (
+            <span
+              key={index}
+              style={{
+                left: particle.left,
+                width: particle.size,
+                height: particle.size,
+                opacity: particle.opacity,
+                animationDuration: particle.duration,
+                animationDelay: particle.delay,
+                "--particle-drift": particle.drift,
+              } as CSSProperties}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="container mx-auto px-4 text-center relative">
+      <div className="container mx-auto px-4 text-center relative z-10">
         {/* Top Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted/80 border border-border/80 text-xs font-medium text-foreground mb-8 shadow-xs">
           <Sparkles className="w-3.5 h-3.5 text-primary" />

@@ -126,3 +126,37 @@
     @apply font-sans;
   }
 }
+
+.landing-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--foreground) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 7%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(to bottom, black 0%, black 82%, transparent 100%);
+}
+
+.landing-particles {
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 0%, black 88%, transparent 100%);
+}
+
+.landing-particles span {
+  position: absolute;
+  top: -3%;
+  border-radius: 999px;
+  background: var(--foreground);
+  animation: landing-snow linear infinite;
+  will-change: transform;
+}
+
+@keyframes landing-snow {
+  to {
+    transform: translate3d(var(--particle-drift), 106vh, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-particles span {
+    animation: none;
+  }
+}
