@@ -169,20 +169,14 @@ export function ApplicationClientForm({
         <div>
           <h3 className="text-sm font-medium">Social provider credentials</h3>
           <p className="text-xs text-muted-foreground">
-            Secrets are encrypted and will not be shown again after saving.
+            Saved credentials are encrypted and locked by default.
           </p>
         </div>
         {providerFields.map((provider) => {
           const idName = `${provider.id}ClientId` as const;
           const secretName = `${provider.id}ClientSecret` as const;
-          const removeName =
-            `remove${provider.id[0].toUpperCase()}${provider.id.slice(1)}Credentials` as
-              | "removeGoogleCredentials"
-              | "removeFacebookCredentials"
-              | "removeGithubCredentials";
           const callbackURL = `${new URL(env.VITE_SERVER_URL).origin}/api/auth/callback/${provider.id}`;
           const configured = Boolean(initialValues[idName]?.trim());
-          const removing = form.watch(removeName);
           const unlocked = !configured || Boolean(unlockedSecrets[provider.id]);
           const visible = Boolean(visibleSecrets[provider.id]);
           const loading = loadingSecret === provider.id;
@@ -213,12 +207,63 @@ export function ApplicationClientForm({
               className="grid gap-3 rounded-lg border p-4"
             >
               <div className="flex items-center justify-between gap-3">
-                <h4 className="font-medium">{provider.label}</h4>
+                <div>
+                  <h4 className="font-medium">{provider.label}</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {unlocked ? "Credentials unlocked for editing" : "Credentials locked"}
+                  </p>
+                </div>
                 {configured ? (
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input type="checkbox" {...form.register(removeName)} />
-                    Remove saved credentials
-                  </label>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={loading}
+                    title={
+                      unlocked
+                        ? `Lock ${provider.label} credentials`
+                        : `Unlock ${provider.label} credentials`
+                    }
+                    aria-label={
+                      unlocked
+                        ? `Lock ${provider.label} credentials`
+                        : `Unlock ${provider.label} credentials`
+                    }
+                    onClick={async () => {
+                      if (unlocked) {
+                        setRevealedSecrets((current) => ({
+                          ...current,
+                          [provider.id]: form.getValues(secretName),
+                        }));
+                        setUnlockedSecrets((current) => ({
+                          ...current,
+                          [provider.id]: false,
+                        }));
+                        return;
+                      }
+
+                      const secret = await loadSecret();
+                      if (secret === null) return;
+                      if (!form.getValues(secretName)) {
+                        form.setValue(secretName, secret, {
+                          shouldDirty: false,
+                          shouldValidate: true,
+                        });
+                      }
+                      setUnlockedSecrets((current) => ({
+                        ...current,
+                        [provider.id]: true,
+                      }));
+                    }}
+                  >
+                    {loading ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : unlocked ? (
+                      <LockKeyholeOpen />
+                    ) : (
+                      <LockKeyhole />
+                    )}
+                  </Button>
                 ) : null}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -226,7 +271,7 @@ export function ApplicationClientForm({
                   <FieldLabel>{provider.idLabel}</FieldLabel>
                   <Input
                     autoComplete="off"
-                    disabled={removing}
+                    readOnly={!unlocked}
                     {...form.register(idName)}
                   />
                   <FieldError errors={[form.formState.errors[idName]]} />
@@ -240,7 +285,6 @@ export function ApplicationClientForm({
                       <Input
                         type={visible ? "text" : "password"}
                         autoComplete="new-password"
-                        disabled={removing}
                         placeholder="Enter the provider secret"
                         {...form.register(secretName)}
                       />
@@ -248,7 +292,6 @@ export function ApplicationClientForm({
                       <Input
                         type={visible ? "text" : "password"}
                         readOnly
-                        disabled={removing}
                         value={
                           visible
                             ? revealedSecrets[provider.id] ?? ""
@@ -263,7 +306,7 @@ export function ApplicationClientForm({
                           type="button"
                           size="icon"
                           variant="outline"
-                          disabled={removing || loading}
+                          disabled={loading}
                           title={visible ? "Hide saved secret" : "Reveal saved secret"}
                           onClick={async () => {
                             if (!visible) {
@@ -283,32 +326,6 @@ export function ApplicationClientForm({
                           ) : (
                             <Eye />
                           )}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          disabled={removing || loading}
-                          title={
-                            unlocked
-                              ? "Secret is unlocked for editing"
-                              : "Unlock secret for editing"
-                          }
-                          onClick={async () => {
-                            if (unlocked) return;
-                            const secret = await loadSecret();
-                            if (secret === null) return;
-                            form.setValue(secretName, secret, {
-                              shouldDirty: false,
-                              shouldValidate: true,
-                            });
-                            setUnlockedSecrets((current) => ({
-                              ...current,
-                              [provider.id]: true,
-                            }));
-                          }}
-                        >
-                          {unlocked ? <LockKeyholeOpen /> : <LockKeyhole />}
                         </Button>
                       </>
                     ) : null}

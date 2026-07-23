@@ -34,13 +34,10 @@ export function ClientEditDialog(props: {
               : [""],
             googleClientId: props.value.client.socialProviderCredentials.find((item) => item.provider === "google")?.clientId ?? "",
             googleClientSecret: "",
-            removeGoogleCredentials: false,
             facebookClientId: props.value.client.socialProviderCredentials.find((item) => item.provider === "facebook")?.clientId ?? "",
             facebookClientSecret: "",
-            removeFacebookCredentials: false,
             githubClientId: props.value.client.socialProviderCredentials.find((item) => item.provider === "github")?.clientId ?? "",
             githubClientSecret: "",
-            removeGithubCredentials: false,
           }
         : undefined,
     [props.value],

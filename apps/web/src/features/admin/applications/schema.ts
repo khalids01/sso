@@ -89,13 +89,10 @@ export const createApplicationClientDefaults: CreateApplicationClientFormValues 
   allowedOrigins: [""],
   googleClientId: "",
   googleClientSecret: "",
-  removeGoogleCredentials: false,
   facebookClientId: "",
   facebookClientSecret: "",
-  removeFacebookCredentials: false,
   githubClientId: "",
   githubClientSecret: "",
-  removeGithubCredentials: false,
 };
 
 export const createApplicationClientSchema = z
@@ -106,13 +103,10 @@ export const createApplicationClientSchema = z
     allowedOrigins: z.array(z.string()),
     googleClientId: z.string().max(500),
     googleClientSecret: z.string().max(1_000),
-    removeGoogleCredentials: z.boolean(),
     facebookClientId: z.string().max(500),
     facebookClientSecret: z.string().max(1_000),
-    removeFacebookCredentials: z.boolean(),
     githubClientId: z.string().max(500),
     githubClientSecret: z.string().max(1_000),
-    removeGithubCredentials: z.boolean(),
   })
   .superRefine((value, ctx) => {
     const redirectUris = trimValues(value.redirectUris);
@@ -170,11 +164,7 @@ export const createApplicationClientSchema = z
     for (const provider of ["google", "facebook", "github"] as const) {
       const clientId = value[`${provider}ClientId`].trim();
       const clientSecret = value[`${provider}ClientSecret`].trim();
-      const removing =
-        value[
-          `remove${provider[0].toUpperCase()}${provider.slice(1)}Credentials` as keyof typeof value
-        ];
-      if (!removing && clientSecret && !clientId) {
+      if (clientSecret && !clientId) {
         ctx.addIssue({
           code: "custom",
           path: [`${provider}ClientId`],
@@ -193,13 +183,10 @@ export const createApplicationClientSchema = z
       allowedOrigins: allowedOrigins.length > 0 ? allowedOrigins : undefined,
       googleClientId: value.googleClientId.trim() || undefined,
       googleClientSecret: value.googleClientSecret.trim() || undefined,
-      removeGoogleCredentials: value.removeGoogleCredentials || undefined,
       facebookClientId: value.facebookClientId.trim() || undefined,
       facebookClientSecret: value.facebookClientSecret.trim() || undefined,
-      removeFacebookCredentials: value.removeFacebookCredentials || undefined,
       githubClientId: value.githubClientId.trim() || undefined,
       githubClientSecret: value.githubClientSecret.trim() || undefined,
-      removeGithubCredentials: value.removeGithubCredentials || undefined,
     };
   });
 
