@@ -1,5 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
+import { KeyRound, Link2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { queryKeys } from "@/constants/query-keys";
 import { client } from "@/lib/client";
 import type {
@@ -65,37 +74,61 @@ export function ApplicationClientsList(props: {
   }
 
   return (
-    <div className="divide-y rounded-md border">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => (
-        <div
+        <Card
           key={item.id}
           aria-label={`Client ${item.name}`}
-          className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(180px,1fr)_minmax(220px,1fr)_auto_auto]"
+          className="min-h-64 transition-colors hover:ring-foreground/20"
         >
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{item.name}</div>
-            <div className="break-all font-mono text-xs text-muted-foreground">
-              {item.clientId}
+          <CardHeader className="grid-cols-[1fr_auto] gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <KeyRound className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <CardTitle className="truncate text-base">{item.name}</CardTitle>
+                <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                  {item.clientId}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="min-w-0">
-            <UrlList items={item.redirectUris} />
-          </div>
-          <div className="flex items-start gap-2">
-            <Badge variant="outline">{item.clientType}</Badge>
-            <StatusBadge status={item.status} />
-          </div>
-          <ClientActionsMenu
-            application={props.application}
-            client={item}
-            filter={props.filter}
-            canEdit={props.canEdit}
-            canManage={props.canManage}
-            onView={() => props.onView(item)}
-            onEdit={() => props.onEdit(item)}
-            onLifecycle={props.onLifecycle}
-          />
-        </div>
+            <CardAction>
+              <ClientActionsMenu
+                application={props.application}
+                client={item}
+                filter={props.filter}
+                canEdit={props.canEdit}
+                canManage={props.canManage}
+                onView={() => props.onView(item)}
+                onEdit={() => props.onEdit(item)}
+                onLifecycle={props.onLifecycle}
+              />
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{item.clientType}</Badge>
+              <StatusBadge status={item.status} />
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium">
+                <Link2 className="size-3.5 text-muted-foreground" />
+                Redirect URIs
+              </div>
+              <UrlList items={item.redirectUris} />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-between gap-3 bg-muted/20">
+            <span className="text-xs text-muted-foreground">
+              Updated {new Date(item.updatedAt).toLocaleDateString()}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {item.allowedOrigins.length}{" "}
+              {item.allowedOrigins.length === 1 ? "origin" : "origins"}
+            </span>
+          </CardFooter>
+        </Card>
       ))}
     </div>
   );

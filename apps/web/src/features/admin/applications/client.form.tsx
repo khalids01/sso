@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Controller,
@@ -6,7 +6,16 @@ import {
   type FieldError as HookFormFieldError,
   type UseFormRegisterReturn,
 } from "react-hook-form";
-import { Copy, Plus, X } from "lucide-react";
+import {
+  Copy,
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+  LockKeyholeOpen,
+  Plus,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { env } from "@env/public";
 import { Button } from "@/components/ui/button";
@@ -26,6 +35,7 @@ import {
   type CreateApplicationClientFormValues,
   type CreateApplicationClientInput,
 } from "./schema";
+import type { SocialProviderId } from "./crud/clients";
 
 type ApplicationClientFormProps = {
   isLoading: boolean;
@@ -35,6 +45,7 @@ type ApplicationClientFormProps = {
   initialValues?: CreateApplicationClientFormValues;
   submitLabel?: string;
   loadingLabel?: string;
+  loadProviderSecret?: (provider: SocialProviderId) => Promise<string>;
 };
 
 export function ApplicationClientForm({
@@ -45,6 +56,7 @@ export function ApplicationClientForm({
   initialValues = createApplicationClientDefaults,
   submitLabel = "Save client",
   loadingLabel = "Saving...",
+  loadProviderSecret,
 }: ApplicationClientFormProps) {
   const form = useForm<
     CreateApplicationClientFormValues,
@@ -54,9 +66,25 @@ export function ApplicationClientForm({
     resolver: zodResolver(createApplicationClientSchema),
     defaultValues: initialValues,
   });
+  const [revealedSecrets, setRevealedSecrets] = useState<
+    Partial<Record<SocialProviderId, string>>
+  >({});
+  const [visibleSecrets, setVisibleSecrets] = useState<
+    Partial<Record<SocialProviderId, boolean>>
+  >({});
+  const [unlockedSecrets, setUnlockedSecrets] = useState<
+    Partial<Record<SocialProviderId, boolean>>
+  >({});
+  const [loadingSecret, setLoadingSecret] = useState<SocialProviderId | null>(
+    null,
+  );
 
   useEffect(() => {
     form.reset(initialValues);
+    setRevealedSecrets({});
+    setVisibleSecrets({});
+    setUnlockedSecrets({});
+    setLoadingSecret(null);
   }, [form, initialValues, resetKey]);
 
   const redirectUris = form.watch("redirectUris") ?? [""];
@@ -155,6 +183,30 @@ export function ApplicationClientForm({
           const callbackURL = `${new URL(env.VITE_SERVER_URL).origin}/api/auth/callback/${provider.id}`;
           const configured = Boolean(initialValues[idName]?.trim());
           const removing = form.watch(removeName);
+          const unlocked = !configured || Boolean(unlockedSecrets[provider.id]);
+          const visible = Boolean(visibleSecrets[provider.id]);
+          const loading = loadingSecret === provider.id;
+
+          async function loadSecret() {
+            const existing = revealedSecrets[provider.id];
+            if (existing !== undefined) return existing;
+            if (!loadProviderSecret) return "";
+            setLoadingSecret(provider.id);
+            try {
+              const secret = await loadProviderSecret(provider.id);
+              setRevealedSecrets((current) => ({
+                ...current,
+                [provider.id]: secret,
+              }));
+              return secret;
+            } catch {
+              toast.error(`Could not load the ${provider.label} secret`);
+              return null;
+            } finally {
+              setLoadingSecret(null);
+            }
+          }
+
           return (
             <section
               key={provider.id}
@@ -183,17 +235,84 @@ export function ApplicationClientForm({
                   <FieldLabel>
                     {provider.id === "facebook" ? "App secret" : "Client secret"}
                   </FieldLabel>
-                  <Input
-                    type="password"
-                    autoComplete="new-password"
-                    disabled={removing}
-                    placeholder={
-                      configured
-                        ? "Leave blank to keep the saved secret"
-                        : "Enter the provider secret"
-                    }
-                    {...form.register(secretName)}
-                  />
+                  <div className="flex gap-2">
+                    {unlocked ? (
+                      <Input
+                        type={visible ? "text" : "password"}
+                        autoComplete="new-password"
+                        disabled={removing}
+                        placeholder="Enter the provider secret"
+                        {...form.register(secretName)}
+                      />
+                    ) : (
+                      <Input
+                        type={visible ? "text" : "password"}
+                        readOnly
+                        disabled={removing}
+                        value={
+                          visible
+                            ? revealedSecrets[provider.id] ?? ""
+                            : "••••••••••••••••"
+                        }
+                        aria-label={`Locked ${provider.label} secret`}
+                      />
+                    )}
+                    {configured ? (
+                      <>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          disabled={removing || loading}
+                          title={visible ? "Hide saved secret" : "Reveal saved secret"}
+                          onClick={async () => {
+                            if (!visible) {
+                              const secret = await loadSecret();
+                              if (secret === null) return;
+                            }
+                            setVisibleSecrets((current) => ({
+                              ...current,
+                              [provider.id]: !visible,
+                            }));
+                          }}
+                        >
+                          {loading ? (
+                            <LoaderCircle className="animate-spin" />
+                          ) : visible ? (
+                            <EyeOff />
+                          ) : (
+                            <Eye />
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          disabled={removing || loading}
+                          title={
+                            unlocked
+                              ? "Secret is unlocked for editing"
+                              : "Unlock secret for editing"
+                          }
+                          onClick={async () => {
+                            if (unlocked) return;
+                            const secret = await loadSecret();
+                            if (secret === null) return;
+                            form.setValue(secretName, secret, {
+                              shouldDirty: false,
+                              shouldValidate: true,
+                            });
+                            setUnlockedSecrets((current) => ({
+                              ...current,
+                              [provider.id]: true,
+                            }));
+                          }}
+                        >
+                          {unlocked ? <LockKeyholeOpen /> : <LockKeyhole />}
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
                 </Field>
               </div>
               <div className="grid gap-1">

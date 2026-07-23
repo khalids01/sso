@@ -365,6 +365,26 @@ export const applicationsController = new Elysia({
             },
           },
         )
+        .get(
+          "/:id/clients/:clientId/credentials",
+          async ({ params: { id, clientId }, set, userId }) => {
+            try {
+              return await adminApplicationsService.getClientSocialProviderCredentials(
+                id,
+                clientId,
+                getActor({ userId }),
+              );
+            } catch (error) {
+              return handleApplicationsMutationError(error, set);
+            }
+          },
+          {
+            beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
+            detail: {
+              summary: "Reveal application client social provider credentials",
+            },
+          },
+        )
         .patch(
           "/:id/clients/:clientId",
           async ({ params: { id, clientId }, body, set, userId }) => {

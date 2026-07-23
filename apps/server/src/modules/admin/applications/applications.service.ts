@@ -28,7 +28,10 @@ import {
   getApplicationAuthCapabilities,
   getAvailableApplicationAuthMethodIds,
 } from "@auth/application-capabilities";
-import { encryptSocialProviderSecret } from "../../auth/social-provider-credentials.service";
+import {
+  decryptSocialProviderSecret,
+  encryptSocialProviderSecret,
+} from "../../auth/social-provider-credentials.service";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
@@ -818,6 +821,45 @@ export class AdminApplicationsService {
 
     return {
       items: rows.map(mapClient),
+    };
+  }
+
+  async getClientSocialProviderCredentials(
+    applicationId: string,
+    clientId: string,
+    actor: AdminApplicationsActor,
+  ) {
+    const client = await prisma.applicationClient.findUnique({
+      where: { id: clientId, applicationId },
+      select: {
+        id: true,
+        socialProviderCredentials: {
+          select: {
+            provider: true,
+            clientId: true,
+            encryptedSecret: true,
+          },
+          orderBy: { provider: "asc" },
+        },
+      },
+    });
+    if (!client) {
+      throw new ApplicationsPolicyError("Application client not found", 404);
+    }
+
+    await recordApplicationActivity({
+      type: "application_client.credentials_viewed",
+      actorUserId: actor.id ?? null,
+      message: "Application client credentials viewed",
+      metadata: { applicationId, applicationClientId: clientId },
+    });
+
+    return {
+      items: client.socialProviderCredentials.map((credential) => ({
+        provider: credential.provider,
+        clientId: credential.clientId,
+        clientSecret: decryptSocialProviderSecret(credential.encryptedSecret),
+      })),
     };
   }
 

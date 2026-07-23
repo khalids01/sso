@@ -7,6 +7,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ApplicationClientForm } from "../../client.form";
+import {
+  getClientSocialProviderSecret,
+  type SocialProviderId,
+} from "../../crud/clients";
 import type { CreateApplicationClientInput } from "../../schema";
 import type { AdminApplication, ApplicationClient } from "../../types";
 
@@ -54,6 +58,13 @@ export function ClientEditDialog(props: {
             initialValues={initialValues}
             isLoading={props.isLoading}
             resetKey={props.value?.client.id ?? "closed"}
+            loadProviderSecret={(provider: SocialProviderId) =>
+              getClientSocialProviderSecret({
+                applicationId: props.value!.application.id,
+                clientId: props.value!.client.id,
+                provider,
+              })
+            }
             onSubmit={props.onSubmit}
             onSubmitted={() => props.onOpenChange(false)}
           />

@@ -8,6 +8,7 @@ export type CreateClientInput = {
 };
 
 export type UpdateClientInput = CreateClientInput & { clientId: string };
+export type SocialProviderId = "google" | "facebook" | "github";
 
 export async function createClient(input: CreateClientInput) {
   const { data, error } = await client.admin
@@ -24,4 +25,29 @@ export async function updateClient(input: UpdateClientInput) {
     .patch(input.payload);
   if (error) throw error;
   return data as ApplicationClient;
+}
+
+export async function getClientSocialProviderSecret(input: {
+  applicationId: string;
+  clientId: string;
+  provider: SocialProviderId;
+}) {
+  const { data, error } = await client.admin
+    .applications({ id: input.applicationId })
+    .clients({ clientId: input.clientId })
+    .credentials.get();
+  if (error) throw error;
+
+  const credentials = data as {
+    items: Array<{
+      provider: SocialProviderId;
+      clientId: string;
+      clientSecret: string;
+    }>;
+  };
+  const credential = credentials.items.find(
+    (item) => item.provider === input.provider,
+  );
+  if (!credential) throw new Error("Provider credentials not found");
+  return credential.clientSecret;
 }
