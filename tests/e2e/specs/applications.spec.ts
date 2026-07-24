@@ -107,12 +107,12 @@ test("manage the complete application, client, and membership lifecycle", async 
     applicationId = await trackApplication(slug);
 
     await openActions(page, initialName);
-    await page.getByRole("menuitem", { name: "View" }).click();
+    await page.getByRole("menuitem", { name: "View", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Application details" })).toContainText(slug);
     await page.keyboard.press("Escape");
 
     await openActions(page, initialName);
-    await page.getByRole("menuitem", { name: "Edit" }).click();
+    await page.getByRole("menuitem", { name: "Edit", exact: true }).click();
     const editDialog = page.getByRole("dialog", { name: "Edit application" });
     await editDialog.getByLabel("Name").fill(applicationName);
     await editDialog.getByLabel("Description").fill("Updated by the Playwright E2E journey");
@@ -212,7 +212,9 @@ test("manage the complete application, client, and membership lifecycle", async 
   await test.step("archive the application and enforce archived restrictions", async () => {
     await page.getByRole("link", { name: "Applications", exact: true }).click();
     await openActions(page, applicationName);
-    await page.getByRole("menuitem", { name: "Archive" }).click();
+    await page
+      .getByRole("menuitem", { name: "Archive", exact: true })
+      .click();
     await confirmAction(page, "Archive");
     await page.getByRole("button", { name: "Archived" }).click();
     await applicationRow(page, applicationName);

@@ -13,14 +13,20 @@ export async function provisionE2EIdentities() {
     throw new Error("E2E actor and member must use different dedicated identities");
   }
 
-  const [{ default: prisma }, assignments, sessions] = await Promise.all([
-    import("../../../packages/db/src/client.server"),
-    import("../../../packages/db/src/rbac/assignments.server"),
-    import("../../../packages/db/src/session-revocation.server"),
-  ]);
+  const [{ default: prisma }, assignments, sessions, { seedRbac }] =
+    await Promise.all([
+      import("../../../packages/db/src/client.server"),
+      import("../../../packages/db/src/rbac/assignments.server"),
+      import("../../../packages/db/src/session-revocation.server"),
+      import("../../../packages/db/prisma/seed/rbac"),
+    ]);
   const role = resolveActorRole(e2eEnv.E2E_ACTOR_ROLE);
 
   try {
+    // A freshly migrated E2E database has no catalog rows yet. Make setup
+    // self-contained while preserving customized non-protected role grants.
+    await seedRbac();
+
     let actor = await prisma.user.findUnique({
       where: { email: e2eEnv.E2E_ACTOR_EMAIL },
       select: { id: true },
