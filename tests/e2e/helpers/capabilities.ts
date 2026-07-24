@@ -12,6 +12,8 @@ export const actionRegistry = {
   accessAdmin: Permissions.AdminAccess,
   readApplications: Permissions.AdminApplicationsRead,
   manageApplications: Permissions.AdminApplicationsManage,
+  readOAuthConnections: Permissions.AdminOAuthConnectionsRead,
+  manageOAuthConnections: Permissions.AdminOAuthConnectionsManage,
 } as const satisfies Record<string, Permission>;
 
 export function deriveCapabilities(session: SessionContext) {

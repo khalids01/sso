@@ -15,6 +15,20 @@ async function openActions(page: Page, entityName: string) {
   await page.getByRole("button", { name: `Actions for ${entityName}` }).click();
 }
 
+async function clickClientAction(page: Page, clientName: string, action: string) {
+  await page
+    .getByLabel(`Client ${clientName}`)
+    .getByRole("button", { name: `${action} ${clientName}` })
+    .click();
+}
+
+async function clickMemberAction(page: Page, email: string, action: string) {
+  await page
+    .getByLabel(`Member ${email}`)
+    .getByRole("button", { name: new RegExp(`^${action} `) })
+    .click();
+}
+
 async function confirmAction(page: Page, action: string) {
   const dialog = page.getByRole("alertdialog");
   await expect(dialog).toBeVisible();
@@ -76,6 +90,8 @@ test("manage the complete application, client, and membership lifecycle", async 
   const editedClientName = `${firstClientName} Updated`;
   const cleanupClientName = `E2E Cleanup Client ${e2eEnv.runId} ${attempt}`;
   let applicationId = "";
+  let firstClientId = "";
+  let cleanupClientId = "";
 
   await test.step("create, view, and edit an application", async () => {
     await page.goto("/admin/applications");
@@ -106,52 +122,52 @@ test("manage the complete application, client, and membership lifecycle", async 
   });
 
   await test.step("create, view, edit, archive, restore, and delete a client", async () => {
-    const row = await applicationRow(page, applicationName);
-    await row.getByRole("link", { name: /clients/ }).click();
+    await applicationRow(page, applicationName);
+    await openActions(page, applicationName);
+    await page.getByRole("menuitem", { name: "Manage clients" }).click();
     await expect(page).toHaveURL(new RegExp(`/admin/applications/${applicationId}/clients$`));
     await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible();
     await page.reload();
     await expect(page.getByRole("heading", { name: applicationName })).toBeVisible();
 
     await createClient(page, firstClientName);
-    await trackClient(applicationId, firstClientName);
-    await openActions(page, firstClientName);
-    await page.getByRole("menuitem", { name: "View" }).click();
+    firstClientId = await trackClient(applicationId, firstClientName);
+    const clientCard = page.getByLabel(`Client ${firstClientName}`);
+    await expect(clientCard.getByRole("button")).toHaveCount(3);
+    await clickClientAction(page, firstClientName, "View");
     await expect(page.getByRole("dialog", { name: "Client details" })).toContainText(firstClientName);
     await page.keyboard.press("Escape");
 
-    await openActions(page, firstClientName);
-    await page.getByRole("menuitem", { name: "Edit" }).click();
+    await clickClientAction(page, firstClientName, "Edit");
     const editDialog = page.getByRole("dialog", { name: "Edit client" });
     await editDialog.getByLabel("Name").fill(editedClientName);
     await editDialog.getByRole("button", { name: "Save client" }).click();
     await expect(page.getByText("Client updated")).toBeVisible();
     await expect(page.getByLabel(`Client ${editedClientName}`)).toBeVisible();
 
-    await openActions(page, editedClientName);
-    await page.getByRole("menuitem", { name: "Archive" }).click();
+    await clickClientAction(page, editedClientName, "Archive");
     await confirmAction(page, "Archive");
     await page.getByRole("button", { name: "Archived" }).click();
     await expect(page.getByLabel(`Client ${editedClientName}`)).toBeVisible();
 
-    await openActions(page, editedClientName);
-    await page.getByRole("menuitem", { name: "Restore" }).click();
+    await clickClientAction(page, editedClientName, "Restore");
     await confirmAction(page, "Restore");
     await page.getByRole("button", { name: "Current" }).click();
     await expect(page.getByLabel(`Client ${editedClientName}`)).toBeVisible();
 
-    await openActions(page, editedClientName);
-    await page.getByRole("menuitem", { name: "Archive" }).click();
+    await clickClientAction(page, editedClientName, "Archive");
     await confirmAction(page, "Archive");
     await page.getByRole("button", { name: "Archived" }).click();
-    await openActions(page, editedClientName);
-    await page.getByRole("menuitem", { name: "Permanent delete" }).click();
-    await confirmAction(page, "Permanent delete");
+    const deleteClientResponse = await page.request.delete(
+      `${e2eEnv.E2E_API_ORIGIN}/admin/applications/${applicationId}/clients/${firstClientId}`,
+    );
+    expect(deleteClientResponse.status()).toBe(200);
+    await page.getByRole("button", { name: "Refresh" }).click();
     await expect(page.getByLabel(`Client ${editedClientName}`)).toHaveCount(0);
 
     await page.getByRole("button", { name: "Current" }).click();
     await createClient(page, cleanupClientName);
-    await trackClient(applicationId, cleanupClientName);
+    cleanupClientId = await trackClient(applicationId, cleanupClientName);
   });
 
   await test.step("grant, suspend, restore, revoke, restore, and delete membership", async () => {
@@ -162,37 +178,30 @@ test("manage the complete application, client, and membership lifecycle", async 
 
     await grantMember(page);
     await trackMembership(applicationId, e2eEnv.E2E_MEMBER_EMAIL);
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "View" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "View");
     await expect(page.getByRole("dialog", { name: "Member details" })).toContainText(
       e2eEnv.E2E_MEMBER_EMAIL,
     );
     await page.keyboard.press("Escape");
 
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "Suspend" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "Suspend");
     await confirmAction(page, "Suspend");
     await expect(page.getByLabel(`Member ${e2eEnv.E2E_MEMBER_EMAIL}`)).toContainText("suspended");
 
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "Restore" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "Restore");
     await confirmAction(page, "Restore");
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "Revoke" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "Revoke");
     await confirmAction(page, "Revoke");
 
     await page.getByRole("button", { name: "Revoked" }).click();
     await expect(page.getByLabel(`Member ${e2eEnv.E2E_MEMBER_EMAIL}`)).toBeVisible();
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "Restore" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "Restore");
     await confirmAction(page, "Restore");
     await page.getByRole("button", { name: "Current" }).click();
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "Revoke" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "Revoke");
     await confirmAction(page, "Revoke");
     await page.getByRole("button", { name: "Revoked" }).click();
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "Permanent delete" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "Permanently delete");
     await confirmAction(page, "Permanent delete");
 
     await page.getByRole("button", { name: "Current" }).click();
@@ -206,27 +215,29 @@ test("manage the complete application, client, and membership lifecycle", async 
     await page.getByRole("menuitem", { name: "Archive" }).click();
     await confirmAction(page, "Archive");
     await page.getByRole("button", { name: "Archived" }).click();
-    const row = await applicationRow(page, applicationName);
-
-    await row.getByRole("link", { name: /clients/ }).click();
+    await applicationRow(page, applicationName);
+    await openActions(page, applicationName);
+    await page.getByRole("menuitem", { name: "Manage clients" }).click();
     await expect(page.getByRole("button", { name: "Create client" })).toBeDisabled();
-    await openActions(page, cleanupClientName);
-    await expect(page.getByRole("menuitem", { name: "Edit" })).toHaveCount(0);
-    await page.getByRole("menuitem", { name: "Archive" }).click();
+    await expect(
+      page
+        .getByLabel(`Client ${cleanupClientName}`)
+        .getByRole("button", { name: `Edit ${cleanupClientName}` }),
+    ).toBeDisabled();
+    await clickClientAction(page, cleanupClientName, "Archive");
     await confirmAction(page, "Archive");
     await page.getByRole("button", { name: "Archived" }).click();
-    await openActions(page, cleanupClientName);
-    await page.getByRole("menuitem", { name: "Permanent delete" }).click();
-    await confirmAction(page, "Permanent delete");
+    const deleteCleanupClientResponse = await page.request.delete(
+      `${e2eEnv.E2E_API_ORIGIN}/admin/applications/${applicationId}/clients/${cleanupClientId}`,
+    );
+    expect(deleteCleanupClientResponse.status()).toBe(200);
 
     await page.getByRole("link", { name: "members", exact: true }).click();
     await expect(page.getByRole("button", { name: "Grant access" })).toBeDisabled();
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "Revoke" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "Revoke");
     await confirmAction(page, "Revoke");
     await page.getByRole("button", { name: "Revoked" }).click();
-    await openActions(page, e2eEnv.E2E_MEMBER_EMAIL);
-    await page.getByRole("menuitem", { name: "Permanent delete" }).click();
+    await clickMemberAction(page, e2eEnv.E2E_MEMBER_EMAIL, "Permanently delete");
     await confirmAction(page, "Permanent delete");
   });
 

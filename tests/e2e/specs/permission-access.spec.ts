@@ -37,6 +37,13 @@ test("UI and API access follow the actor's effective permissions", async ({ page
   );
   expect(listResponse.status()).toBe(capabilities.accessAdmin && capabilities.readApplications ? 200 : 403);
 
+  const oauthListResponse = await page.request.get(
+    `${e2eEnv.E2E_API_ORIGIN}/admin/oauth-connections?page=1&limit=10&filter=current`,
+  );
+  expect(oauthListResponse.status()).toBe(
+    capabilities.accessAdmin && capabilities.readOAuthConnections ? 200 : 403,
+  );
+
   if (!capabilities.accessAdmin) {
     await page.goto("/admin/applications");
     await expect(page).toHaveURL(/\/dashboard$/);
@@ -67,5 +74,30 @@ test("UI and API access follow the actor's effective permissions", async ({ page
     );
     expect(deniedMutation.status()).toBe(403);
     expect(session.permissions).not.toContain(Permissions.AdminApplicationsManage);
+  }
+
+  await page.goto("/admin/oauth-manager");
+  if (!capabilities.readOAuthConnections) {
+    await expect(page.getByText("Failed to load OAuth connections.")).toBeVisible();
+    return;
+  }
+  await expect(page.getByRole("heading", { name: "OAuth Manager" })).toBeVisible();
+  const addConnection = page.getByRole("button", { name: "Add connection" });
+  if (capabilities.manageOAuthConnections) await expect(addConnection).toBeVisible();
+  else {
+    await expect(addConnection).toHaveCount(0);
+    const deniedMutation = await page.request.post(
+      `${e2eEnv.E2E_API_ORIGIN}/admin/oauth-connections`,
+      {
+        data: {
+          name: `${e2eEnv.runPrefix}forbidden`,
+          provider: "google",
+          clientId: `${e2eEnv.runPrefix}forbidden`,
+          clientSecret: "not-created",
+        },
+      },
+    );
+    expect(deniedMutation.status()).toBe(403);
+    expect(session.permissions).not.toContain(Permissions.AdminOAuthConnectionsManage);
   }
 });

@@ -32,6 +32,25 @@ export async function cleanupRunOwnedResources() {
       });
     }
 
+    const oauthConnections = await prisma.oAuthProviderConnection.findMany({
+      where: { name: { startsWith: e2eEnv.runPrefix } },
+      select: { id: true, name: true },
+    });
+    for (const connection of oauthConnections) {
+      if (!connection.name.startsWith(e2eEnv.runPrefix)) {
+        throw new Error(`Refusing cleanup for non-owned OAuth connection ${connection.id}`);
+      }
+    }
+    const oauthConnectionIds = oauthConnections.map((connection) => connection.id);
+    if (oauthConnectionIds.length > 0) {
+      await prisma.oAuthProviderConnection.deleteMany({
+        where: {
+          id: { in: oauthConnectionIds },
+          name: { startsWith: e2eEnv.runPrefix },
+        },
+      });
+    }
+
     let signupUsers = 0;
     if (state.signupUserEmail) {
       const expectedMarker = `+${e2eEnv.runPrefix}signup@`;
@@ -49,6 +68,7 @@ export async function cleanupRunOwnedResources() {
       clients: applications.flatMap((item) => item.clients).length,
       memberships: applications.flatMap((item) => item.members).length,
       signupUsers,
+      oauthConnections: oauthConnectionIds.length,
     };
   } finally {
     await prisma.$disconnect();

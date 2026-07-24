@@ -9,6 +9,7 @@ export type RunState = {
   applicationIds: string[];
   clientIds: string[];
   membershipIds: string[];
+  oauthConnectionIds: string[];
   signupUserEmail?: string;
   oauthFixture?: {
     applicationId: string;
@@ -33,9 +34,12 @@ export function readRunState(): RunState {
       applicationIds: [],
       clientIds: [],
       membershipIds: [],
+      oauthConnectionIds: [],
     };
   }
-  return JSON.parse(fs.readFileSync(statePath, "utf8")) as RunState;
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as RunState;
+  state.oauthConnectionIds ??= [];
+  return state;
 }
 
 export function updateRunState(update: (state: RunState) => void) {

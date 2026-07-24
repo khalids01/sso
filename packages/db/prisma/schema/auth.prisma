@@ -12,18 +12,18 @@ model User {
   banReason     String?
   archived      Boolean   @default(false)
 
-  invitations        Invitation[]
-  onboardingComplete Boolean        @default(false)
-  notifications      Notification[]
-  feedbacks          Feedback[]
-  actedActivityEvents ActivityEvent[] @relation("ActivityEventActor")
-  targetedActivityEvents ActivityEvent[] @relation("ActivityEventTarget")
-  rbacRoles              RbacUserRole[]
+  invitations             Invitation[]
+  onboardingComplete      Boolean                      @default(false)
+  notifications           Notification[]
+  feedbacks               Feedback[]
+  actedActivityEvents     ActivityEvent[]              @relation("ActivityEventActor")
+  targetedActivityEvents  ActivityEvent[]              @relation("ActivityEventTarget")
+  rbacRoles               RbacUserRole[]
   rbacPermissionOverrides RbacUserPermissionOverride[]
   applicationMemberships  ApplicationMember[]
   applicationSubjects     ApplicationSubject[]
-  oauthConsents            OAuthConsent[]
-  applicationInvitations ApplicationInvitation[] @relation("ApplicationInvitationInviter")
+  oauthConsents           OAuthConsent[]
+  applicationInvitations  ApplicationInvitation[]      @relation("ApplicationInvitationInviter")
 
   // Polar Integration
   polarCustomerId    String?
@@ -73,24 +73,24 @@ model Session {
 }
 
 model Account {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  rawProfile            Json?
-  profileUpdatedAt      DateTime?
+  id                        String                   @id
+  accountId                 String
+  providerId                String
+  userId                    String
+  user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken               String?
+  refreshToken              String?
+  idToken                   String?
+  accessTokenExpiresAt      DateTime?
+  refreshTokenExpiresAt     DateTime?
+  scope                     String?
+  password                  String?
+  rawProfile                Json?
+  profileUpdatedAt          DateTime?
   oauthProviderConnectionId String?
   oauthProviderConnection   OAuthProviderConnection? @relation(fields: [oauthProviderConnectionId], references: [id], onDelete: Restrict)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
 
   @@unique([oauthProviderConnectionId, providerId, accountId])
   @@index([userId])

@@ -43,10 +43,10 @@ ON "oauth_provider_connection"("provider", "status");
 CREATE INDEX "oauth_provider_connection_status_idx"
 ON "oauth_provider_connection"("status");
 
-CREATE UNIQUE INDEX "application_oauth_provider_connection_applicationId_provider_key"
+CREATE UNIQUE INDEX "application_oauth_provider_connection_applicationId_provide_key"
 ON "application_oauth_provider_connection"("applicationId", "provider");
 
-CREATE INDEX "application_oauth_provider_connection_oauthProviderConnectionId_idx"
+CREATE INDEX "application_oauth_provider_connection_oauthProviderConnecti_idx"
 ON "application_oauth_provider_connection"("oauthProviderConnectionId");
 
 CREATE UNIQUE INDEX "account_oauthProviderConnectionId_providerId_accountId_key"
@@ -61,7 +61,7 @@ FOREIGN KEY ("applicationId") REFERENCES "application"("id")
 ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE "application_oauth_provider_connection"
-ADD CONSTRAINT "application_oauth_provider_connection_connection_provider_fkey"
+ADD CONSTRAINT "application_oauth_provider_connection_oauthProviderConnect_fkey"
 FOREIGN KEY ("oauthProviderConnectionId", "provider")
 REFERENCES "oauth_provider_connection"("id", "provider")
 ON DELETE RESTRICT ON UPDATE CASCADE;
