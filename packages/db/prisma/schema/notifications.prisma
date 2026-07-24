@@ -8,7 +8,6 @@ model Notification {
     url       String?
     createdAt DateTime @default(now())
 
-    @@index([userId])
     @@index([userId, createdAt])
     @@map("notification")
 }

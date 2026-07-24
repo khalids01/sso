@@ -9,6 +9,7 @@ import prisma from "@db/server";
 import { env } from "@env/server";
 import { getAvailableApplicationAuthMethodIds } from "@auth/server";
 import { z } from "zod";
+import { recordApplicationUsage } from "../application-usage/application-usage.service";
 
 const TOKEN_TTL_SECONDS = 10 * 60;
 const challengePattern = /^[A-Za-z0-9_-]{43}$/;
@@ -40,6 +41,7 @@ export type TokenExchangeInput = {
   codeVerifier: string;
   origin?: string;
   requestId: string;
+  request?: Request;
 };
 
 export class OAuthTokenError extends Error {
@@ -74,25 +76,29 @@ async function recordTokenEvent(input: {
   reason: string;
   userId?: string;
   applicationId?: string;
+  applicationClientId?: string;
   clientId?: string;
+  request?: Request;
 }) {
   try {
-    await prisma.activityEvent.create({
-      data: {
-        type: input.type,
-        actorUserId: input.userId,
-        severity: input.type === "oauth.token.denied" ? "warning" : "info",
-        message:
-          input.type === "oauth.token.denied"
-            ? "OAuth token exchange denied"
-            : "OAuth token issued",
-        metadata: {
-          requestId: input.requestId,
-          reason: input.reason,
-          applicationId: input.applicationId,
-          clientId: input.clientId,
-        },
-      },
+    const resolvedClient =
+      !input.applicationId && input.clientId
+        ? await prisma.applicationClient.findUnique({
+            where: { clientId: input.clientId },
+            select: { id: true, applicationId: true },
+          })
+        : null;
+    await recordApplicationUsage({
+      type: "token",
+      outcome: input.type === "oauth.token.denied" ? "denied" : "success",
+      userId: input.userId,
+      applicationId: input.applicationId ?? resolvedClient?.applicationId,
+      applicationClientId:
+        input.applicationClientId ?? resolvedClient?.id,
+      requestId: input.requestId,
+      reason: input.reason,
+      request: input.request,
+      metadata: { clientId: input.clientId },
     });
   } catch (error) {
     console.error("OAuth token activity recording failed", {
@@ -106,12 +112,14 @@ export async function recordTokenRequestDenied(input: {
   requestId: string;
   reason: string;
   clientId?: string;
+  request?: Request;
 }) {
   await recordTokenEvent({
     type: "oauth.token.denied",
     requestId: input.requestId,
     reason: input.reason,
     clientId: input.clientId,
+    request: input.request,
   });
 }
 
@@ -198,6 +206,7 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
   let audit: {
     userId?: string;
     applicationId?: string;
+    applicationClientId?: string;
     clientId?: string;
   } = { clientId: input.clientId };
 
@@ -242,6 +251,7 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
     const client = await prisma.applicationClient.findUnique({
       where: { clientId: input.clientId },
       select: {
+        id: true,
         clientId: true,
         clientType: true,
         status: true,
@@ -292,6 +302,7 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
       throw new OAuthTokenError("invalid_client", 400, "client_not_found");
     }
     audit.applicationId = client.application.id;
+    audit.applicationClientId = client.id;
 
     const clientValid =
       client.clientType === "public" &&
@@ -385,6 +396,7 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
       requestId: input.requestId,
       reason: "authorization_code_exchanged",
       ...audit,
+      request: input.request,
     });
 
     return {
@@ -404,6 +416,7 @@ export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
       requestId: input.requestId,
       reason: oauthError.auditReason,
       ...audit,
+      request: input.request,
     });
     throw oauthError;
   }

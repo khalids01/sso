@@ -36,7 +36,6 @@ type ActivityItem = {
   type: string;
   actorUserId: string | null;
   targetUserId: string | null;
-  visitorId: string | null;
   severity: ActivitySeverity;
   message: string;
   metadata: unknown;
@@ -232,7 +231,6 @@ function ActivityRow({ item }: { item: ActivityItem }) {
           {item.targetUser ? (
             <span>Target: {formatUser(item.targetUser)}</span>
           ) : null}
-          {item.visitorId ? <span>Visitor: {item.visitorId}</span> : null}
         </div>
       </div>
       <MetadataPreview metadata={item.metadata} />

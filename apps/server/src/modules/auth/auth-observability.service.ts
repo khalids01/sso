@@ -54,7 +54,27 @@ async function readFailureReason(response: Response) {
 }
 
 async function defaultWriter(event: AuthFailureEvent) {
-  return prisma.activityEvent.create({ data: event });
+  const client = event.metadata.clientId
+    ? await prisma.applicationClient.findUnique({
+        where: { clientId: event.metadata.clientId },
+        select: { id: true, applicationId: true },
+      })
+    : null;
+  return prisma.applicationUsageEvent.create({
+    data: {
+      type:
+        event.type === "oauth.authorization.denied"
+          ? "authorization"
+          : "login",
+      outcome: "denied",
+      applicationId: client?.applicationId,
+      applicationClientId: client?.id,
+      authMethod: event.metadata.method,
+      requestId: event.metadata.requestId,
+      reason: event.metadata.reason,
+      metadata: { status: event.metadata.status },
+    },
+  });
 }
 
 async function writeFailure(

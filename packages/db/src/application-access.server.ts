@@ -15,6 +15,7 @@ export type ApplicationClientAccessResult =
       allowed: true;
       applicationId: string;
       applicationName: string;
+      applicationClientId: string;
       clientId: string;
       clientName: string;
       memberId: string;
@@ -24,6 +25,7 @@ export type ApplicationClientAccessResult =
       reason: ApplicationClientAccessDenialReason;
       applicationId?: string;
       applicationName?: string;
+      applicationClientId?: string;
       clientId?: string;
       clientName?: string;
     };
@@ -36,6 +38,7 @@ export async function getApplicationClientAccess(
   const client = await db.applicationClient.findUnique({
     where: { clientId },
     select: {
+      id: true,
       clientId: true,
       name: true,
       status: true,
@@ -73,6 +76,7 @@ export async function getApplicationClientAccess(
   const context = {
     applicationId: client.application.id,
     applicationName: client.application.name,
+    applicationClientId: client.id,
     clientId: client.clientId,
     clientName: client.name,
   };
@@ -117,10 +121,11 @@ export async function registerApplicationMemberIfAllowed(
   clientId: string,
   db: Pick<typeof prisma, "$transaction"> = prisma,
 ) {
-  return db.$transaction(async (tx) => {
+  const registration = await db.$transaction(async (tx) => {
     const client = await tx.applicationClient.findUnique({
       where: { clientId },
       select: {
+        id: true,
         application: {
           select: {
             id: true,
@@ -130,13 +135,13 @@ export async function registerApplicationMemberIfAllowed(
         },
       },
     });
-    if (!client || client.application.status !== "active") return false;
+    if (!client || client.application.status !== "active") return null;
 
     const user = await tx.user.findUnique({
       where: { id: userId },
       select: { email: true, archived: true, banned: true },
     });
-    if (!user || user.archived || user.banned) return false;
+    if (!user || user.archived || user.banned) return null;
 
     let invitationId: string | undefined;
     if (client.application.registrationMode === "invite_only") {
@@ -150,13 +155,13 @@ export async function registerApplicationMemberIfAllowed(
         select: { id: true },
         orderBy: { createdAt: "desc" },
       });
-      if (!invitation) return false;
+      if (!invitation) return null;
       invitationId = invitation.id;
     } else if (client.application.registrationMode !== "open") {
-      return false;
+      return null;
     }
 
-    await tx.applicationMember.upsert({
+    const membership = await tx.applicationMember.upsert({
       where: {
         applicationId_userId: {
           applicationId: client.application.id,
@@ -186,8 +191,32 @@ export async function registerApplicationMemberIfAllowed(
         data: { status: "accepted", acceptedAt: new Date() },
       });
     }
-    return true;
+    return {
+      applicationId: client.application.id,
+      applicationClientId: client.id,
+      membershipId: membership.id,
+    };
   });
+
+  if (!registration) return false;
+
+  try {
+    await prisma.applicationUsageEvent.create({
+      data: {
+        type: "membership",
+        outcome: "success",
+        userId,
+        applicationId: registration.applicationId,
+        applicationClientId: registration.applicationClientId,
+        reason: "self_registration",
+        metadata: { membershipId: registration.membershipId },
+      },
+    });
+  } catch (error) {
+    console.error("Application membership usage recording failed", error);
+  }
+
+  return true;
 }
 
 export async function recordApplicationAuthorizationDenied(input: {
@@ -199,20 +228,44 @@ export async function recordApplicationAuthorizationDenied(input: {
   }
 
   try {
-    await prisma.activityEvent.create({
+    await prisma.applicationUsageEvent.create({
       data: {
-        type: "oauth.authorization.denied",
-        actorUserId: input.userId,
-        message: "Application authorization denied",
-        severity: "warning",
+        type: "authorization",
+        outcome: "denied",
+        userId: input.userId,
+        applicationId: input.result.applicationId,
+        applicationClientId: input.result.applicationClientId,
+        authMethod: "existing_session",
+        reason: input.result.reason,
+        metadata: { clientId: input.result.clientId },
+      },
+    });
+  } catch (error) {
+    console.error("Application authorization usage recording failed", error);
+  }
+}
+
+export async function recordApplicationAuthorizationSucceeded(input: {
+  userId: string;
+  result: Extract<ApplicationClientAccessResult, { allowed: true }>;
+}) {
+  try {
+    await prisma.applicationUsageEvent.create({
+      data: {
+        type: "authorization",
+        outcome: "success",
+        userId: input.userId,
+        applicationId: input.result.applicationId,
+        applicationClientId: input.result.applicationClientId,
+        authMethod: "existing_session",
+        reason: "access_granted",
         metadata: {
-          applicationId: input.result.applicationId,
           clientId: input.result.clientId,
-          reason: input.result.reason,
+          membershipId: input.result.memberId,
         },
       },
     });
   } catch (error) {
-    console.error("OAuth authorization activity recording failed", error);
+    console.error("Application authorization usage recording failed", error);
   }
 }

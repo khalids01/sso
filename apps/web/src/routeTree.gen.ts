@@ -20,7 +20,6 @@ import { Route as PaymentSuccessRouteImport } from './routes/payment/success'
 import { Route as ApplicationSignupRouteImport } from './routes/application/signup'
 import { Route as ApplicationLoginRouteImport } from './routes/application/login'
 import { Route as AdminWebhooksRouteImport } from './routes/admin/webhooks'
-import { Route as AdminVisitorsRouteImport } from './routes/admin/visitors'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminRolesRouteImport } from './routes/admin/roles'
 import { Route as AdminRateLimitsRouteImport } from './routes/admin/rate-limits'
@@ -28,6 +27,7 @@ import { Route as AdminOverviewRouteImport } from './routes/admin/overview'
 import { Route as AdminOauthManagerRouteImport } from './routes/admin/oauth-manager'
 import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminApplicationsRouteImport } from './routes/admin/applications'
+import { Route as AdminApplicationUsageRouteImport } from './routes/admin/application-usage'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
 import { Route as PublicTermsRouteImport } from './routes/_public/terms'
 import { Route as PublicPrivacyRouteImport } from './routes/_public/privacy'
@@ -97,11 +97,6 @@ const AdminWebhooksRoute = AdminWebhooksRouteImport.update({
   path: '/webhooks',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminVisitorsRoute = AdminVisitorsRouteImport.update({
-  id: '/visitors',
-  path: '/visitors',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -135,6 +130,11 @@ const AdminFeedbackRoute = AdminFeedbackRouteImport.update({
 const AdminApplicationsRoute = AdminApplicationsRouteImport.update({
   id: '/applications',
   path: '/applications',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApplicationUsageRoute = AdminApplicationUsageRouteImport.update({
+  id: '/application-usage',
+  path: '/application-usage',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminActivityRoute = AdminActivityRouteImport.update({
@@ -227,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PublicPrivacyRoute
   '/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/application-usage': typeof AdminApplicationUsageRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/oauth-manager': typeof AdminOauthManagerRoute
@@ -234,7 +235,6 @@ export interface FileRoutesByFullPath {
   '/admin/rate-limits': typeof AdminRateLimitsRoute
   '/admin/roles': typeof AdminRolesRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
-  '/admin/visitors': typeof AdminVisitorsRoute
   '/admin/webhooks': typeof AdminWebhooksRoute
   '/application/login': typeof ApplicationLoginRoute
   '/application/signup': typeof ApplicationSignupRoute
@@ -260,6 +260,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PublicPrivacyRoute
   '/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/application-usage': typeof AdminApplicationUsageRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/oauth-manager': typeof AdminOauthManagerRoute
@@ -267,7 +268,6 @@ export interface FileRoutesByTo {
   '/admin/rate-limits': typeof AdminRateLimitsRoute
   '/admin/roles': typeof AdminRolesRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
-  '/admin/visitors': typeof AdminVisitorsRoute
   '/admin/webhooks': typeof AdminWebhooksRoute
   '/application/login': typeof ApplicationLoginRoute
   '/application/signup': typeof ApplicationSignupRoute
@@ -295,6 +295,7 @@ export interface FileRoutesById {
   '/_public/privacy': typeof PublicPrivacyRoute
   '/_public/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/application-usage': typeof AdminApplicationUsageRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/oauth-manager': typeof AdminOauthManagerRoute
@@ -302,7 +303,6 @@ export interface FileRoutesById {
   '/admin/rate-limits': typeof AdminRateLimitsRoute
   '/admin/roles': typeof AdminRolesRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
-  '/admin/visitors': typeof AdminVisitorsRoute
   '/admin/webhooks': typeof AdminWebhooksRoute
   '/application/login': typeof ApplicationLoginRoute
   '/application/signup': typeof ApplicationSignupRoute
@@ -332,6 +332,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/activity'
+    | '/admin/application-usage'
     | '/admin/applications'
     | '/admin/feedback'
     | '/admin/oauth-manager'
@@ -339,7 +340,6 @@ export interface FileRouteTypes {
     | '/admin/rate-limits'
     | '/admin/roles'
     | '/admin/users'
-    | '/admin/visitors'
     | '/admin/webhooks'
     | '/application/login'
     | '/application/signup'
@@ -365,6 +365,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/activity'
+    | '/admin/application-usage'
     | '/admin/applications'
     | '/admin/feedback'
     | '/admin/oauth-manager'
@@ -372,7 +373,6 @@ export interface FileRouteTypes {
     | '/admin/rate-limits'
     | '/admin/roles'
     | '/admin/users'
-    | '/admin/visitors'
     | '/admin/webhooks'
     | '/application/login'
     | '/application/signup'
@@ -399,6 +399,7 @@ export interface FileRouteTypes {
     | '/_public/privacy'
     | '/_public/terms'
     | '/admin/activity'
+    | '/admin/application-usage'
     | '/admin/applications'
     | '/admin/feedback'
     | '/admin/oauth-manager'
@@ -406,7 +407,6 @@ export interface FileRouteTypes {
     | '/admin/rate-limits'
     | '/admin/roles'
     | '/admin/users'
-    | '/admin/visitors'
     | '/admin/webhooks'
     | '/application/login'
     | '/application/signup'
@@ -515,13 +515,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminWebhooksRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/visitors': {
-      id: '/admin/visitors'
-      path: '/visitors'
-      fullPath: '/admin/visitors'
-      preLoaderRoute: typeof AdminVisitorsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/users': {
       id: '/admin/users'
       path: '/users'
@@ -569,6 +562,13 @@ declare module '@tanstack/react-router' {
       path: '/applications'
       fullPath: '/admin/applications'
       preLoaderRoute: typeof AdminApplicationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/application-usage': {
+      id: '/admin/application-usage'
+      path: '/application-usage'
+      fullPath: '/admin/application-usage'
+      preLoaderRoute: typeof AdminApplicationUsageRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/activity': {
@@ -704,6 +704,7 @@ const AdminRolesRouteWithChildren = AdminRolesRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminActivityRoute: typeof AdminActivityRoute
+  AdminApplicationUsageRoute: typeof AdminApplicationUsageRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
   AdminFeedbackRoute: typeof AdminFeedbackRoute
   AdminOauthManagerRoute: typeof AdminOauthManagerRoute
@@ -711,7 +712,6 @@ interface AdminRouteChildren {
   AdminRateLimitsRoute: typeof AdminRateLimitsRoute
   AdminRolesRoute: typeof AdminRolesRouteWithChildren
   AdminUsersRoute: typeof AdminUsersRoute
-  AdminVisitorsRoute: typeof AdminVisitorsRoute
   AdminWebhooksRoute: typeof AdminWebhooksRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminApplicationsApplicationIdClientsRoute: typeof AdminApplicationsApplicationIdClientsRoute
@@ -721,6 +721,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminActivityRoute: AdminActivityRoute,
+  AdminApplicationUsageRoute: AdminApplicationUsageRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
   AdminFeedbackRoute: AdminFeedbackRoute,
   AdminOauthManagerRoute: AdminOauthManagerRoute,
@@ -728,7 +729,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRateLimitsRoute: AdminRateLimitsRoute,
   AdminRolesRoute: AdminRolesRouteWithChildren,
   AdminUsersRoute: AdminUsersRoute,
-  AdminVisitorsRoute: AdminVisitorsRoute,
   AdminWebhooksRoute: AdminWebhooksRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminApplicationsApplicationIdClientsRoute:

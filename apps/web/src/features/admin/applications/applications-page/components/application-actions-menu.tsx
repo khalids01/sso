@@ -60,6 +60,17 @@ export function ApplicationActionsMenu(props: {
         >
           Manage members
         </DropdownMenuItem>
+        <DropdownMenuItem
+          nativeButton={false}
+          render={
+            <Link
+              to="/admin/application-usage"
+              search={{ applicationId: props.application.id }}
+            />
+          }
+        >
+          View usage
+        </DropdownMenuItem>
         {props.canManage && props.filter === "current" ? (
           <>
             <DropdownMenuSeparator />

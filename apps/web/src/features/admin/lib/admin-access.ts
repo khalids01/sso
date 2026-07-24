@@ -105,10 +105,15 @@ export function canShowOAuthManagerNav(
   );
 }
 
-export function canShowVisitorsNav(session: ClientSession | null | undefined) {
+export function canShowApplicationUsageNav(
+  session: ClientSession | null | undefined,
+) {
   return (
     isPlatformOwner(session) ||
-    sessionHasPermission(session?.permissions ?? [], Permissions.AdminVisitorsRead)
+    sessionHasPermission(
+      session?.permissions ?? [],
+      Permissions.AdminApplicationUsageRead,
+    )
   );
 }
 

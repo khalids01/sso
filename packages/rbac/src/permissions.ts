@@ -12,7 +12,7 @@ export const Permissions = {
 
   AdminInvitationsManage: "admin.invitations.manage",
   AdminActivityRead: "admin.activity.read",
-  AdminVisitorsRead: "admin.visitors.read",
+  AdminApplicationUsageRead: "admin.application_usage.read",
   AdminMetadataRead: "admin.metadata.read",
   AdminWebhooksRead: "admin.webhooks.read",
   AdminRateLimitManage: "admin.rate_limit.manage",

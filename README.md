@@ -2,7 +2,7 @@
 
 Centralized identity, access control, and SSO management for internal and customer-facing applications.
 
-SSO is being built as the new control plane for company authentication. The current app provides Better Auth sessions, RBAC, owner/admin controls, application and client management, application memberships, invitations, activity logs, visitor analytics, rate limits, Redis-backed caches, and a TanStack admin UI. Its browser protocol now supports a deployment-gated authorization-code exchange with PKCE, pairwise application subjects, ten-minute RS256 tokens, and public JWKS verification.
+SSO is being built as the new control plane for company authentication. The current app provides Better Auth sessions, RBAC, owner/admin controls, application and client management, application memberships, invitations, activity logs, verified application-usage analytics, rate limits, Redis-backed caches, and a TanStack admin UI. Its browser protocol now supports a deployment-gated authorization-code exchange with PKCE, pairwise application subjects, ten-minute RS256 tokens, and public JWKS verification.
 
 ## Stack
 
@@ -99,7 +99,7 @@ To run Redis manually:
 docker run --name sso-redis -p 6379:6379 -d redis:7-alpine
 ```
 
-Redis stores short-lived and regeneratable data such as rate-limit counters, RBAC/session cache payloads, visitor flush coordination, and future token/session metadata. PostgreSQL remains the source of truth.
+Redis stores short-lived and regeneratable data such as rate-limit counters, RBAC/session cache payloads, and one-time OAuth flow contexts. PostgreSQL remains the source of truth.
 
 ## Project Structure
 

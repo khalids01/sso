@@ -19,7 +19,7 @@ This means a user can exist in SSO, authenticate for a client app, and still hav
 The current app already provides:
 
 - Better Auth platform sessions.
-- PostgreSQL-backed users, sessions, accounts, invitations, activity, visitors, feedback, notifications, webhooks, and rate-limit settings.
+- PostgreSQL-backed users, sessions, accounts, invitations, administrative activity, verified application usage, feedback, notifications, webhooks, and rate-limit settings.
 - Platform RBAC with roles, permissions, user role assignment, permission cache, and admin guards.
 - Owner bootstrap and protected owner policies.
 - Admin user management, invitations, role management, session revocation, ban/archive, and activity logs.

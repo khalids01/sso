@@ -15,7 +15,6 @@ type ActivityItem = {
   type: string;
   actorUserId: string | null;
   targetUserId: string | null;
-  visitorId: string | null;
   severity: ActivitySeverity;
   message: string;
   metadata: Prisma.JsonValue | null;
@@ -28,7 +27,6 @@ type ActivityRecordInput = {
   type: string;
   actorUserId?: string | null;
   targetUserId?: string | null;
-  visitorId?: string | null;
   severity?: ActivitySeverity;
   message: string;
   metadata?: Prisma.InputJsonValue | null;
@@ -88,7 +86,6 @@ export class ActivityService {
           type: input.type,
           actorUserId: input.actorUserId ?? null,
           targetUserId: input.targetUserId ?? null,
-          visitorId: input.visitorId ?? null,
           severity: input.severity ?? "info",
           message: input.message,
           metadata: input.metadata ?? undefined,
@@ -122,7 +119,6 @@ export class ActivityService {
         type: true,
         actorUserId: true,
         targetUserId: true,
-        visitorId: true,
         severity: true,
         message: true,
         metadata: true,
@@ -141,7 +137,6 @@ export class ActivityService {
         type: row.type,
         actorUserId: row.actorUserId,
         targetUserId: row.targetUserId,
-        visitorId: row.visitorId,
         severity: row.severity as ActivitySeverity,
         message: row.message,
         metadata: row.metadata,

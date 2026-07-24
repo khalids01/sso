@@ -172,6 +172,61 @@ test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) =>
     expect(identity.payload.nonce).toBe(nonce);
   });
 
+  await test.step("show the verified token use in Application Usage", async () => {
+    const response = await page.request.get(
+      `${e2eEnv.E2E_API_ORIGIN}/admin/application-usage/events?applicationId=${fixture.applicationId}&type=token&outcome=success&page=1&limit=20`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      items: Array<{
+        type: string;
+        outcome: string;
+        application: { id: string } | null;
+        applicationClient: { clientId: string } | null;
+      }>;
+    };
+    expect(body.items).toContainEqual(
+      expect.objectContaining({
+        type: "token",
+        outcome: "success",
+        application: expect.objectContaining({ id: fixture.applicationId }),
+        applicationClient: expect.objectContaining({
+          clientId: fixture.clientId,
+        }),
+      }),
+    );
+    const sessionAuthorization = await page.request.get(
+      `${e2eEnv.E2E_API_ORIGIN}/admin/application-usage/events?applicationId=${fixture.applicationId}&applicationClientId=${fixture.clientRowId}&type=authorization&outcome=success&authMethod=existing_session&page=1&limit=20`,
+    );
+    expect(sessionAuthorization.status()).toBe(200);
+    expect(
+      ((await sessionAuthorization.json()) as { items: unknown[] }).items.length,
+    ).toBeGreaterThan(0);
+
+    const overview = await page.request.get(
+      `${e2eEnv.E2E_API_ORIGIN}/admin/application-usage/overview?applicationId=${fixture.applicationId}`,
+    );
+    expect(overview.status()).toBe(200);
+    expect((await overview.json()).metrics).toMatchObject({
+      tokenIssuances: expect.any(Number),
+      activeApplications: 1,
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(
+      `/admin/application-usage?applicationId=${fixture.applicationId}`,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Application Usage" }),
+    ).toBeVisible();
+    await expect(page.getByText("Usage events", { exact: true })).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+
   await test.step("reject reuse of the consumed code", async () => {
     const replay = await page.request.post(`${e2eEnv.E2E_API_ORIGIN}/api/auth/oauth2/token`, {
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -185,5 +240,18 @@ test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) =>
     });
     expect(replay.status()).toBe(400);
     expect(await replay.json()).toEqual({ error: "invalid_grant" });
+    await expect
+      .poll(async () => {
+        const denied = await page.request.get(
+          `${e2eEnv.E2E_API_ORIGIN}/admin/application-usage/events?applicationId=${fixture.applicationId}&type=token&outcome=denied&page=1&limit=20`,
+        );
+        const body = (await denied.json()) as {
+          items: Array<{ reason: string | null }>;
+        };
+        return body.items.some(
+          (item) => item.reason === "code_not_found_or_reused",
+        );
+      })
+      .toBe(true);
   });
 });

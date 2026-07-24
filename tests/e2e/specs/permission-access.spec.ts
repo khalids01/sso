@@ -43,6 +43,12 @@ test("UI and API access follow the actor's effective permissions", async ({ page
   expect(oauthListResponse.status()).toBe(
     capabilities.accessAdmin && capabilities.readOAuthConnections ? 200 : 403,
   );
+  const usageResponse = await page.request.get(
+    `${e2eEnv.E2E_API_ORIGIN}/admin/application-usage/events?page=1&limit=10`,
+  );
+  expect(usageResponse.status()).toBe(
+    capabilities.accessAdmin && capabilities.readApplicationUsage ? 200 : 403,
+  );
 
   if (!capabilities.accessAdmin) {
     await page.goto("/admin/applications");

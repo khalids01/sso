@@ -71,6 +71,7 @@ export async function provisionOAuthFixture(actorId: string, revocationUserId: s
       state.oauthFixture = {
         applicationId: application.id,
         memberId: member.id,
+        clientRowId: client.id,
         clientId: client.clientId,
         redirectUri,
         demoRedirectUri,

@@ -1,5 +1,11 @@
 import { randomBytes } from "node:crypto";
-import prisma, { Prisma } from "@db/server";
+import prisma, {
+  Prisma,
+  type ApplicationMemberStatus,
+  type ApplicationRegistrationMode,
+  type ApplicationStatus,
+  type OAuthProvider,
+} from "@db/server";
 import type {
   ApplicationMembersQuery,
   ApplicationsQuery,
@@ -28,6 +34,7 @@ import {
   getApplicationAuthCapabilities,
   getAvailableApplicationAuthMethodIds,
 } from "@auth/application-capabilities";
+import { recordApplicationUsage } from "../../application-usage/application-usage.service";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
@@ -152,28 +159,28 @@ function normalizeSlug(value: string) {
   return slug;
 }
 
-function normalizeStatus(status?: string) {
+function normalizeStatus(status?: string): ApplicationStatus {
   const normalized = status ?? "active";
 
   if (!allowedStatuses.has(normalized)) {
     throw new ApplicationsPolicyError("Invalid application status");
   }
 
-  return normalized;
+  return normalized as ApplicationStatus;
 }
 
 function generateApplicationSubject() {
   return randomBytes(32).toString("base64url");
 }
 
-function normalizeMemberStatus(status?: string) {
+function normalizeMemberStatus(status?: string): ApplicationMemberStatus {
   const normalized = status ?? "active";
 
   if (!allowedMemberStatuses.has(normalized)) {
     throw new ApplicationsPolicyError("Invalid application member status");
   }
 
-  return normalized;
+  return normalized as ApplicationMemberStatus;
 }
 
 function normalizeAuthPolicy(input: {
@@ -227,7 +234,9 @@ function normalizeAuthPolicy(input: {
   return {
     signInMethods,
     signUpMethods,
-    registrationMode: input.registrationMode,
+    registrationMode: input.registrationMode as
+      | ApplicationRegistrationMode
+      | undefined,
     passwordEmailVerificationRequired:
       input.passwordEmailVerificationRequired,
   };
@@ -260,7 +269,7 @@ function mapApplication(row: {
   updatedAt: Date;
   _count?: { clients: number; members: number };
   oauthProviderConnections?: Array<{
-    provider: string;
+    provider: OAuthProvider;
     oauthProviderConnection: {
       id: string;
       name: string;
@@ -327,12 +336,13 @@ async function resolveOAuthConnectionSelections(
   selections: OAuthConnectionSelections,
 ) {
   const resolved: Array<{
-    provider: string;
+    provider: OAuthProvider;
     oauthProviderConnectionId: string;
   }> = [];
   if (!selections) return resolved;
 
-  for (const [provider, connectionId] of Object.entries(selections)) {
+  for (const [providerValue, connectionId] of Object.entries(selections)) {
+    const provider = providerValue as OAuthProvider;
     if (!connectionId) continue;
     const connection = await tx.oAuthProviderConnection.findUnique({
       where: { id: connectionId },
@@ -372,7 +382,8 @@ async function applyOAuthConnectionSelections(
     resolved.map((item) => [item.provider, item.oauthProviderConnectionId]),
   );
 
-  for (const [provider, connectionId] of Object.entries(selections)) {
+  for (const [providerValue, connectionId] of Object.entries(selections)) {
+    const provider = providerValue as OAuthProvider;
     if (!connectionId) {
       await tx.applicationOAuthProviderConnection.deleteMany({
         where: { applicationId, provider },
@@ -438,7 +449,6 @@ async function recordApplicationActivity(input: {
         type: input.type,
         actorUserId: input.actorUserId ?? null,
         targetUserId: null,
-        visitorId: null,
         severity: "info",
         message: input.message,
         metadata: input.metadata,
@@ -1032,6 +1042,14 @@ export class AdminApplicationsService {
           userId: user.id,
         },
       });
+      await recordApplicationUsage({
+        type: "membership",
+        outcome: "success",
+        userId: user.id,
+        applicationId,
+        reason: "granted",
+        metadata: { memberId: member.id },
+      });
 
       return mapMember(member);
     } catch (error) {
@@ -1145,6 +1163,17 @@ export class AdminApplicationsService {
         },
       });
       return updated;
+    });
+    await recordApplicationUsage({
+      type: "membership",
+      outcome: "success",
+      userId: member.userId,
+      applicationId,
+      reason: status,
+      metadata: {
+        memberId: member.id,
+        authorizationVersion: member.authorizationVersion,
+      },
     });
 
     return mapMember(member);

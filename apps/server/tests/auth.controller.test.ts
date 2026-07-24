@@ -4,7 +4,7 @@ import { Prisma } from "../../../packages/db/prisma/generated/client";
 const findUniqueMock = mock(async () => null);
 const applicationClientFindUniqueMock = mock(async () => null);
 const applicationClientFindFirstMock = mock(async () => null);
-const activityCreateMock = mock(async () => ({ id: "activity-1" }));
+const usageCreateMock = mock(async () => ({ id: "usage-1" }));
 const authApi =
   ((globalThis as typeof globalThis & {
     __serverTestAuthApi?: {
@@ -35,8 +35,8 @@ mock.module("@db/server", () => ({
     user: {
       findUnique: findUniqueMock,
     },
-    activityEvent: {
-      create: activityCreateMock,
+    applicationUsageEvent: {
+      create: usageCreateMock,
     },
     applicationClient: {
       findUnique: applicationClientFindUniqueMock,
@@ -82,7 +82,7 @@ mock.module("@env/server", () => ({
 
 afterEach(() => {
   findUniqueMock.mockReset();
-  activityCreateMock.mockReset();
+  usageCreateMock.mockReset();
   authApi.signInMagicLink.mockReset();
   authApi.signInEmail.mockReset();
   authApi.signUpEmail.mockReset();
@@ -204,9 +204,10 @@ describe("authController", () => {
     expect(body).toEqual({ message: "User not found" });
     expect(authApi.signInMagicLink).not.toHaveBeenCalled();
     expect(response.headers.get("x-request-id")).toBeTruthy();
-    expect(activityCreateMock).toHaveBeenCalledTimes(1);
-    const serializedEvent = JSON.stringify(activityCreateMock.mock.calls[0]);
-    expect(serializedEvent).toContain("auth.login.denied");
+    expect(usageCreateMock).toHaveBeenCalledTimes(1);
+    const serializedEvent = JSON.stringify(usageCreateMock.mock.calls[0]);
+    expect(serializedEvent).toContain("user_not_found");
+    expect(serializedEvent).toContain("magic_link");
     expect(serializedEvent).not.toContain("missing@example.com");
   });
 

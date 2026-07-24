@@ -122,23 +122,7 @@ async function main() {
       });
 
       if (mistakenOwner) {
-        await prisma.$transaction([
-          // Visitor analytics stores denormalized user IDs without foreign keys.
-          prisma.visitorSession.updateMany({
-            where: { userId: mistakenOwner.id },
-            data: { userId: null },
-          }),
-          prisma.visitorIdentity.updateMany({
-            where: { firstUserId: mistakenOwner.id },
-            data: { firstUserId: null },
-          }),
-          prisma.visitorIdentity.updateMany({
-            where: { lastUserId: mistakenOwner.id },
-            data: { lastUserId: null },
-          }),
-          // All declared user relations cascade or become null from this delete.
-          prisma.user.delete({ where: { id: mistakenOwner.id } }),
-        ]);
+        await prisma.user.delete({ where: { id: mistakenOwner.id } });
 
         try {
           await invalidateUser(mistakenOwner.id);

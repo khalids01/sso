@@ -5,7 +5,6 @@ model ActivityEvent {
   actorUser    User?    @relation("ActivityEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
   targetUserId String?
   targetUser   User?    @relation("ActivityEventTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
-  visitorId    String?
   severity     String   @default("info")
   message      String
   metadata     Json?

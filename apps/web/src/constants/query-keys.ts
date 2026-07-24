@@ -59,21 +59,12 @@ export const queryKeys = {
       options: () =>
         [...queryKeys.admin.oauthConnections.all(), "options"] as const,
     },
-    visitors: {
-      overview: (params: {
-        dateFrom: string;
-        dateTo: string;
-        segment: "humans" | "bots" | "all";
-        type: "all" | "new" | "returning";
-      }) => ["admin-visitors-overview", params] as const,
-      list: (params: {
-        dateFrom: string;
-        dateTo: string;
-        segment: "humans" | "bots" | "all";
-        type: "all" | "new" | "returning";
-        page: number;
-        limit: number;
-      }) => ["admin-visitors-list", params] as const,
+    applicationUsage: {
+      all: () => ["admin-application-usage"] as const,
+      overview: (params: object) =>
+        [...queryKeys.admin.applicationUsage.all(), "overview", params] as const,
+      events: (params: object) =>
+        [...queryKeys.admin.applicationUsage.all(), "events", params] as const,
     },
     roles: {
       all: () => ["admin-roles"] as const,

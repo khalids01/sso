@@ -1,4 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
+import { Prisma } from "../../../packages/db/prisma/generated/client";
 
 const cache = new Map<string, string>();
 const redis = {
@@ -20,6 +21,7 @@ mock.module("@db/server", () => ({
       findFirst: applicationClientFindFirst,
     },
   },
+  Prisma,
 }));
 
 mock.module("@redis/server", () => ({
@@ -61,9 +63,12 @@ describe("OAuth provider connection credentials", () => {
     const base = {
       provider: "google" as const,
       applicationId: "app-1",
+      applicationClientId: "client-row-1",
       downstreamClientId: "sso-client-1",
       oauthProviderConnectionId: "connection-1",
       credentialVersion: 1,
+      intent: "login" as const,
+      requestId: "request-1",
     };
     await Promise.all([
       credentials.storeSocialProviderContext("state-a", base),
@@ -85,9 +90,12 @@ describe("OAuth provider connection credentials", () => {
     const context = {
       provider: "google" as const,
       applicationId: "app-1",
+      applicationClientId: "client-row-1",
       downstreamClientId: "sso-client-1",
       oauthProviderConnectionId: "connection-1",
       credentialVersion: 1,
+      intent: "login" as const,
+      requestId: "request-1",
       expiresAt: Date.now() + 60_000,
     };
     assignmentFindFirst.mockResolvedValue({

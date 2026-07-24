@@ -43,7 +43,7 @@ import {
   canShowRateLimitsNav,
   canShowRolesNav,
   canShowUsersNav,
-  canShowVisitorsNav,
+  canShowApplicationUsageNav,
   canShowWebhooksNav,
 } from "@/features/admin/lib/admin-access";
 import { adminMiddleware } from "@/middleware/admin";
@@ -118,10 +118,10 @@ function getAdminNavItems(session: ClientSession | null | undefined): AdminNavIt
       show: canShowRateLimitsNav(session),
     },
     {
-      title: "Visitors",
+      title: "Application Usage",
       icon: Activity,
-      url: "/admin/visitors",
-      show: canShowVisitorsNav(session),
+      url: "/admin/application-usage",
+      show: canShowApplicationUsageNav(session),
     },
     {
       title: "Activity",

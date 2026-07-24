@@ -150,6 +150,7 @@ export const oauthTokenController = new Elysia({ name: "oauth-token" })
           codeVerifier: readSingle(params, "code_verifier"),
           origin,
           requestId,
+          request,
         });
         return new Response(JSON.stringify(result), {
           status: 200,
@@ -165,6 +166,7 @@ export const oauthTokenController = new Elysia({ name: "oauth-token" })
             requestId,
             reason: oauthError.auditReason,
             clientId,
+            request,
           });
         }
         return errorResponse(oauthError, requestId, origin);

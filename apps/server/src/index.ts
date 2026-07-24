@@ -7,7 +7,7 @@ import { Elysia } from "elysia";
 import { app } from "./modules/app";
 import { openapi } from "@elysiajs/openapi";
 import { enforceRateLimit } from "./modules/rate-limit/rate-limit.service";
-import { startVisitorFlushWorker } from "./modules/visitors/visitors.service";
+import { startApplicationUsageRetentionWorker } from "./modules/application-usage/application-usage.service";
 import { securityHeadersPlugin } from "./plugins/security-headers";
 import { oauthTokenController } from "./modules/oauth/oauth-token.controller";
 import { startApplicationRevocationWorker } from "./modules/application-revocation/revocation.service";
@@ -20,6 +20,7 @@ import {
   consumeSocialProviderContext,
   getOAuthProviderConnectionForCallback,
 } from "./modules/auth/social-provider-credentials.service";
+import { recordApplicationUsage } from "./modules/application-usage/application-usage.service";
 
 async function handleBetterAuthRequest(request: Request) {
   const match = new URL(request.url).pathname.match(
@@ -30,6 +31,19 @@ async function handleBetterAuthRequest(request: Request) {
   const state = new URL(request.url).searchParams.get("state");
   const context = state ? await consumeSocialProviderContext(state) : null;
   if (!context || context.provider !== provider) {
+    if (context) {
+      await recordApplicationUsage({
+        type: "social_callback",
+        outcome: "denied",
+        applicationId: context.applicationId,
+        applicationClientId: context.applicationClientId,
+        oauthProviderConnectionId: context.oauthProviderConnectionId,
+        authMethod: context.provider,
+        requestId: context.requestId,
+        reason: "provider_context_mismatch",
+        request,
+      });
+    }
     return Response.json(
       { message: "Invalid or expired social authentication context" },
       { status: 400 },
@@ -37,6 +51,17 @@ async function handleBetterAuthRequest(request: Request) {
   }
   const connection = await getOAuthProviderConnectionForCallback(context);
   if (!connection) {
+    await recordApplicationUsage({
+      type: "social_callback",
+      outcome: "denied",
+      applicationId: context.applicationId,
+      applicationClientId: context.applicationClientId,
+      oauthProviderConnectionId: context.oauthProviderConnectionId,
+      authMethod: context.provider,
+      requestId: context.requestId,
+      reason: "connection_changed_or_unavailable",
+      request,
+    });
     return Response.json(
       {
         message:
@@ -45,10 +70,41 @@ async function handleBetterAuthRequest(request: Request) {
       { status: 400 },
     );
   }
-  return runWithOAuthProviderConnection(
+  const response = await runWithOAuthProviderConnection(
     connection,
     () => auth.handler(request),
   );
+  await recordApplicationUsage({
+    type: "social_callback",
+    outcome: response.ok || response.status === 302 ? "success" : "denied",
+    applicationId: context.applicationId,
+    applicationClientId: context.applicationClientId,
+    oauthProviderConnectionId: context.oauthProviderConnectionId,
+    authMethod: context.provider,
+    requestId: context.requestId,
+    reason:
+      response.ok || response.status === 302
+        ? "provider_callback_completed"
+        : "provider_callback_rejected",
+    request,
+  });
+  if (response.ok || response.status === 302) {
+    await recordApplicationUsage({
+      type: context.intent,
+      outcome: "success",
+      applicationId: context.applicationId,
+      applicationClientId: context.applicationClientId,
+      oauthProviderConnectionId: context.oauthProviderConnectionId,
+      authMethod: context.provider,
+      requestId: context.requestId,
+      reason:
+        context.intent === "signup"
+          ? "social_account_created_or_linked"
+          : "social_login_completed",
+      request,
+    });
+  }
+  return response;
 }
 
 const shouldLogRequests = env.NODE_ENV === "development";
@@ -62,7 +118,7 @@ const docsPlugin =
 
 await connectRedis();
 console.log("Redis is ready");
-startVisitorFlushWorker();
+startApplicationUsageRetentionWorker();
 startApplicationRevocationWorker();
 
 const server = new Elysia()
@@ -92,6 +148,11 @@ const server = new Elysia()
     const { request, status } = context;
     if (["POST", "GET"].includes(request.method)) {
       const requestId = randomUUID();
+      const pathname = new URL(request.url).pathname;
+      const sessionBeforeLogout =
+        pathname === "/api/auth/sign-out"
+          ? await auth.api.getSession({ headers: request.headers })
+          : null;
       const response = await handleBetterAuthRequest(request);
       const observedFailure = await observeBetterAuthFailure({
         request,
@@ -101,7 +162,17 @@ const server = new Elysia()
       if (observedFailure) {
         response.headers.set("x-request-id", requestId);
       }
-      if (new URL(request.url).pathname === "/api/auth/jwks" && response.ok) {
+      if (pathname === "/api/auth/sign-out" && response.ok) {
+        await recordApplicationUsage({
+          type: "logout",
+          outcome: "success",
+          userId: sessionBeforeLogout?.user.id,
+          requestId,
+          reason: "session_ended",
+          request,
+        });
+      }
+      if (pathname === "/api/auth/jwks" && response.ok) {
         response.headers.set("cache-control", "public, max-age=300, stale-while-revalidate=300");
       }
       return response;

@@ -53,14 +53,18 @@ export function decryptSocialProviderSecret(value: string) {
 export type SocialProviderContext = {
   provider: ApplicationSocialProviderId;
   applicationId: string;
+  applicationClientId: string;
   downstreamClientId: string;
   oauthProviderConnectionId: string;
   credentialVersion: number;
+  intent: "login" | "signup";
+  requestId: string;
   expiresAt: number;
 };
 
 type AssignedConnection = {
   applicationId: string;
+  applicationClientId: string;
   downstreamClientId: string;
   connection: OAuthProviderConnectionCredentials;
 };
@@ -85,9 +89,12 @@ function isSocialProviderContext(value: unknown): value is SocialProviderContext
   return (
     isProvider(context.provider) &&
     typeof context.applicationId === "string" &&
+    typeof context.applicationClientId === "string" &&
     typeof context.downstreamClientId === "string" &&
     typeof context.oauthProviderConnectionId === "string" &&
     typeof context.credentialVersion === "number" &&
+    (context.intent === "login" || context.intent === "signup") &&
+    typeof context.requestId === "string" &&
     typeof context.expiresAt === "number" &&
     context.expiresAt > Date.now()
   );
@@ -124,6 +131,7 @@ export async function getApplicationSocialProviderConnection(
       application: { status: "active" },
     },
     select: {
+      id: true,
       clientId: true,
       applicationId: true,
       application: {
@@ -153,6 +161,7 @@ export async function getApplicationSocialProviderConnection(
   if (!downstreamClient || !selected || selected.status !== "active") return null;
   return {
     applicationId: downstreamClient.applicationId,
+    applicationClientId: downstreamClient.id,
     downstreamClientId: downstreamClient.clientId,
     connection: toRuntimeConnection(selected),
   };

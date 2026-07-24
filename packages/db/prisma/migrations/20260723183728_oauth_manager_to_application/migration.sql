@@ -1,6 +1,0 @@
--- Intentionally left empty.
---
--- The OAuth provider tables are created by the later
--- 20260724120000_oauth_provider_manager migration. The constraint and index
--- renames that Prisma generated here must run after those tables exist, so
--- they are applied at the end of that migration instead.

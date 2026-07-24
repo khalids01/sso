@@ -15,11 +15,11 @@ import {
   PasswordSignupDto,
   SocialLoginDto,
 } from "./auth.dto";
-import { recordLoginDenied } from "./auth-observability.service";
 import {
   getApplicationSocialProviderConnection,
   storeSocialProviderContext,
 } from "./social-provider-credentials.service";
+import { recordApplicationUsage } from "../application-usage/application-usage.service";
 
 const socialProviderScopes = {
   google: ["openid", "profile", "email"],
@@ -54,7 +54,9 @@ async function getApplicationPolicy(callbackURL?: string) {
   return prisma.applicationClient.findUnique({
     where: { clientId },
     select: {
+      id: true,
       clientId: true,
+      applicationId: true,
       status: true,
       oauthDisabled: true,
       application: {
@@ -70,11 +72,37 @@ async function getApplicationPolicy(callbackURL?: string) {
   });
 }
 
+type ApplicationPolicy = Awaited<ReturnType<typeof getApplicationPolicy>>;
+
+function recordAuthUsage(input: {
+  policy: ApplicationPolicy;
+  type: "login" | "signup";
+  outcome: "success" | "denied";
+  method: "password" | "magic_link";
+  request: Request;
+  userId?: string | null;
+  reason: string;
+  requestId?: string;
+}) {
+  return recordApplicationUsage({
+    type: input.type,
+    outcome: input.outcome,
+    userId: input.userId,
+    applicationId: input.policy?.applicationId,
+    applicationClientId: input.policy?.id,
+    authMethod: input.method,
+    requestId: input.requestId ?? randomUUID(),
+    reason: input.reason,
+    request: input.request,
+  });
+}
+
 export const authController = new Elysia({ prefix: "/auth" })
   .post(
     "/social",
     async ({ body, request, set }) => {
       const callbackURL = resolveCallbackURL(body.callbackURL);
+      const requestId = randomUUID();
       const callback = new URL(callbackURL);
       const oauthQuery = callback.search.slice(1);
       const requestedClientId = callback.searchParams.get("client_id");
@@ -106,6 +134,16 @@ export const authController = new Elysia({ prefix: "/auth" })
           policy.application.registrationMode === "closed") ||
         !allowedMethods?.includes(body.provider)
       ) {
+        await recordApplicationUsage({
+          type: body.requestSignUp ? "signup" : "login",
+          outcome: "denied",
+          applicationId: policy?.applicationId,
+          applicationClientId: policy?.id,
+          authMethod: body.provider,
+          requestId,
+          reason: "application_social_auth_unavailable",
+          request,
+        });
         set.status = 403;
         return {
           message: `${body.provider} authentication is not available for this application`,
@@ -116,6 +154,16 @@ export const authController = new Elysia({ prefix: "/auth" })
         body.provider,
       );
       if (!assignedConnection) {
+        await recordApplicationUsage({
+          type: body.requestSignUp ? "signup" : "login",
+          outcome: "denied",
+          applicationId: policy.applicationId,
+          applicationClientId: policy.id,
+          authMethod: body.provider,
+          requestId,
+          reason: "oauth_connection_unavailable",
+          request,
+        });
         set.status = 403;
         return {
           message: `${body.provider} does not have an active OAuth connection for this application`,
@@ -142,16 +190,42 @@ export const authController = new Elysia({ prefix: "/auth" })
           ? new URL(result.url).searchParams.get("state")
           : null;
         if (!state) {
+          await recordApplicationUsage({
+            type: body.requestSignUp ? "signup" : "login",
+            outcome: "error",
+            applicationId: assignedConnection.applicationId,
+            applicationClientId: assignedConnection.applicationClientId,
+            oauthProviderConnectionId: assignedConnection.connection.id,
+            authMethod: body.provider,
+            requestId,
+            reason: "provider_state_missing",
+            request,
+          });
           set.status = 502;
           return { message: "OAuth provider did not return a valid state" };
         }
         await storeSocialProviderContext(state, {
           provider: body.provider,
           applicationId: assignedConnection.applicationId,
+          applicationClientId: assignedConnection.applicationClientId,
           downstreamClientId: assignedConnection.downstreamClientId,
           oauthProviderConnectionId: assignedConnection.connection.id,
           credentialVersion:
             assignedConnection.connection.credentialVersion,
+          intent: body.requestSignUp ? "signup" : "login",
+          requestId,
+        });
+      } else {
+        await recordApplicationUsage({
+          type: body.requestSignUp ? "signup" : "login",
+          outcome: "denied",
+          applicationId: assignedConnection.applicationId,
+          applicationClientId: assignedConnection.applicationClientId,
+          oauthProviderConnectionId: assignedConnection.connection.id,
+          authMethod: body.provider,
+          requestId,
+          reason: "provider_authorization_start_failed",
+          request,
         });
       }
       return response;
@@ -175,6 +249,14 @@ export const authController = new Elysia({ prefix: "/auth" })
     async ({ body, request, set }) => {
       const policy = await getApplicationPolicy(body.callbackURL);
       if (policy && !policy.application.signInMethods.includes("magic_link")) {
+        await recordAuthUsage({
+          policy,
+          type: "login",
+          outcome: "denied",
+          method: "magic_link",
+          request,
+          reason: "method_disabled",
+        });
         set.status = 403;
         return { message: "Magic-link sign-in is disabled for this application" };
       }
@@ -183,11 +265,14 @@ export const authController = new Elysia({ prefix: "/auth" })
       });
       if (!user) {
         const requestId = randomUUID();
-        await recordLoginDenied({
-          requestId,
-          reason: "user_not_found",
+        await recordAuthUsage({
+          policy,
+          type: "login",
+          outcome: "denied",
           method: "magic_link",
-          status: 400,
+          request,
+          reason: "user_not_found",
+          requestId,
         });
         set.status = 400;
         set.headers["x-request-id"] = requestId;
@@ -199,6 +284,15 @@ export const authController = new Elysia({ prefix: "/auth" })
           callbackURL: resolveCallbackURL(body.callbackURL),
         },
         headers: request.headers,
+      });
+      await recordAuthUsage({
+        policy,
+        type: "login",
+        outcome: "success",
+        method: "magic_link",
+        request,
+        userId: user.id,
+        reason: "magic_link_sent",
       });
       return { success: true };
     },
@@ -216,6 +310,14 @@ export const authController = new Elysia({ prefix: "/auth" })
           policy.application.registrationMode === "closed" ||
           !policy.application.signUpMethods.includes("magic_link"))
       ) {
+        await recordAuthUsage({
+          policy,
+          type: "signup",
+          outcome: "denied",
+          method: "magic_link",
+          request,
+          reason: "registration_unavailable",
+        });
         set.status = 403;
         return { message: "Registration is not available for this application" };
       }
@@ -223,6 +325,15 @@ export const authController = new Elysia({ prefix: "/auth" })
         where: { email: body.email },
       });
       if (user) {
+        await recordAuthUsage({
+          policy,
+          type: "signup",
+          outcome: "denied",
+          method: "magic_link",
+          request,
+          userId: user.id,
+          reason: "user_already_exists",
+        });
         set.status = 400;
         return { message: "User already exists" };
       }
@@ -233,6 +344,14 @@ export const authController = new Elysia({ prefix: "/auth" })
           callbackURL: resolveCallbackURL(body.callbackURL),
         },
         headers: request.headers,
+      });
+      await recordAuthUsage({
+        policy,
+        type: "signup",
+        outcome: "success",
+        method: "magic_link",
+        request,
+        reason: "magic_link_sent",
       });
       return { success: true };
     },
@@ -246,6 +365,14 @@ export const authController = new Elysia({ prefix: "/auth" })
       const callbackURL = resolveCallbackURL(body.callbackURL);
       const policy = await getApplicationPolicy(callbackURL);
       if (policy && !policy.application.signInMethods.includes("password")) {
+        await recordAuthUsage({
+          policy,
+          type: "login",
+          outcome: "denied",
+          method: "password",
+          request,
+          reason: "method_disabled",
+        });
         set.status = 403;
         return { message: "Password sign-in is disabled for this application" };
       }
@@ -259,11 +386,21 @@ export const authController = new Elysia({ prefix: "/auth" })
         headers: request.headers,
         asResponse: true,
       });
-      if (!response.ok) return response;
+      if (!response.ok) {
+        await recordAuthUsage({
+          policy,
+          type: "login",
+          outcome: "denied",
+          method: "password",
+          request,
+          reason: "credentials_rejected",
+        });
+        return response;
+      }
 
       const result = (await response.clone().json()) as {
         token?: string;
-        user?: { emailVerified?: boolean };
+        user?: { id?: string; emailVerified?: boolean };
       };
       const verificationRequired =
         policy?.application.passwordEmailVerificationRequired ?? true;
@@ -275,6 +412,15 @@ export const authController = new Elysia({ prefix: "/auth" })
           body: { email: body.email, callbackURL },
           headers: request.headers,
         });
+        await recordAuthUsage({
+          policy,
+          type: "login",
+          outcome: "denied",
+          method: "password",
+          request,
+          userId: result.user?.id,
+          reason: "email_verification_required",
+        });
         set.status = 403;
         return {
           message: "Verify your email before signing in. We sent a new verification link.",
@@ -282,6 +428,15 @@ export const authController = new Elysia({ prefix: "/auth" })
         };
       }
 
+      await recordAuthUsage({
+        policy,
+        type: "login",
+        outcome: "success",
+        method: "password",
+        request,
+        userId: result.user?.id,
+        reason: "authenticated",
+      });
       return response;
     },
     { body: PasswordLoginDto },
@@ -297,6 +452,14 @@ export const authController = new Elysia({ prefix: "/auth" })
         policy.application.registrationMode === "closed" ||
         !policy.application.signUpMethods.includes("password")
       ) {
+        await recordAuthUsage({
+          policy,
+          type: "signup",
+          outcome: "denied",
+          method: "password",
+          request,
+          reason: "registration_unavailable",
+        });
         set.status = 403;
         return { message: "Password registration is not available for this application" };
       }
@@ -312,7 +475,29 @@ export const authController = new Elysia({ prefix: "/auth" })
         headers: request.headers,
         asResponse: true,
       });
-      if (!signupResponse.ok) return signupResponse;
+      if (!signupResponse.ok) {
+        await recordAuthUsage({
+          policy,
+          type: "signup",
+          outcome: "denied",
+          method: "password",
+          request,
+          reason: "signup_rejected",
+        });
+        return signupResponse;
+      }
+      const signupResult = (await signupResponse.clone().json()) as {
+        user?: { id?: string };
+      };
+      await recordAuthUsage({
+        policy,
+        type: "signup",
+        outcome: "success",
+        method: "password",
+        request,
+        userId: signupResult.user?.id,
+        reason: "account_created",
+      });
 
       if (policy.application.passwordEmailVerificationRequired) {
         await auth.api.sendVerificationEmail({

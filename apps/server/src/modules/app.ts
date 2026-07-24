@@ -9,8 +9,7 @@ import { feedbackController } from "./feedback/feedback.controller";
 import { polarController } from "./polar/polar.controller";
 import { rateLimitController } from "./rate-limit/rate-limit.controller";
 import { invitationsController } from "./invitations/invitations.controller";
-import { visitorsController } from "./visitors/visitors.controller";
-import { adminVisitorsController } from "./admin/visitors/visitors.controller";
+import { adminApplicationUsageController } from "./admin/application-usage/application-usage.controller";
 import { adminActivityController } from "./admin/activity/activity.controller";
 import { adminWebhooksController } from "./admin/webhooks/webhooks.controller";
 import { rolesController } from "./admin/roles/roles.controller";
@@ -27,8 +26,7 @@ export const app = new Elysia()
   .use(adminInvitationsController)
   .use(metadataController)
   .use(rateLimitController)
-  .use(visitorsController)
-  .use(adminVisitorsController)
+  .use(adminApplicationUsageController)
   .use(adminActivityController)
   .use(adminWebhooksController)
   .use(notificationsController)

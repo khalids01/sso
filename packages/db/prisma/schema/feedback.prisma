@@ -9,6 +9,5 @@ model Feedback {
 
     @@index([userId])
     @@index([createdAt])
-    @@index([status])
     @@map("feedback")
 }

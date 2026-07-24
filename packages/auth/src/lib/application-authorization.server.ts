@@ -2,6 +2,7 @@ import {
   getApplicationClientAccess,
   registerApplicationMemberIfAllowed,
   recordApplicationAuthorizationDenied,
+  recordApplicationAuthorizationSucceeded,
 } from "../../../db/src/application-access.server";
 import type { BetterAuthPlugin } from "better-auth";
 import {
@@ -135,6 +136,10 @@ export function applicationAuthorizationGuard(): BetterAuthPlugin {
             }
 
             if (result.allowed) {
+              await recordApplicationAuthorizationSucceeded({
+                userId: session.user.id,
+                result,
+              });
               return;
             }
 

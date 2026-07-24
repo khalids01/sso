@@ -66,7 +66,6 @@ describe("ActivityService", () => {
         type: "user.invited",
         actorUserId: "admin-1",
         targetUserId: null,
-        visitorId: null,
         severity: "info",
         message: "new@example.com was invited as USER",
         metadata: {
@@ -85,7 +84,6 @@ describe("ActivityService", () => {
         type: "user.banned",
         actorUserId: "admin-1",
         targetUserId: "user-1",
-        visitorId: null,
         severity: "warning",
         message: "User One was banned",
         metadata: { email: "user@example.com" },
@@ -120,7 +118,6 @@ describe("ActivityService", () => {
         type: true,
         actorUserId: true,
         targetUserId: true,
-        visitorId: true,
         severity: true,
         message: true,
         metadata: true,

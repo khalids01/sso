@@ -132,6 +132,9 @@ const userFindUniqueMock = mock(async () => ({
   archived: false,
 }));
 const activityEventCreateMock = mock(async () => null);
+const applicationUsageEventCreateMock = mock(async () => ({
+  id: "usage-event-1",
+}));
 const oAuthProviderConnectionFindUniqueMock = mock(async () => null);
 const applicationOAuthConnectionFindManyMock = mock(
   async (): Promise<any> => [],
@@ -192,6 +195,9 @@ const dbMock: any = {
     activityEvent: {
       create: activityEventCreateMock,
     },
+    applicationUsageEvent: {
+      create: applicationUsageEventCreateMock,
+    },
 };
 dbMock.$transaction = mock(async (callback: (tx: typeof dbMock) => unknown) =>
   callback(dbMock),
@@ -233,6 +239,7 @@ describe("AdminApplicationsService", () => {
     revocationEndpointFindFirstMock.mockResolvedValue(null);
     userFindUniqueMock.mockReset();
     activityEventCreateMock.mockClear();
+    applicationUsageEventCreateMock.mockClear();
     oAuthProviderConnectionFindUniqueMock.mockReset();
     applicationOAuthConnectionFindManyMock.mockReset();
     applicationOAuthConnectionDeleteManyMock.mockReset();

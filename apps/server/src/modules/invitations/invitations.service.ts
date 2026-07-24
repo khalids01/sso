@@ -113,7 +113,7 @@ export class InvitationsService {
       role: invitation.role,
       status: invitation.status,
       expiresAt: invitation.expiresAt.toISOString(),
-      inviterName: invitation.user.name,
+      inviterName: invitation.user?.name ?? "Deleted administrator",
     };
   }
 

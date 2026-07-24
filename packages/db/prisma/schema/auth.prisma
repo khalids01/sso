@@ -24,6 +24,7 @@ model User {
   applicationSubjects     ApplicationSubject[]
   oauthConsents           OAuthConsent[]
   applicationInvitations  ApplicationInvitation[]      @relation("ApplicationInvitationInviter")
+  usageEvents             ApplicationUsageEvent[]
 
   // Polar Integration
   polarCustomerId    String?
@@ -33,8 +34,8 @@ model User {
 
   @@unique([email])
   @@index([createdAt])
-  @@index([banned])
-  @@index([archived])
+  @@index([banned, createdAt])
+  @@index([archived, createdAt])
   @@map("user")
 }
 
@@ -44,13 +45,12 @@ model Invitation {
   roleId    String
   role      RbacRole @relation(fields: [roleId], references: [id])
   expiresAt DateTime
-  inviterId String
-  user      User     @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  inviterId String?
+  user      User?    @relation(fields: [inviterId], references: [id], onDelete: SetNull)
   status    String   @default("pending") // pending, accepted, rejected
   createdAt DateTime @default(now())
 
   @@index([email])
-  @@index([status])
   @@index([expiresAt])
   @@index([roleId])
   @@map("invitation")
@@ -92,7 +92,7 @@ model Account {
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
 
-  @@unique([oauthProviderConnectionId, providerId, accountId])
+  @@unique([providerId, accountId])
   @@index([userId])
   @@index([oauthProviderConnectionId])
   @@map("account")

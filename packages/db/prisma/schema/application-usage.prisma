@@ -1,0 +1,55 @@
+enum ApplicationUsageEventType {
+  signup
+  login
+  social_callback
+  authorization
+  token
+  logout
+  membership
+}
+
+enum ApplicationUsageOutcome {
+  success
+  denied
+  error
+}
+
+enum ApplicationUsageAuthMethod {
+  password
+  magic_link
+  google
+  github
+  facebook
+  linkedin
+  existing_session
+}
+
+model ApplicationUsageEvent {
+  id                        String                     @id @default(cuid())
+  type                      ApplicationUsageEventType
+  outcome                   ApplicationUsageOutcome
+  userId                    String?
+  user                      User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  applicationId             String?
+  application               Application?               @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  applicationClientId       String?
+  applicationClient         ApplicationClient?         @relation(fields: [applicationClientId], references: [id], onDelete: SetNull)
+  oauthProviderConnectionId String?
+  oauthProviderConnection   OAuthProviderConnection?   @relation(fields: [oauthProviderConnectionId], references: [id], onDelete: SetNull)
+  authMethod                ApplicationUsageAuthMethod?
+  requestId                 String?
+  reason                    String?
+  ipHash                    String?
+  userAgent                 String?
+  metadata                  Json?
+  createdAt                 DateTime                   @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([applicationId, createdAt])
+  @@index([applicationClientId, createdAt])
+  @@index([oauthProviderConnectionId, createdAt])
+  @@index([type, outcome, createdAt])
+  @@index([authMethod, createdAt])
+  @@map("application_usage_event")
+}

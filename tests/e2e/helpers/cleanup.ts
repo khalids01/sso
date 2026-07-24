@@ -27,6 +27,9 @@ export async function cleanupRunOwnedResources() {
 
     const ids = applications.map((application) => application.id);
     if (ids.length > 0) {
+      await prisma.applicationUsageEvent.deleteMany({
+        where: { applicationId: { in: ids } },
+      });
       await prisma.application.deleteMany({
         where: { id: { in: ids }, slug: { startsWith: e2eEnv.runPrefix } },
       });

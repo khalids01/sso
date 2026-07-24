@@ -14,6 +14,7 @@ export type RunState = {
   oauthFixture?: {
     applicationId: string;
     memberId: string;
+    clientRowId: string;
     clientId: string;
     redirectUri: string;
     demoRedirectUri: string;

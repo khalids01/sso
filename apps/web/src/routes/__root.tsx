@@ -8,7 +8,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { TanstackQueryProvider } from "@/providers/tanstack-query";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { getRootSession } from "@/features/user/lib/get-root-session";
-import { VisitorTracker } from "@/features/visitors/visitor-tracker";
 import { useHydrated } from "@/hooks/use-hydrated";
 import type { ClientSessionResult } from "@auth/client";
 
@@ -63,7 +62,6 @@ function RootDocument() {
           <TanstackQueryProvider>
             <Outlet />
           </TanstackQueryProvider>
-          <VisitorTracker />
           <Toaster richColors position="top-center"/>
           {/* {isDevelopment && <TanStackRouterDevtools position="bottom-left" />} */}
         </ThemeProvider>
