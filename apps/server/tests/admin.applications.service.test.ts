@@ -445,6 +445,10 @@ describe("AdminApplicationsService", () => {
           name: "Customer Dashboard",
           description: "Main app",
           status: "active",
+          signInMethods: [],
+          signUpMethods: [],
+          registrationMode: "closed",
+          passwordEmailVerificationRequired: false,
         }),
       }),
     );
@@ -460,6 +464,42 @@ describe("AdminApplicationsService", () => {
       slug: "customer-dashboard",
       status: "active",
     });
+  });
+
+  it("assigns OAuth connections without silently enabling authentication", async () => {
+    oAuthProviderConnectionFindUniqueMock.mockResolvedValue({
+      id: "google-connection-1",
+      provider: "google",
+      status: "active",
+    });
+    const { adminApplicationsService } = await import(
+      "../src/modules/admin/applications/applications.service"
+    );
+
+    await adminApplicationsService.create(
+      {
+        name: "Customer Portal",
+        oauthConnections: { google: "google-connection-1" },
+      },
+      { id: "owner-1" },
+    );
+
+    expect(applicationCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          signInMethods: [],
+          signUpMethods: [],
+          oauthProviderConnections: {
+            create: [
+              {
+                provider: "google",
+                oauthProviderConnectionId: "google-connection-1",
+              },
+            ],
+          },
+        }),
+      }),
+    );
   });
 
   it("lists current applications as active and disabled", async () => {
@@ -533,13 +573,19 @@ describe("AdminApplicationsService", () => {
       "../src/modules/admin/applications/applications.service"
     );
 
-    await expect(
-      adminApplicationsService.update(
+    const error = await adminApplicationsService
+      .update(
         "app-1",
         { signInMethods: ["password"], signUpMethods: ["magic_link"] },
         { id: "owner-1" },
-      ),
-    ).rejects.toBeInstanceOf(ApplicationsPolicyError);
+      )
+      .catch((reason: unknown) => reason);
+
+    expect(error).toBeInstanceOf(ApplicationsPolicyError);
+    expect(error).toMatchObject({
+      code: "SIGNUP_METHOD_REQUIRES_SIGNIN",
+      details: { field: "signUpMethods" },
+    });
     expect(applicationUpdateMock).not.toHaveBeenCalled();
   });
 

@@ -33,11 +33,18 @@ function handleApplicationsMutationError(
 ) {
   if (error instanceof ApplicationsPolicyError) {
     set.status = error.status;
-    return error.message;
+    return {
+      code: error.code,
+      message: error.message,
+      ...(error.details ? { details: error.details } : {}),
+    };
   }
 
   set.status = 400;
-  return error instanceof Error ? error.message : "Application operation failed";
+  return {
+    code: "APPLICATION_OPERATION_FAILED",
+    message: "Application operation failed",
+  };
 }
 
 export const applicationsController = new Elysia({

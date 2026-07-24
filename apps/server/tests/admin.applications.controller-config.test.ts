@@ -39,4 +39,19 @@ describe("applications controller config", () => {
     expect(routes).toContain("listRevocationDeliveries");
     expect(routes).toContain("retryRevocationDelivery");
   });
+
+  it("returns structured policy errors without leaking unexpected failures", async () => {
+    const controllerPath = new URL(
+      "../src/modules/admin/applications/applications.controller.ts",
+      import.meta.url,
+    );
+    const source = await Bun.file(controllerPath).text();
+
+    expect(source).toContain("code: error.code");
+    expect(source).toContain("message: error.message");
+    expect(source).toContain('code: "APPLICATION_OPERATION_FAILED"');
+    expect(source).not.toContain(
+      'error instanceof Error ? error.message : "Application operation failed"',
+    );
+  });
 });

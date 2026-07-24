@@ -15,19 +15,29 @@ import type { OAuthConnectionOption } from "../oauth-connections/types";
 
 type CreateApplicationDialogProps = {
   isLoading: boolean;
-  onCreate: (input: CreateApplicationInput) => void;
+  onCreate: (input: CreateApplicationInput) => Promise<void>;
   oauthConnectionOptions?: OAuthConnectionOption[];
+  errorMessage?: string | null;
+  onResetError?: () => void;
 };
 
 export function CreateApplicationDialog({
   isLoading,
   onCreate,
   oauthConnectionOptions,
+  errorMessage,
+  onResetError,
 }: CreateApplicationDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) onResetError?.();
+      }}
+    >
       <DialogTrigger
         render={
           <Button>
@@ -50,6 +60,7 @@ export function CreateApplicationDialog({
           onCreated={() => setOpen(false)}
           resetKey={open ? "open" : "closed"}
           oauthConnectionOptions={oauthConnectionOptions}
+          errorMessage={errorMessage}
         />
       </DialogContent>
     </Dialog>

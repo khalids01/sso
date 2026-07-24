@@ -40,10 +40,6 @@ export const createApplicationDefaults: CreateApplicationFormValues = {
   slug: "",
   description: "",
   status: "active",
-  signInMethods: ["magic_link", "password"],
-  signUpMethods: ["magic_link"],
-  registrationMode: "closed",
-  passwordEmailVerificationRequired: true,
   oauthConnections: {
     google: null,
     facebook: null,
@@ -52,49 +48,20 @@ export const createApplicationDefaults: CreateApplicationFormValues = {
   },
 };
 
-export const createApplicationSchema = z
-  .object({
-    name: z.string().trim().min(1, "Name is required").max(120),
-    slug: optionalTrimmedString(80),
-    description: optionalTrimmedString(500),
-    status: applicationStatusSchema.default("active"),
-    signInMethods: z
-      .array(
-        z.enum([
-          "magic_link",
-          "password",
-          "google",
-          "facebook",
-          "linkedin",
-          "github",
-        ]),
-      )
-      .min(1),
-    signUpMethods: z.array(
-      z.enum([
-        "magic_link",
-        "password",
-        "google",
-        "facebook",
-        "linkedin",
-        "github",
-      ]),
-    ),
-    registrationMode: z.enum(["closed", "invite_only", "open"]),
-    passwordEmailVerificationRequired: z.boolean(),
-    oauthConnections: z
-      .object({
-        google: z.string().nullable().optional(),
-        facebook: z.string().nullable().optional(),
-        github: z.string().nullable().optional(),
-        linkedin: z.string().nullable().optional(),
-      })
-      .optional(),
-  })
-  .refine(
-    (value) => value.signUpMethods.every((method) => value.signInMethods.includes(method)),
-    { path: ["signUpMethods"], message: "Signup methods must also be enabled for sign-in" },
-  );
+export const createApplicationSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  slug: optionalTrimmedString(80),
+  description: optionalTrimmedString(500),
+  status: applicationStatusSchema.default("active"),
+  oauthConnections: z
+    .object({
+      google: z.string().nullable().optional(),
+      facebook: z.string().nullable().optional(),
+      github: z.string().nullable().optional(),
+      linkedin: z.string().nullable().optional(),
+    })
+    .optional(),
+});
 
 export const createApplicationClientDefaults: CreateApplicationClientFormValues = {
   name: "",

@@ -101,6 +101,10 @@ test("manage the complete application, client, and membership lifecycle", async 
     await createDialog.getByLabel("Name").fill(initialName);
     await createDialog.getByLabel("Slug").fill(slug);
     await createDialog.getByLabel("Description").fill("Run-owned Playwright application");
+    await expect(createDialog.getByText("OAuth connections", { exact: true })).toBeVisible();
+    await expect(
+      createDialog.getByText(/does not enable sign-in or signup/i),
+    ).toBeVisible();
     await createDialog.getByRole("button", { name: "Create application" }).click();
     await expect(page.getByText("Application created")).toBeVisible();
     await applicationRow(page, initialName);
@@ -114,6 +118,7 @@ test("manage the complete application, client, and membership lifecycle", async 
     await openActions(page, initialName);
     await page.getByRole("menuitem", { name: "Edit", exact: true }).click();
     const editDialog = page.getByRole("dialog", { name: "Edit application" });
+    await expect(editDialog.getByText("OAuth connections", { exact: true })).toBeVisible();
     await editDialog.getByLabel("Name").fill(applicationName);
     await editDialog.getByLabel("Description").fill("Updated by the Playwright E2E journey");
     await editDialog.getByRole("button", { name: "Save application" }).click();

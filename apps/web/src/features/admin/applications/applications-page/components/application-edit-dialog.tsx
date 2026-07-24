@@ -7,25 +7,42 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ApplicationForm } from "../../application.form";
-import type { AdminApplication, ApplicationAuthMethod, ApplicationOAuthConnections, ApplicationRegistrationMode, ApplicationSignupMethod, ApplicationStatus } from "../../types";
+import type {
+  CreateApplicationFormValues,
+  CreateApplicationInput,
+} from "../../schema";
+import type {
+  AdminApplication,
+  ApplicationOAuthConnections,
+} from "../../types";
+import type { OAuthConnectionOption } from "../../../oauth-connections/types";
+
+const oauthProviders = [
+  "google",
+  "facebook",
+  "github",
+  "linkedin",
+] as const;
 
 export function ApplicationEditDialog(props: {
   application: AdminApplication | null;
   isLoading: boolean;
+  oauthConnectionOptions?: OAuthConnectionOption[];
   onOpenChange: (open: boolean) => void;
-  onSubmit: (payload: {
-    name?: string;
-    slug?: string;
-    description?: string;
-    status?: ApplicationStatus;
-    signInMethods?: ApplicationAuthMethod[];
-    signUpMethods?: ApplicationSignupMethod[];
-    registrationMode?: ApplicationRegistrationMode;
-    passwordEmailVerificationRequired?: boolean;
-    oauthConnections?: ApplicationOAuthConnections;
-  }) => void;
+  errorMessage?: string | null;
+  onSubmit: (payload: CreateApplicationInput) => Promise<void>;
 }) {
-  const initialValues = useMemo(
+  const currentOAuthConnections = useMemo(
+    () =>
+      Object.fromEntries(
+        props.application?.oauthConnections.map((connection) => [
+          connection.provider,
+          connection.id,
+        ]) ?? [],
+      ) as ApplicationOAuthConnections,
+    [props.application],
+  );
+  const initialValues = useMemo<CreateApplicationFormValues | undefined>(
     () =>
       props.application
         ? {
@@ -33,15 +50,20 @@ export function ApplicationEditDialog(props: {
             slug: props.application.slug,
             description: props.application.description ?? "",
             status: props.application.status,
-            signInMethods: props.application.signInMethods,
-            signUpMethods: props.application.signUpMethods,
-            registrationMode: props.application.registrationMode,
-            passwordEmailVerificationRequired:
-              props.application.passwordEmailVerificationRequired,
+            oauthConnections: currentOAuthConnections,
           }
         : undefined,
-    [props.application],
+    [currentOAuthConnections, props.application],
   );
+  const oauthConnectionOptions = useMemo(() => {
+    const options = [...(props.oauthConnectionOptions ?? [])];
+    for (const connection of props.application?.oauthConnections ?? []) {
+      if (!options.some((option) => option.id === connection.id)) {
+        options.push(connection);
+      }
+    }
+    return options;
+  }, [props.application, props.oauthConnectionOptions]);
 
   return (
     <Dialog open={Boolean(props.application)} onOpenChange={props.onOpenChange}>
@@ -55,11 +77,32 @@ export function ApplicationEditDialog(props: {
             initialValues={initialValues}
             isLoading={props.isLoading}
             resetKey={props.application?.id ?? "closed"}
-            showOAuthConnections={false}
-            onSubmit={({ name, slug, description, status }) =>
-              props.onSubmit({ name, slug, description, status })
-            }
+            oauthConnectionOptions={oauthConnectionOptions}
+            onSubmit={(input) => {
+              const changedOAuthConnections =
+                Object.fromEntries(
+                  oauthProviders
+                    .filter(
+                      (provider) =>
+                        (input.oauthConnections?.[provider] ?? null) !==
+                        (currentOAuthConnections[provider] ?? null),
+                    )
+                    .map((provider) => [
+                      provider,
+                      input.oauthConnections?.[provider] ?? null,
+                    ]),
+                ) as ApplicationOAuthConnections;
+
+              return props.onSubmit({
+                ...input,
+                oauthConnections:
+                  Object.keys(changedOAuthConnections).length > 0
+                    ? changedOAuthConnections
+                    : undefined,
+              });
+            }}
             onSubmitted={() => props.onOpenChange(false)}
+            errorMessage={props.errorMessage}
           />
         ) : null}
       </DialogContent>

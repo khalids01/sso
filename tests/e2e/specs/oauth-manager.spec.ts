@@ -75,16 +75,14 @@ test("OAuth Manager lifecycle, assignments, client boundaries, and responsive UI
   expect(updated.credentialVersion).toBe(connection.credentialVersion + 1);
 
   const slug = `${e2eEnv.runPrefix}oauth-app`;
+  const applicationName = `${e2eEnv.runPrefix} OAuth application`;
   const appResponse = await page.request.post(
     `${e2eEnv.E2E_API_ORIGIN}/admin/applications`,
     {
       data: {
-        name: `${e2eEnv.runPrefix} OAuth application`,
+        name: applicationName,
         slug,
         status: "active",
-        signInMethods: ["password", "google"],
-        signUpMethods: ["google"],
-        registrationMode: "open",
         oauthConnections: { google: connection.id },
       },
     },
@@ -92,10 +90,14 @@ test("OAuth Manager lifecycle, assignments, client boundaries, and responsive UI
   expect(appResponse.status()).toBe(200);
   const application = (await appResponse.json()) as {
     id: string;
+    signInMethods: string[];
+    signUpMethods: string[];
     oauthConnections: Array<Record<string, unknown>>;
     authCapabilities: Array<{ id: string; available: boolean; unavailableReason?: string }>;
   };
   updateRunState((state) => state.applicationIds.push(application.id));
+  expect(application.signInMethods).toEqual([]);
+  expect(application.signUpMethods).toEqual([]);
   expect(application.oauthConnections).toContainEqual(
     expect.objectContaining({
       id: connection.id,
@@ -105,6 +107,56 @@ test("OAuth Manager lifecycle, assignments, client boundaries, and responsive UI
     }),
   );
   expect(JSON.stringify(application)).not.toContain(secret);
+
+  const authSettingsResponse = await page.request.patch(
+    `${e2eEnv.E2E_API_ORIGIN}/admin/applications/${application.id}`,
+    {
+      data: {
+        signInMethods: ["password", "google"],
+        signUpMethods: ["google"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: false,
+      },
+    },
+  );
+  expect(authSettingsResponse.status()).toBe(200);
+  expect(await authSettingsResponse.json()).toMatchObject({
+    signInMethods: ["password", "google"],
+    signUpMethods: ["google"],
+    registrationMode: "open",
+  });
+
+  await page.goto("/admin/applications");
+  const applicationCard = page.getByLabel(`Application ${applicationName}`);
+  await applicationCard
+    .getByRole("button", { name: `Actions for ${applicationName}` })
+    .click();
+  await page.getByRole("menuitem", { name: "Edit", exact: true }).click();
+  const editApplicationDialog = page.getByRole("dialog", {
+    name: "Edit application",
+  });
+  await expect(editApplicationDialog.getByLabel("Google")).toContainText(name);
+  await editApplicationDialog
+    .getByLabel("Description")
+    .fill("Edited through the shared application form");
+  await editApplicationDialog
+    .getByRole("button", { name: "Save application" })
+    .click();
+  await expect(page.getByText("Application updated")).toBeVisible();
+  const editedApplication = (await (
+    await page.request.get(
+      `${e2eEnv.E2E_API_ORIGIN}/admin/applications/${application.id}`,
+    )
+  ).json()) as {
+    description: string;
+    oauthConnections: Array<{ id: string }>;
+  };
+  expect(editedApplication.description).toBe(
+    "Edited through the shared application form",
+  );
+  expect(editedApplication.oauthConnections).toContainEqual(
+    expect.objectContaining({ id: connection.id }),
+  );
 
   for (const suffix of ["one", "two"]) {
     const clientResponse = await page.request.post(

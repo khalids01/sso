@@ -42,10 +42,6 @@ export async function createApplication(input: {
   slug?: string;
   description?: string;
   status: ApplicationStatus;
-  signInMethods: ApplicationAuthMethod[];
-  signUpMethods: ApplicationSignupMethod[];
-  registrationMode: ApplicationRegistrationMode;
-  passwordEmailVerificationRequired: boolean;
   oauthConnections?: ApplicationOAuthConnections;
 }) {
   const { data, error } = await client.admin.applications.post(input);

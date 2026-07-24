@@ -66,6 +66,7 @@ export function ApplicationAuthSettingsDialog(props: {
   canManage: boolean;
   isLoading: boolean;
   oauthConnectionOptions?: OAuthConnectionOption[];
+  errorMessage?: string | null;
   onOpenChange: (open: boolean) => void;
   onSave: (input: {
     signInMethods: ApplicationAuthMethod[];
@@ -73,7 +74,7 @@ export function ApplicationAuthSettingsDialog(props: {
     registrationMode: ApplicationRegistrationMode;
     passwordEmailVerificationRequired: boolean;
     oauthConnections?: ApplicationOAuthConnections;
-  }) => void;
+  }) => Promise<void>;
 }) {
   const [signInMethods, setSignInMethods] = useState<ApplicationAuthMethod[]>([]);
   const [signUpMethods, setSignUpMethods] =
@@ -117,11 +118,13 @@ export function ApplicationAuthSettingsDialog(props: {
 
   const application = props.application;
   const canSave = props.canManage && signInMethods.length > 0;
-  const emailVerificationAvailable = Boolean(
-    application?.authCapabilities.find(
-      (capability) => capability.id === "magic_link",
-    )?.available,
+  const emailCapability = application?.authCapabilities.find(
+    (capability) => capability.id === "magic_link",
   );
+  const emailVerificationAvailable = Boolean(emailCapability?.available);
+  const emailDeliveryReason =
+    emailCapability?.unavailableReason ??
+    "Email verification requires SMTP_HOST, EMAIL, and EMAIL_PASSWORD on the SSO server.";
   const emailVerificationDisabledReason = !props.canManage
     ? application?.status === "archived"
       ? "Authentication settings cannot be changed for an archived application."
@@ -129,7 +132,7 @@ export function ApplicationAuthSettingsDialog(props: {
     : !signInMethods.includes("password")
       ? "Enable password sign-in before requiring email verification."
       : !emailVerificationAvailable && !passwordEmailVerificationRequired
-        ? "Configure SSO email delivery before enabling email verification."
+        ? emailDeliveryReason
         : null;
 
   return (
@@ -416,7 +419,7 @@ export function ApplicationAuthSettingsDialog(props: {
                   </p>
                   {!emailVerificationAvailable ? (
                     <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-                      Configure SSO email delivery before enabling this requirement.
+                      {emailDeliveryReason}
                     </p>
                   ) : null}
                 </div>
@@ -438,6 +441,14 @@ export function ApplicationAuthSettingsDialog(props: {
                 At least one configured sign-in method is required.
               </p>
             ) : null}
+            {props.errorMessage ? (
+              <div
+                role="alert"
+                className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
+                {props.errorMessage}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -452,8 +463,9 @@ export function ApplicationAuthSettingsDialog(props: {
           <Button
             type="button"
             disabled={!canSave || props.isLoading}
-            onClick={() =>
-              props.onSave((() => {
+            onClick={async () => {
+              try {
+                await props.onSave((() => {
                 const originalConnections = Object.fromEntries(
                   (application?.oauthConnections ?? []).map((connection) => [
                     connection.provider,
@@ -487,8 +499,12 @@ export function ApplicationAuthSettingsDialog(props: {
                     ? { oauthConnections: changedConnections }
                     : {}),
                 };
-              })())
-            }
+                })());
+                props.onOpenChange(false);
+              } catch {
+                // The mutation displays the exact server error above.
+              }
+            }}
           >
             {props.isLoading ? "Saving..." : "Save settings"}
           </Button>

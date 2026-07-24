@@ -131,6 +131,11 @@ export class ApplicationsPolicyError extends Error {
   constructor(
     message: string,
     public readonly status = 400,
+    public readonly code = "APPLICATION_POLICY_ERROR",
+    public readonly details?: {
+      methods?: Array<{ id: string; reason: string }>;
+      field?: string;
+    },
   ) {
     super(message);
     this.name = "ApplicationsPolicyError";
@@ -200,18 +205,35 @@ function normalizeAuthPolicy(input: {
     throw new ApplicationsPolicyError("Invalid application sign-in method");
   }
   const availableMethods = getAvailableApplicationAuthMethodIds();
-  if (
-    signInMethods?.some(
+  const unavailableMethods = signInMethods
+    ?.filter(
       (method) =>
         !socialAuthMethods.includes(method) && !availableMethods.has(method),
     )
-  ) {
+    .map((method) => {
+      const capability = getApplicationAuthCapabilities().find(
+        (item) => item.id === method,
+      );
+      return {
+        id: method,
+        reason: capability?.unavailableReason ?? `${method} is unavailable`,
+      };
+    });
+  if (unavailableMethods?.length) {
     throw new ApplicationsPolicyError(
-      "One or more sign-in methods are not configured on the SSO server",
+      unavailableMethods.map((method) => method.reason).join(". "),
+      400,
+      "AUTH_METHOD_UNAVAILABLE",
+      { methods: unavailableMethods, field: "signInMethods" },
     );
   }
   if (signInMethods?.length === 0) {
-    throw new ApplicationsPolicyError("At least one sign-in method is required");
+    throw new ApplicationsPolicyError(
+      "Enable at least one sign-in method",
+      400,
+      "AUTH_METHOD_REQUIRED",
+      { field: "signInMethods" },
+    );
   }
   if (signUpMethods?.some((method) => !allowedSignupMethods.has(method))) {
     throw new ApplicationsPolicyError("Invalid application signup method");
@@ -227,7 +249,10 @@ function normalizeAuthPolicy(input: {
     !emailDeliveryConfigured
   ) {
     throw new ApplicationsPolicyError(
-      "Configure SSO email delivery before requiring password email verification",
+      "Password email verification requires SMTP_HOST, EMAIL, and EMAIL_PASSWORD on the SSO server",
+      400,
+      "EMAIL_DELIVERY_REQUIRED",
+      { field: "passwordEmailVerificationRequired" },
     );
   }
 
@@ -249,6 +274,9 @@ function assertSignupMethodsAreSignInMethods(
   if (signUpMethods.some((method) => !signInMethods.includes(method))) {
     throw new ApplicationsPolicyError(
       "Signup methods must also be enabled for sign-in",
+      400,
+      "SIGNUP_METHOD_REQUIRES_SIGNIN",
+      { field: "signUpMethods" },
     );
   }
 }
@@ -351,16 +379,25 @@ async function resolveOAuthConnectionSelections(
     if (!connection) {
       throw new ApplicationsPolicyError(
         `The selected ${provider} OAuth connection does not exist`,
+        400,
+        "OAUTH_CONNECTION_NOT_FOUND",
+        { field: `oauthConnections.${provider}` },
       );
     }
     if (connection.provider !== provider) {
       throw new ApplicationsPolicyError(
         `The selected connection is not a ${provider} connection`,
+        400,
+        "OAUTH_PROVIDER_MISMATCH",
+        { field: `oauthConnections.${provider}` },
       );
     }
     if (connection.status !== "active") {
       throw new ApplicationsPolicyError(
-        `The selected ${provider} OAuth connection is not active`,
+        `The selected ${provider} OAuth connection is ${connection.status}; select an active connection`,
+        400,
+        "OAUTH_CONNECTION_INACTIVE",
+        { field: `oauthConnections.${provider}` },
       );
     }
     resolved.push({
@@ -560,41 +597,11 @@ export class AdminApplicationsService {
   }
 
   async create(input: CreateApplicationInput, actor: AdminApplicationsActor) {
-    const policy = normalizeAuthPolicy(input);
     const application = await prisma.$transaction(async (tx) => {
       const selectedConnections = await resolveOAuthConnectionSelections(
         tx,
         input.oauthConnections,
       );
-      const availableMethods = getAvailableApplicationAuthMethodIds(
-        selectedConnections.map((connection) => connection.provider),
-      );
-      const signInMethods =
-        policy.signInMethods ??
-        ["magic_link", "password"].filter((method) =>
-          availableMethods.has(method),
-        );
-      if (
-        signInMethods.some(
-          (method) =>
-            socialAuthMethods.includes(method) && !availableMethods.has(method),
-        )
-      ) {
-        throw new ApplicationsPolicyError(
-          "Assign an active OAuth connection before enabling a social sign-in method",
-        );
-      }
-      if (signInMethods.length === 0) {
-        throw new ApplicationsPolicyError(
-          "Configure at least one SSO authentication method before creating applications",
-        );
-      }
-      const signUpMethods =
-        policy.signUpMethods ??
-        ["magic_link", "password"].filter((method) =>
-          availableMethods.has(method),
-        );
-      assertSignupMethodsAreSignInMethods(signInMethods, signUpMethods);
       return tx.application.create({
         data: {
           slug: normalizeSlug(input.slug ?? input.name),
@@ -603,11 +610,10 @@ export class AdminApplicationsService {
           status: normalizeStatus(input.status),
           logoUrl: input.logoUrl ?? null,
           homepageUrl: input.homepageUrl ?? null,
-          signInMethods,
-          signUpMethods,
-          registrationMode: policy.registrationMode ?? "closed",
-          passwordEmailVerificationRequired:
-            policy.passwordEmailVerificationRequired ?? emailDeliveryConfigured,
+          signInMethods: [],
+          signUpMethods: [],
+          registrationMode: "closed",
+          passwordEmailVerificationRequired: false,
           ...(selectedConnections.length
             ? {
                 oauthProviderConnections: {
@@ -718,8 +724,28 @@ export class AdminApplicationsService {
             socialAuthMethods.includes(method) && !availableMethods.has(method),
         )
       ) {
+        const unavailableMethods = nextSignInMethods
+          .filter(
+            (method) =>
+              socialAuthMethods.includes(method) &&
+              !availableMethods.has(method),
+          )
+          .map((method) => {
+            const capability = getApplicationAuthCapabilities(
+              configuredProviders,
+            ).find((item) => item.id === method);
+            return {
+              id: method,
+              reason:
+                capability?.unavailableReason ??
+                `No active ${method} OAuth connection is assigned`,
+            };
+          });
         throw new ApplicationsPolicyError(
-          "Assign an active OAuth connection before enabling a social sign-in method",
+          unavailableMethods.map((method) => method.reason).join(". "),
+          400,
+          "AUTH_METHOD_UNAVAILABLE",
+          { methods: unavailableMethods, field: "signInMethods" },
         );
       }
       assertSignupMethodsAreSignInMethods(

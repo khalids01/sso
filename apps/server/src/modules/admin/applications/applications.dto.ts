@@ -61,10 +61,6 @@ export const CreateApplicationDto = t.Object({
   status: t.Optional(ApplicationStatusSchema),
   logoUrl: t.Optional(t.String({ format: "uri" })),
   homepageUrl: t.Optional(t.String({ format: "uri" })),
-  signInMethods: t.Optional(t.Array(ApplicationAuthMethodSchema, { minItems: 1 })),
-  signUpMethods: t.Optional(t.Array(ApplicationSignupMethodSchema)),
-  registrationMode: t.Optional(ApplicationRegistrationModeSchema),
-  passwordEmailVerificationRequired: t.Optional(t.Boolean()),
   oauthConnections: t.Optional(ApplicationOAuthConnectionsSchema),
 });
 

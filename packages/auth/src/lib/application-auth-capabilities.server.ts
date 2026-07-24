@@ -52,14 +52,16 @@ export function getApplicationAuthCapabilities(
       label: "Email magic link",
       available: Boolean(env.SMTP_HOST && env.EMAIL && env.EMAIL_PASSWORD),
       supportsSignUp: true,
-      unavailableReason: "Email delivery is not configured on the SSO server",
+      unavailableReason:
+        "Magic-link authentication requires SMTP_HOST, EMAIL, and EMAIL_PASSWORD on the SSO server",
     },
     {
       id: "password",
       label: "Email and password",
       available: env.ENABLE_PASSWORD_AUTH,
       supportsSignUp: true,
-      unavailableReason: "Password authentication is disabled on the SSO server",
+      unavailableReason:
+        "Password authentication requires ENABLE_PASSWORD_AUTH=true on the SSO server",
     },
     ...socialProviders.map((provider) => {
       const connection = connections.get(provider.id);

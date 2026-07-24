@@ -25,6 +25,7 @@ import { useSession } from "@/providers/session-provider";
 import { Permissions } from "@rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 import type { OAuthConnectionOption } from "../../oauth-connections/types";
+import { getMutationErrorMessage } from "../mutation-error";
 
 export function AdminApplicationsPage() {
   const { session } = useSession();
@@ -127,7 +128,18 @@ export function AdminApplicationsPage() {
           {canManage ? (
             <CreateApplicationDialog
               isLoading={createApplicationMutation.isPending}
-              onCreate={(input) => createApplicationMutation.mutate(input)}
+              onCreate={async (input) => {
+                await createApplicationMutation.mutateAsync(input);
+              }}
+              errorMessage={
+                createApplicationMutation.error
+                  ? getMutationErrorMessage(
+                      createApplicationMutation.error,
+                      "Failed to create application",
+                    )
+                  : null
+              }
+              onResetError={createApplicationMutation.reset}
               oauthConnectionOptions={oauthConnectionOptionsQuery.data}
             />
           ) : null}
@@ -156,8 +168,14 @@ export function AdminApplicationsPage() {
               filter={filter}
               canManage={canManage}
               onView={() => setViewApplication(application)}
-              onEdit={() => setEditApplication(application)}
-              onSettings={() => setSettingsApplication(application)}
+              onEdit={() => {
+                updateApplicationMutation.reset();
+                setEditApplication(application);
+              }}
+              onSettings={() => {
+                updateApplicationMutation.reset();
+                setSettingsApplication(application);
+              }}
               onLifecycle={setPendingAction}
             />
           ))}
@@ -171,11 +189,22 @@ export function AdminApplicationsPage() {
       <ApplicationEditDialog
         application={editApplication}
         isLoading={updateApplicationMutation.isPending}
+        oauthConnectionOptions={oauthConnectionOptionsQuery.data}
+        errorMessage={
+          updateApplicationMutation.error
+            ? getMutationErrorMessage(
+                updateApplicationMutation.error,
+                "Failed to update application",
+              )
+            : null
+        }
         onOpenChange={(open) => !open && setEditApplication(null)}
-        onSubmit={(payload) => {
+        onSubmit={async (payload) => {
           if (!editApplication) return;
-          updateApplicationMutation.mutate({ id: editApplication.id, payload });
-          setEditApplication(null);
+          await updateApplicationMutation.mutateAsync({
+            id: editApplication.id,
+            payload,
+          });
         }}
       />
       <ApplicationAuthSettingsDialog
@@ -183,13 +212,21 @@ export function AdminApplicationsPage() {
         canManage={canManage && settingsApplication?.status !== "archived"}
         isLoading={updateApplicationMutation.isPending}
         oauthConnectionOptions={oauthConnectionOptionsQuery.data}
+        errorMessage={
+          updateApplicationMutation.error
+            ? getMutationErrorMessage(
+                updateApplicationMutation.error,
+                "Failed to update authentication settings",
+              )
+            : null
+        }
         onOpenChange={(open) => !open && setSettingsApplication(null)}
-        onSave={(payload) => {
+        onSave={async (payload) => {
           if (!settingsApplication) return;
-          updateApplicationMutation.mutate(
-            { id: settingsApplication.id, payload },
-            { onSuccess: () => setSettingsApplication(null) },
-          );
+          await updateApplicationMutation.mutateAsync({
+            id: settingsApplication.id,
+            payload,
+          });
         }}
       />
       <LifecycleConfirmDialog
