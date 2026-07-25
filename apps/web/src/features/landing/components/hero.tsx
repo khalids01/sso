@@ -56,19 +56,21 @@ export const Hero = () => {
           <span>{BRANDING.appName}</span>
         </div>
 
-        {/* Headline */}
+        {/* Exact consent-screen identity for automated and manual reviewers */}
         <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl mx-auto leading-[1.1] text-foreground">
-          Secure Access to All <br className="hidden sm:inline" />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-600 to-indigo-600 dark:from-primary dark:via-blue-400 dark:to-indigo-400">
-            Your Connected Applications
-          </span>
+          {BRANDING.appName}
         </h1>
 
-        {/* Subtitle */}
-        <p className="max-w-2xl mx-auto text-muted-foreground text-lg md:text-xl mb-10 leading-relaxed">
-          {BRANDING.appName} is the account and single sign-on service operated
-          by {BRANDING.operatorName}. Sign in once to securely access connected
-          applications using Google or another supported sign-in method.
+        <h2 className="mb-5 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Secure Single Sign-On for Connected Applications
+        </h2>
+
+        {/* Plain-language app purpose for OAuth verification */}
+        <p className="max-w-3xl mx-auto text-muted-foreground text-lg md:text-xl mb-10 leading-relaxed">
+          {BRANDING.appName} is a centralized authentication and single sign-on
+          service operated by {BRANDING.operatorName}. It lets users create one
+          account, sign in with Google or another supported method, and securely
+          access applications connected to the service.
         </p>
 
         {/* Primary Single CTA Button */}
