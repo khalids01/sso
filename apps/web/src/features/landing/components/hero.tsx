@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import type { CSSProperties } from "react";
 import { ArrowRight, Shield, Lock, Key, CheckCircle2, UserCheck, Sparkles } from "lucide-react";
+import { BRANDING } from "@/constants/branding";
 
 const particles = Array.from({ length: 72 }, (_, index) => {
   const random = (salt: number) => {
@@ -52,20 +53,22 @@ export const Hero = () => {
         {/* Top Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted/80 border border-border/80 text-xs font-medium text-foreground mb-8 shadow-xs">
           <Sparkles className="w-3.5 h-3.5 text-primary" />
-          <span>Unified Identity Provider & Single Sign-On</span>
+          <span>{BRANDING.appName}</span>
         </div>
 
         {/* Headline */}
         <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl mx-auto leading-[1.1] text-foreground">
-          One Account for All <br className="hidden sm:inline" />
+          Secure Access to All <br className="hidden sm:inline" />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-600 to-indigo-600 dark:from-primary dark:via-blue-400 dark:to-indigo-400">
-            Your Applications
+            Your Connected Applications
           </span>
         </h1>
 
         {/* Subtitle */}
         <p className="max-w-2xl mx-auto text-muted-foreground text-lg md:text-xl mb-10 leading-relaxed">
-          Sign in once and gain secure, seamless access across all company services with social authentication, magic links, and centralized security control.
+          {BRANDING.appName} is the account and single sign-on service operated
+          by {BRANDING.operatorName}. Sign in once to securely access connected
+          applications using Google or another supported sign-in method.
         </p>
 
         {/* Primary Single CTA Button */}
@@ -75,7 +78,8 @@ export const Hero = () => {
               size="lg"
               className="rounded-xl px-8 h-13 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all gap-2 cursor-pointer"
             >
-              Sign In to SSO <ArrowRight className="h-4 w-4" />
+              Sign In to {BRANDING.appName}{" "}
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>
@@ -96,6 +100,41 @@ export const Hero = () => {
           </div>
         </div>
 
+        <div
+          id="google-data-use"
+          className="max-w-4xl mx-auto mb-16 rounded-2xl border border-primary/20 bg-primary/5 p-6 text-left"
+        >
+          <h2 className="mb-2 text-lg font-bold text-foreground">
+            How Google Sign-In uses your data
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            When you choose Google Sign-In, {BRANDING.appName} requests only
+            your {BRANDING.google.dataFields.join(", ")} through the{" "}
+            {BRANDING.google.scopes.map((scope, index) => (
+              <span key={scope}>
+                {index > 0
+                  ? index === BRANDING.google.scopes.length - 1
+                    ? ", and "
+                    : ", "
+                  : null}
+                <code>{scope}</code>
+              </span>
+            ))}{" "}
+            scopes. We use this information only to create or match your
+            account, verify your identity, and sign you in to connected
+            applications. We do not request access to Gmail, Google Drive,
+            Google Calendar, or other Google content.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            For details about storage, sharing, retention, and deletion, read
+            our{" "}
+            <Link to="/privacy" className="font-semibold text-primary underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
+
         {/* Clean SSO Portal Card Visual (No AI Terminal Slop) */}
         <div className="max-w-4xl mx-auto border border-border/80 rounded-2xl bg-card/90 shadow-2xl p-8 text-left backdrop-blur">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
@@ -106,7 +145,9 @@ export const Hero = () => {
                   <Shield className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-foreground text-base">SSO Identity Portal</h3>
+                  <h3 className="font-bold text-foreground text-base">
+                    {BRANDING.appName} Portal
+                  </h3>
                   <p className="text-xs text-muted-foreground">Centralized Authentication Service</p>
                 </div>
               </div>

@@ -16,6 +16,7 @@ import {
   SocialAuthButtons,
   type SocialAuthMethod,
 } from "./social-auth-buttons";
+import { BRANDING } from "@/constants/branding";
 
 export default function SignUpForm({
   applicationName,
@@ -76,7 +77,7 @@ export default function SignUpForm({
       <h1 className="mb-2 text-center text-3xl font-bold">Create Account</h1>
       {isApplicationSignup ? (
         <p className="mb-6 text-center text-sm text-muted-foreground">
-          Create an SSO account to continue to {applicationName}.
+          Create a {BRANDING.appName} account to continue to {applicationName}.
         </p>
       ) : null}
       {!signupAvailable ? (

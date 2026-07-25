@@ -12,6 +12,7 @@ import {
   SocialAuthButtons,
   type SocialAuthMethod,
 } from "./social-auth-buttons";
+import { BRANDING } from "@/constants/branding";
 
 export default function SignInForm({
   applicationName,
@@ -45,8 +46,8 @@ export default function SignInForm({
       </h1>
       <p className="mb-6 text-center text-sm text-muted-foreground">
         {isApplicationLogin
-          ? "Sign in with your SSO account."
-          : "Sign in to continue to SSO."}
+          ? `Sign in with your ${BRANDING.appName} account.`
+          : `Sign in to ${BRANDING.appName}.`}
       </p>
 
       <div className="space-y-6">

@@ -1,10 +1,11 @@
 import { HelpCircle } from "lucide-react";
+import { BRANDING } from "@/constants/branding";
 
 const faqs = [
   {
     question: "What is Single Sign-On (SSO)?",
     answer:
-      "SSO allows users to sign in once with a central identity account and gain secure, instant access across all authorized company applications without needing separate credentials for each app.",
+      `Single sign-on allows users to sign in once with ${BRANDING.appName} and securely access connected applications without maintaining separate credentials for each one.`,
   },
   {
     question: "Which authentication methods are supported?",
@@ -22,14 +23,14 @@ const faqs = [
       "Yes. Users can manage active login sessions, view account activity, and initiate self-service data deletion or provider access revocation at any time.",
   },
   {
-    question: "Does SSO comply with Google and Meta OAuth requirements?",
+    question: `How does ${BRANDING.appName} use Google data?`,
     answer:
-      "Yes. The platform includes fully compliant Privacy Policy, Terms of Service, and User Data Deletion Instructions required by Google Cloud Console verification and Meta App Review.",
+      "Google Sign-In supplies only your account identifier, name, email address, and profile picture. We use this information to create or match your account, verify your identity, and sign you in. We do not request Gmail, Drive, Calendar, or other Google content.",
   },
   {
-    question: "How do I access the SSO platform?",
+    question: `How do I access ${BRANDING.appName}?`,
     answer:
-      "Click the Login button at the top of the page to access your SSO account, sign in via your preferred method, and access your connected applications.",
+      "Click the Login button at the top of the page, choose a supported sign-in method, and access your connected applications.",
   },
 ];
 
@@ -46,7 +47,7 @@ export const FAQ = () => {
             Questions & Answers
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg">
-            Everything you need to know about using SSO.
+            Everything you need to know about {BRANDING.appName}.
           </p>
         </div>
 

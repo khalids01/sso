@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { Sun, Moon, ShieldCheck } from "lucide-react";
 import UserMenu from "@/components/core/user-menu";
+import { BRANDING } from "@/constants/branding";
 
 export const LandingNav = () => {
   const { theme, setTheme } = useTheme();
@@ -22,8 +23,12 @@ export const LandingNav = () => {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
-                <span className="text-lg font-bold tracking-tight leading-none">SSO</span>
-                <span className="text-[10px] text-muted-foreground font-mono leading-none mt-0.5">Identity Provider</span>
+                <span className="text-sm sm:text-lg font-bold tracking-tight leading-none">
+                  {BRANDING.appName}
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono leading-none mt-0.5">
+                  Secure Account Service
+                </span>
               </div>
             </Link>
 

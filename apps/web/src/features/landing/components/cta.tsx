@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import { BRANDING } from "@/constants/branding";
 
 export const CTA = () => {
   return (
@@ -12,7 +13,7 @@ export const CTA = () => {
 
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
             <ShieldCheck className="w-4 h-4" />
-            Centralized Identity Management
+            {BRANDING.appName}
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground max-w-3xl mx-auto leading-tight">
@@ -20,13 +21,15 @@ export const CTA = () => {
           </h2>
 
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            Access all connected services seamlessly with your single SSO account.
+            Access connected services securely with your {BRANDING.appName}{" "}
+            account.
           </p>
 
           <div className="flex items-center justify-center pt-2">
             <Link to="/login">
               <Button size="lg" className="rounded-xl px-8 h-13 text-base font-semibold shadow-lg shadow-primary/20 gap-2 cursor-pointer">
-                Sign In to SSO <ArrowRight className="w-4 h-4" />
+                Sign In to {BRANDING.appName}{" "}
+                <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>

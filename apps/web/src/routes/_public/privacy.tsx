@@ -2,13 +2,32 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
 import { Shield, Lock, Eye, CheckCircle, Mail, Server } from "lucide-react";
+import { BRANDING, BRAND_SUPPORT_MAILTO } from "@/constants/branding";
 
 export const Route = createFileRoute("/_public/privacy")({
+  head: () => ({
+    meta: [
+      {
+        title: `Privacy Policy | ${BRANDING.appName}`,
+      },
+      {
+        name: "description",
+        content:
+          `How ${BRANDING.appName} accesses, uses, stores, shares, and deletes account and Google Sign-In data.`,
+      },
+    ],
+    links: [
+      {
+        rel: "canonical",
+        href: BRANDING.urls.privacy,
+      },
+    ],
+  }),
   component: PrivacyPolicyPage,
 });
 
 function PrivacyPolicyPage() {
-  const lastUpdated = "July 23, 2026";
+  const lastUpdated = "July 25, 2026";
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -22,7 +41,7 @@ function PrivacyPolicyPage() {
               Legal & Privacy Compliance
             </div>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
-              Privacy Policy
+              {BRANDING.appName} Privacy Policy
             </h1>
             <p className="text-muted-foreground text-sm">
               Last updated: <span className="font-medium text-foreground">{lastUpdated}</span>
@@ -60,10 +79,18 @@ function PrivacyPolicyPage() {
             <section className="space-y-3">
               <h2 className="text-xl font-bold text-foreground">1. Introduction & Service Scope</h2>
               <p>
-                This Privacy Policy explains how <strong>SSO</strong> (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects, uses, stores, and protects personal data when you use our centralized identity and access management system, single sign-on services, and associated web applications.
+                This Privacy Policy explains how{" "}
+                <strong>{BRANDING.appName}</strong>, the account and single
+                sign-on service operated by {BRANDING.operatorName}
+                (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;), collects,
+                uses, stores, and protects personal data when you use the
+                service and its connected applications.
               </p>
               <p>
-                By signing in to SSO via email, magic link, or third-party OAuth authentication providers (such as Google, GitHub, Facebook/Meta, or LinkedIn), you consent to the data practices described in this policy.
+                By signing in to {BRANDING.appName} via email, magic link, or a
+                third-party OAuth provider such as Google, GitHub, Meta, or
+                LinkedIn, you acknowledge the data practices described in this
+                policy.
               </p>
             </section>
 
@@ -77,7 +104,7 @@ function PrivacyPolicyPage() {
                 <ul className="list-disc pl-5 space-y-1 text-xs md:text-sm">
                   <li><strong>Full Name & Email Address:</strong> Used as primary account identifiers and for authentication notifications.</li>
                   <li><strong>Profile Picture URL:</strong> Provided by your chosen OAuth provider to display your avatar.</li>
-                  <li><strong>OAuth Provider Identifiers:</strong> Unique ID keys assigned by Google, GitHub, Meta, or LinkedIn to pair your login with your SSO account.</li>
+                  <li><strong>OAuth Provider Identifiers:</strong> Unique identifiers assigned by Google, GitHub, Meta, or LinkedIn to pair your provider login with your {BRANDING.appName} account.</li>
                   <li><strong>OAuth Profile Payload:</strong> The basic profile response returned under the approved identity scopes is stored for account synchronization, support, and security auditing.</li>
                 </ul>
               </div>
@@ -98,7 +125,8 @@ function PrivacyPolicyPage() {
                 Google API Services User Data Policy Disclosure
               </div>
               <p className="text-sm">
-                SSO&apos;s use and transfer to any other app of information received from Google APIs will adhere to the{" "}
+                {BRANDING.appName}&apos;s use and transfer to any other app of
+                information received from Google APIs will adhere to the{" "}
                 <a 
                   href="https://developers.google.com/terms/api-services-user-data-policy" 
                   target="_blank" 
@@ -109,8 +137,24 @@ function PrivacyPolicyPage() {
                 </a>, including the Limited Use requirements.
               </p>
               <ul className="list-disc pl-5 space-y-2 text-xs md:text-sm text-muted-foreground">
-                <li>We request basic Google scope permissions (<code>openid</code>, <code>profile</code>, <code>email</code>) exclusively for identity verification and account creation.</li>
-                <li>Google user data is <strong>never</strong> transferred to third parties for advertising, commercial profiling, or marketing purposes.</li>
+                <li>
+                  We request only the basic Google scopes{" "}
+                  {BRANDING.google.scopes.map((scope, index) => (
+                    <span key={scope}>
+                      {index > 0
+                        ? index === BRANDING.google.scopes.length - 1
+                          ? ", and "
+                          : ", "
+                        : null}
+                      <code>{scope}</code>
+                    </span>
+                  ))}
+                  . These provide your{" "}
+                  {BRANDING.google.dataFields.join(", ")}.
+                </li>
+                <li>We use Google user data only to create or match an account, verify identity, keep profile details synchronized, and sign users in to connected applications.</li>
+                <li>We do not request access to Gmail, Google Drive, Google Calendar, contacts, or other Google content.</li>
+                <li>Google user data is <strong>never</strong> transferred to advertising networks or used for advertising, commercial profiling, or marketing purposes.</li>
                 <li>Google user data is <strong>never</strong> used for training machine learning or AI models.</li>
               </ul>
             </section>
@@ -120,7 +164,7 @@ function PrivacyPolicyPage() {
               <h2 className="text-xl font-bold text-foreground">3. How We Use Your Information</h2>
               <p>Your data is processed strictly for the following operational purposes:</p>
               <ul className="list-disc pl-5 space-y-2">
-                <li>To authenticate your identity across client applications integrated with SSO.</li>
+                <li>To authenticate your identity across applications connected to {BRANDING.appName}.</li>
                 <li>To enforce enterprise access control, role-based permissions (RBAC), and session security.</li>
                 <li>To send critical authentication emails (e.g., email verification codes, password resets, magic sign-in links).</li>
                 <li>To audit security logs and detect fraudulent or unauthorized login attempts.</li>
@@ -134,7 +178,7 @@ function PrivacyPolicyPage() {
                 We implement robust administrative, physical, and technical security controls to safeguard your personal data:
               </p>
               <ul className="list-disc pl-5 space-y-2">
-                <li><strong>Encryption:</strong> All data transmitted between your browser, our SSO application, and client apps is encrypted using Transport Layer Security (TLS 1.3). Sensitive database records and passwords are cryptographically hashed.</li>
+                <li><strong>Encryption:</strong> Data transmitted between your browser, {BRANDING.appName}, and connected applications is protected using HTTPS/TLS. Passwords are cryptographically hashed.</li>
                 <li><strong>Session Expiration:</strong> Active authentication tokens automatically expire after inactivity and can be revoked immediately via your account settings.</li>
                 <li><strong>Retention Period:</strong> Personal information is retained only as long as your account remains active. Upon account deletion, all personal profile records are permanently purged from our database.</li>
               </ul>
@@ -147,9 +191,9 @@ function PrivacyPolicyPage() {
                 You have full control over your personal data under applicable data privacy regulations (including GDPR and CCPA):
               </p>
               <ul className="list-disc pl-5 space-y-2">
-                <li><strong>Access & Export:</strong> You can view and request a copy of your profile data stored within SSO.</li>
-                <li><strong>Revoking OAuth Access:</strong> You can revoke SSO&apos;s access at any time through your Google, GitHub, Facebook, or LinkedIn account security settings.</li>
-                <li><strong>Account & Data Deletion:</strong> You can permanently delete your SSO account and associated data by following the instructions on our <a href="/data-deletion" className="text-primary underline font-medium">Data Deletion Instructions</a> page or by contacting our privacy team.</li>
+                <li><strong>Access & Export:</strong> You can view or request a copy of the profile data stored in your {BRANDING.appName} account.</li>
+                <li><strong>Revoking OAuth Access:</strong> You can revoke {BRANDING.appName}&apos;s access at any time through your Google, GitHub, Meta, or LinkedIn account settings.</li>
+                <li><strong>Account & Data Deletion:</strong> You can permanently delete your {BRANDING.appName} account and associated data by following the instructions on our <a href="/data-deletion" className="text-primary underline font-medium">Data Deletion Instructions</a> page or by contacting us.</li>
               </ul>
             </section>
 
@@ -157,7 +201,9 @@ function PrivacyPolicyPage() {
             <section className="space-y-3">
               <h2 className="text-xl font-bold text-foreground">6. Third-Party OAuth Providers</h2>
               <p>
-                SSO allows authentication via external identity providers. Each provider operates under its own respective privacy policy:
+                {BRANDING.appName} supports authentication through external
+                identity providers. Each provider operates under its own
+                privacy policy:
               </p>
               <ul className="list-disc pl-5 space-y-1 text-xs md:text-sm">
                 <li><strong>Google:</strong> <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="text-primary underline">Google Privacy Policy</a></li>
@@ -174,11 +220,20 @@ function PrivacyPolicyPage() {
                 7. Contact Us
               </h2>
               <p>
-                If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact our Data Protection team:
+                If you have any questions, concerns, or requests regarding this
+                Privacy Policy or your personal data, contact:
               </p>
               <div className="bg-muted p-4 rounded-lg text-foreground font-mono text-sm space-y-1">
-                <p><strong>SSO Platform Administration</strong></p>
-                <p>Email: privacy@sso.local (or your designated support address)</p>
+                <p><strong>{BRANDING.appName} Support</strong></p>
+                <p>
+                  Email:{" "}
+                  <a
+                    href={BRAND_SUPPORT_MAILTO}
+                    className="text-primary underline"
+                  >
+                    {BRANDING.supportEmail}
+                  </a>
+                </p>
               </div>
             </section>
           </div>

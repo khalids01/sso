@@ -1,4 +1,5 @@
 import { Shield, KeyRound, Sparkles, UserCheck, Lock, Globe } from "lucide-react";
+import { BRANDING } from "@/constants/branding";
 
 const features = [
   {
@@ -32,9 +33,9 @@ const features = [
     icon: <Lock className="h-5 w-5 text-primary" />,
   },
   {
-    title: "OAuth Verification Compliant",
+    title: "Transparent OAuth Data Use",
     description:
-      "Built to strictly meet Google Limited Use requirements, Meta Data Deletion callbacks, and global privacy standards.",
+      "Clearly explains which identity data is requested from each provider, why it is used, and how users can delete or revoke it.",
     icon: <Sparkles className="h-5 w-5 text-primary" />,
   },
 ];
@@ -48,7 +49,8 @@ export const Features = () => {
             Everything You Need for Application Identity
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg">
-            A unified identity platform delivering modern authentication, social login, and session control.
+            {BRANDING.appName} provides modern authentication, social login,
+            and session control for connected applications.
           </p>
         </div>
 

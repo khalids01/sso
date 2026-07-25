@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
+import { BRANDING } from "@/constants/branding";
 
 export const Footer = () => {
   return (
@@ -12,10 +13,12 @@ export const Footer = () => {
               <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white shadow-sm">
                 <ShieldCheck className="w-4 h-4" />
               </div>
-              <span className="text-xl font-bold tracking-tight">SSO</span>
+              <span className="text-lg font-bold tracking-tight">
+                {BRANDING.appName}
+              </span>
             </Link>
             <p className="text-muted-foreground text-xs leading-relaxed max-w-xs">
-              Centralized identity, single sign-on, and access management for internal and customer-facing applications.
+              {BRANDING.description}
             </p>
           </div>
 
@@ -89,7 +92,10 @@ export const Footer = () => {
         </div>
 
         <div className="border-t border-border/60 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} SSO Identity Service. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} {BRANDING.appName}. All rights
+            reserved.
+          </p>
           <div className="flex items-center gap-6 font-medium">
             <Link to="/privacy" className="hover:text-primary transition-colors">
               Privacy Policy

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import Logo from "@/components/core/logo";
 import { authClient } from "@/lib/auth-client";
+import { BRANDING } from "@/constants/branding";
 
 export const Route = createFileRoute("/authorize")({
   component: AuthorizePage,
@@ -76,7 +77,9 @@ function AuthorizePage() {
         }
       }
 
-      setErrorMessage("SSO could not complete this authorization request.");
+      setErrorMessage(
+        `${BRANDING.appName} could not complete this authorization request.`,
+      );
     };
 
     void continueAuthorization();

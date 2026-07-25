@@ -1,5 +1,6 @@
-import { ShieldCheck, FileCheck, Lock, Eye, AlertCircle, Trash2 } from "lucide-react";
+import { ShieldCheck, FileCheck, Lock, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { BRANDING } from "@/constants/branding";
 
 export const SecurityCompliance = () => {
   return (
@@ -8,13 +9,14 @@ export const SecurityCompliance = () => {
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Enterprise Security & OAuth Compliance
+            Security & OAuth Data Protection
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground">
             Strict Standards for User Data & Identity
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg">
-            Built from the ground up to pass OAuth app verification and satisfy strict data protection regulations.
+            Clear controls and disclosures explain how identity data is
+            requested, protected, retained, and deleted.
           </p>
         </div>
 
@@ -24,9 +26,20 @@ export const SecurityCompliance = () => {
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
               <FileCheck className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-foreground">Google Limited Use Compliant</h3>
+            <h3 className="text-lg font-bold text-foreground">
+              Limited Google Profile Access
+            </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Fully compliant with Google API Services User Data Policy. OAuth profile scopes (<code>openid</code>, <code>profile</code>, <code>email</code>) are strictly used for identity verification and never sold or shared.
+              Google OAuth profile scopes (
+              {BRANDING.google.scopes.map((scope, index) => (
+                <span key={scope}>
+                  {index > 0 ? ", " : null}
+                  <code>{scope}</code>
+                </span>
+              ))}
+              ) are used only for
+              account creation, identity verification, and sign-in. This data
+              is never sold or used for advertising.
             </p>
             <div className="pt-2">
               <Link to="/privacy" className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
@@ -40,9 +53,12 @@ export const SecurityCompliance = () => {
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
               <Trash2 className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-foreground">Meta Data Deletion Callback</h3>
+            <h3 className="text-lg font-bold text-foreground">
+              Account and Provider Revocation
+            </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Provides dedicated self-service data deletion and provider revocation workflows satisfying Meta Developers, GitHub, and LinkedIn App Review guidelines.
+              Dedicated self-service account deletion and provider revocation
+              instructions give users control over connected identity data.
             </p>
             <div className="pt-2">
               <Link to="/data-deletion" className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
@@ -56,9 +72,12 @@ export const SecurityCompliance = () => {
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <Lock className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-foreground">Zero Third-Party Data Sharing</h3>
+            <h3 className="text-lg font-bold text-foreground">
+              No Advertising Data Sharing
+            </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Your identity directory belongs exclusively to your platform. Personal profile data is encrypted in transit via TLS 1.3 and never monetized or exposed to ad networks.
+              Personal profile data is protected in transit and is not sold,
+              monetized, or disclosed to advertising networks.
             </p>
             <div className="pt-2">
               <Link to="/terms" className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">

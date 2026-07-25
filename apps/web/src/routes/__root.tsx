@@ -8,8 +8,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TanstackQueryProvider } from "@/providers/tanstack-query";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { getRootSession } from "@/features/user/lib/get-root-session";
-import { useHydrated } from "@/hooks/use-hydrated";
 import type { ClientSessionResult } from "@auth/client";
+import { BRANDING } from "@/constants/branding";
 
 
 export interface RouterAppContext {
@@ -27,7 +27,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "SSO",
+        title: BRANDING.appName,
+      },
+      {
+        name: "description",
+        content: BRANDING.description,
       },
     ],
     links: [
@@ -50,14 +54,12 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootDocument() {
-  const hydrated = useHydrated();
-
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body inert={hydrated ? undefined : true}>
+      <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TanstackQueryProvider>
             <Outlet />

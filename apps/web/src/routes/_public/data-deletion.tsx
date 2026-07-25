@@ -3,13 +3,32 @@ import { LandingNav } from "@/features/landing/components/landing-nav";
 import { Footer } from "@/features/landing/components/footer";
 import { Trash2, ShieldCheck, ExternalLink, Mail, UserX, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BRANDING, BRAND_SUPPORT_MAILTO } from "@/constants/branding";
 
 export const Route = createFileRoute("/_public/data-deletion")({
+  head: () => ({
+    meta: [
+      {
+        title: `Data Deletion | ${BRANDING.appName}`,
+      },
+      {
+        name: "description",
+        content:
+          `Instructions for deleting a ${BRANDING.appName} account and revoking connected OAuth provider access.`,
+      },
+    ],
+    links: [
+      {
+        rel: "canonical",
+        href: BRANDING.urls.dataDeletion,
+      },
+    ],
+  }),
   component: DataDeletionPage,
 });
 
 function DataDeletionPage() {
-  const lastUpdated = "July 23, 2026";
+  const lastUpdated = "July 25, 2026";
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -31,7 +50,9 @@ function DataDeletionPage() {
           </div>
 
           <p className="text-base text-muted-foreground mb-8 leading-relaxed">
-            In compliance with <strong>Google OAuth Developer Policies</strong>, <strong>Meta (Facebook) Data Deletion Requirements</strong>, and global privacy standards (GDPR/CCPA), <strong>SSO</strong> provides clear, simple methods for users to delete their account data and revoke third-party permissions at any time.
+            <strong>{BRANDING.appName}</strong> provides the following methods
+            for deleting account data and revoking access granted through
+            Google, GitHub, Meta, or LinkedIn.
           </p>
 
           {/* Option 1: Self Service */}
@@ -42,19 +63,24 @@ function DataDeletionPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground">Option 1: Self-Service Account Deletion</h2>
-                <p className="text-xs text-muted-foreground">Immediate deletion via your SSO dashboard</p>
+                <p className="text-xs text-muted-foreground">
+                  Delete data from your {BRANDING.appName} account
+                </p>
               </div>
             </div>
 
             <ol className="list-decimal pl-6 space-y-2 text-sm text-muted-foreground">
-              <li>Log in to your <strong>SSO Account</strong> dashboard.</li>
+              <li>
+                Log in to your{" "}
+                <strong>{BRANDING.appName} account</strong>.
+              </li>
               <li>Navigate to <strong>Account Settings</strong> (or visit <code>/account</code>).</li>
               <li>Scroll down to the <strong>Danger Zone</strong> section.</li>
               <li>Click <strong>Delete Account & Data</strong> and confirm your password or magic link verification.</li>
             </ol>
 
             <div className="pt-2">
-              <a href="/login">
+              <a href="/account">
                 <Button variant="outline" size="sm" className="gap-2">
                   Go to Account Settings <ExternalLink className="w-3.5 h-3.5" />
                 </Button>
@@ -70,7 +96,9 @@ function DataDeletionPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground">Option 2: Revoking Access via OAuth Identity Providers</h2>
-                <p className="text-xs text-muted-foreground">Remove SSO permissions directly from provider settings</p>
+                <p className="text-xs text-muted-foreground">
+                  Remove {BRANDING.appName} permissions in provider settings
+                </p>
               </div>
             </div>
 
@@ -85,7 +113,8 @@ function DataDeletionPage() {
                   <span className="w-2 h-2 rounded-full bg-blue-500"></span> Google Account
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Go to your Google Security settings under &quot;Third-party apps with account access&quot;, locate <strong>SSO</strong>, and click &quot;Remove Access&quot;.
+                  Open your Google third-party connections, locate{" "}
+                  <strong>{BRANDING.appName}</strong>, and remove its access.
                 </p>
                 <a 
                   href="https://myaccount.google.com/permissions" 
@@ -103,7 +132,9 @@ function DataDeletionPage() {
                   <span className="w-2 h-2 rounded-full bg-blue-600"></span> Facebook / Meta Account
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Go to Facebook Settings & Privacy &gt; Settings &gt; Apps and Websites &gt; Select <strong>SSO</strong> &gt; Click &quot;Remove&quot;.
+                  Go to Facebook Settings &amp; Privacy &gt; Settings &gt; Apps
+                  and Websites, select{" "}
+                  <strong>{BRANDING.appName}</strong>, and click &quot;Remove&quot;.
                 </p>
                 <a 
                   href="https://www.facebook.com/settings?tab=applications" 
@@ -121,7 +152,9 @@ function DataDeletionPage() {
                   <span className="w-2 h-2 rounded-full bg-slate-700"></span> GitHub Account
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Go to GitHub Settings &gt; Applications &gt; Authorized OAuth Apps &gt; Find <strong>SSO</strong> &gt; Click &quot;Revoke&quot;.
+                  Go to GitHub Settings &gt; Applications &gt; Authorized OAuth
+                  Apps, find <strong>{BRANDING.appName}</strong>, and click
+                  &quot;Revoke&quot;.
                 </p>
                 <a 
                   href="https://github.com/settings/applications" 
@@ -139,7 +172,9 @@ function DataDeletionPage() {
                   <span className="w-2 h-2 rounded-full bg-blue-700"></span> LinkedIn Account
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Go to LinkedIn Settings & Privacy &gt; Data Privacy &gt; Other Applications &gt; Permitted Services &gt; Remove <strong>SSO</strong>.
+                  Go to LinkedIn Settings &amp; Privacy &gt; Data Privacy &gt;
+                  Other Applications &gt; Permitted Services, then remove{" "}
+                  <strong>{BRANDING.appName}</strong>.
                 </p>
                 <a 
                   href="https://www.linkedin.com/psettings/permitted-services" 
@@ -166,13 +201,23 @@ function DataDeletionPage() {
             </div>
 
             <p className="text-sm text-muted-foreground">
-              If you are unable to access your account or wish to request full deletion of all backup logs and database records associated with your email, email our privacy administrator:
+              If you cannot access your account, request deletion by emailing
+              {BRANDING.appName} support from the email address associated with
+              your account:
             </p>
 
             <div className="bg-muted p-4 rounded-lg text-foreground font-mono text-sm space-y-1">
-              <p><strong>To:</strong> privacy@sso.local (or your support email)</p>
+              <p>
+                <strong>To:</strong>{" "}
+                <a
+                  href={BRAND_SUPPORT_MAILTO}
+                  className="text-primary underline"
+                >
+                  {BRANDING.supportEmail}
+                </a>
+              </p>
               <p><strong>Subject:</strong> Data Deletion Request - [Your Registered Email]</p>
-              <p><strong>Body:</strong> Please delete my SSO account and all associated profile data.</p>
+              <p><strong>Body:</strong> Please delete my {BRANDING.appName} account and all associated profile data.</p>
             </div>
 
             <p className="text-xs text-muted-foreground">

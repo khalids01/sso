@@ -3,6 +3,7 @@ import { LoaderCircle } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { env } from "@env/public";
+import { BRANDING } from "@/constants/branding";
 
 export type ApplicationAuthPolicy = {
   signInMethods: Array<
@@ -103,7 +104,9 @@ export function ApplicationAuthShell({
   return (
     <main className="min-h-screen bg-background">
       <section className="mx-auto flex max-w-md flex-col items-center px-6 py-16">
-        <p className="text-sm font-medium text-muted-foreground">Secured by SSO</p>
+        <p className="text-sm font-medium text-muted-foreground">
+          Secured by {BRANDING.appName}
+        </p>
         {unavailable ? (
           <div className="mt-10 text-center">
             <h1 className="text-2xl font-semibold">Application unavailable</h1>
