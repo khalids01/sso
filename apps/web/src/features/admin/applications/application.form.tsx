@@ -43,6 +43,18 @@ function getOAuthConnectionLabel(
   }`;
 }
 
+function getEmailConnectionLabel(
+  options: EmailConnectionOption[],
+  value: string | null | undefined,
+) {
+  if (!value) return "Not assigned";
+  const selected = options.find((option) => option.id === value);
+  if (!selected) return "Unavailable connection";
+  return `${selected.name} (${selected.provider})${
+    selected.status !== "active" ? ` — ${selected.status}` : ""
+  }`;
+}
+
 type ApplicationFormProps = {
   isLoading: boolean;
   onSubmit: (input: CreateApplicationInput) => Promise<void> | void;
@@ -297,9 +309,14 @@ export function ApplicationForm({
                   <Select
                     value={field.value ?? "none"}
                     onValueChange={(value) => field.onChange(value === "none" ? null : value)}
-                  >
-                    <SelectTrigger id={`application-email-${role}`} className="w-full">
-                      <SelectValue placeholder="Not assigned" />
+                    >
+                      <SelectTrigger id={`application-email-${role}`} className="w-full">
+                      <SelectValue>
+                        {getEmailConnectionLabel(
+                          emailConnectionOptions,
+                          field.value,
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Not assigned</SelectItem>

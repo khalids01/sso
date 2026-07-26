@@ -38,6 +38,15 @@ export const emailConnectionsController = new Elysia({
     .get("/:id", async ({ params: { id }, set }) => {
       try { return await emailConnectionsService.getById(id); } catch (error) { return handle(error, set); }
     }, { beforeHandle: requirePermission(Permissions.AdminEmailConnectionsRead) })
+    .get("/:id/secret", async ({ params: { id }, set, userId }) => {
+      try {
+        return await emailConnectionsService.revealSecret(id, userId);
+      } catch (error) {
+        return handle(error, set);
+      }
+    }, {
+      beforeHandle: requirePermission(Permissions.AdminEmailConnectionsManage),
+    })
     .patch("/:id", async ({ params: { id }, body, set, userId }) => {
       try { return await emailConnectionsService.update(id, body, userId); } catch (error) { return handle(error, set); }
     }, { beforeHandle: requirePermission(Permissions.AdminEmailConnectionsManage), body: UpdateEmailConnectionDto })

@@ -2,6 +2,7 @@ import prisma, { Prisma } from "@db/server";
 import {
   decryptEmailProviderSecret,
   encryptEmailProviderSecret,
+  testEmailTemplate,
 } from "@email/server";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
@@ -91,6 +92,29 @@ export class EmailConnectionsService {
     return map(row);
   }
 
+  async revealSecret(id: string, actor?: string) {
+    const connection = await prisma.emailProviderConnection.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        provider: true,
+        encryptedSecret: true,
+      },
+    });
+    if (!connection) {
+      throw new EmailConnectionsPolicyError("Email connection not found", 404);
+    }
+    await activity(
+      "email_connection.secret_revealed",
+      connection,
+      actor,
+    );
+    return {
+      secret: decryptEmailProviderSecret(connection.encryptedSecret),
+    };
+  }
+
   async create(input: CreateEmailConnectionInput, actor?: string) {
     try {
       const secret = input.provider === "resend" ? input.apiKey : input.smtpPassword;
@@ -163,9 +187,10 @@ export class EmailConnectionsService {
     if (connection.status !== "active") throw new EmailConnectionsPolicyError("Only active connections can send tests");
     const from = `${connection.fromName} <${connection.fromAddress}>`;
     const secret = decryptEmailProviderSecret(connection.encryptedSecret);
+    const html = await testEmailTemplate(connection.name);
     if (connection.provider === "resend") {
       const result = await new Resend(secret).emails.send({
-        from, to, subject: "SSO email connection test", html: "<p>Your SSO email connection is working.</p>",
+        from, to, subject: "Your SSO email connection is ready", html,
         replyTo: connection.replyToAddress ?? undefined,
       });
       if (result.error) throw new EmailConnectionsPolicyError(`Test failed: ${result.error.name}`);
@@ -174,7 +199,7 @@ export class EmailConnectionsService {
       await nodemailer.createTransport({
         host: connection.smtpHost, port: connection.smtpPort, secure: connection.smtpSecure ?? false,
         auth: connection.smtpUsername ? { user: connection.smtpUsername, pass: secret } : undefined,
-      }).sendMail({ from, to, subject: "SSO email connection test", html: "<p>Your SSO email connection is working.</p>" });
+      }).sendMail({ from, to, subject: "Your SSO email connection is ready", html });
     }
     return { success: true };
   }

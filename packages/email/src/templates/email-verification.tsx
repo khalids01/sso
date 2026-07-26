@@ -3,46 +3,68 @@ import {
   Button,
   Container,
   Head,
+  Heading,
+  Hr,
   Html,
   Preview,
   Section,
   Tailwind,
   Text,
 } from "@react-email/components";
-
+import { siteConfig } from "@config";
 import { renderEmailTemplate } from "../render.server";
 
-type EmailVerificationProps = {
-  url: string;
-};
+type EmailVerificationProps = { url: string };
 
 export function EmailVerification({ url }: EmailVerificationProps) {
   return (
     <Html>
       <Head />
-      <Preview>Verify your SSO email address</Preview>
+      <Preview>{`Verify your email for ${siteConfig.name}`}</Preview>
       <Tailwind>
-        <Body className="m-0 bg-gray-100 p-0 text-gray-800">
-          <Container className="my-10 rounded-lg border border-gray-200 bg-white px-10 py-10">
-            <Text className="m-0 mb-6 text-center text-2xl font-bold text-black">
-              SSO
-            </Text>
-            <Section className="mb-4">
-              <Text className="m-0 mb-3 text-base leading-[1.6] text-gray-800">
-                Verify your email address to finish signing in to the application.
+        <Body className="m-0 bg-slate-100 p-0 text-slate-900">
+          <Container className="my-8 overflow-hidden rounded-[16px] border border-slate-200 bg-white">
+            <Section className="bg-emerald-950 px-8 py-6">
+              <Text className="m-0 text-[20px] font-bold text-white">
+                {siteConfig.name}
+              </Text>
+              <Text className="m-0 mt-1 text-[13px] text-emerald-200">
+                Email verification
               </Text>
             </Section>
-            <Section className="my-5 mb-8 text-center">
-              <Button
-                href={url}
-                className="rounded-md bg-black px-6 py-3 text-sm font-semibold text-white no-underline"
-              >
-                Verify email
-              </Button>
+            <Section className="px-8 py-8">
+              <Heading className="m-0 text-[26px] leading-[1.25] text-slate-950">
+                Confirm your email address
+              </Heading>
+              <Text className="mb-0 mt-4 text-[15px] leading-[1.65] text-slate-600">
+                Verify this email address to complete account setup and protect
+                access to connected applications.
+              </Text>
+              <Section className="my-7 text-center">
+                <Button
+                  href={url}
+                  className="rounded-[9px] bg-emerald-700 px-7 py-[13px] text-[15px] font-semibold text-white no-underline"
+                >
+                  Verify email address
+                </Button>
+              </Section>
+              <Section className="rounded-[10px] border border-emerald-100 bg-emerald-50 px-4 py-3">
+                <Text className="m-0 text-[13px] leading-[1.55] text-emerald-900">
+                  This verification link is tied to your account. Do not forward
+                  it or share it with anyone.
+                </Text>
+              </Section>
+              <Text className="mb-0 mt-5 text-[13px] leading-[1.55] text-slate-500">
+                If you did not create or sign in to an account, no action is
+                required.
+              </Text>
             </Section>
-            <Text className="m-0 text-center text-xs leading-[1.4] text-gray-500">
-              If you didn&apos;t request this email, you can safely ignore it.
-            </Text>
+            <Hr className="m-0 border-slate-200" />
+            <Section className="px-8 py-5 text-center">
+              <Text className="m-0 text-[12px] text-slate-400">
+                {`© ${new Date().getFullYear()} ${siteConfig.name}. All rights reserved.`}
+              </Text>
+            </Section>
           </Container>
         </Body>
       </Tailwind>

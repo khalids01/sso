@@ -136,6 +136,13 @@ mock.module("../src/modules/admin/activity/activity.service", () => ({
 mock.module("@email/server", () => ({
   sendEmail: mock(async () => undefined),
   invitationTemplate: mock(async () => "<p>Invitation</p>"),
+  magicLinkTemplate: mock(async () => "<p>Magic link</p>"),
+  emailVerificationTemplate: mock(async () => "<p>Verification</p>"),
+  testEmailTemplate: mock(async () => "<p>Test email</p>"),
+  getApplicationIdFromEmailUrl: mock(async () => null),
+  sendApplicationEmail: mock(async () => undefined),
+  encryptEmailProviderSecret: mock((value: string) => value),
+  decryptEmailProviderSecret: mock((value: string) => value),
 }));
 
 mock.module("@env/server", () => ({
