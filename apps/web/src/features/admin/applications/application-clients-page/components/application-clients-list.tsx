@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Archive,
   Eye,
   KeyRound,
   Link2,
+  MonitorPlay,
   Pencil,
   RotateCcw,
 } from "lucide-react";
@@ -25,6 +27,7 @@ import type {
 } from "../../types";
 import type { LifecycleFilter, PendingAction } from "../../page-types";
 import { StatusBadge, UrlList } from "../../components/ui-controls";
+import { AuthPagePreviewDialog } from "./auth-page-preview-dialog";
 
 export function ApplicationClientsList(props: {
   application: AdminApplication;
@@ -35,6 +38,8 @@ export function ApplicationClientsList(props: {
   onEdit: (client: ApplicationClient) => void;
   onLifecycle: (action: PendingAction) => void;
 }) {
+  const [previewClient, setPreviewClient] =
+    useState<ApplicationClient | null>(null);
   const clientsQuery = useQuery({
     queryKey: queryKeys.admin.applications.clients(
       props.application.id,
@@ -80,11 +85,18 @@ export function ApplicationClientsList(props: {
   }
 
   return (
+    <>
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => {
         const lifecycleLabel =
           props.filter === "current" ? `Archive ${item.name}` : `Restore ${item.name}`;
         const actions = [
+          {
+            label: `Preview authentication pages for ${item.name}`,
+            icon: MonitorPlay,
+            disabled: false,
+            onClick: () => setPreviewClient(item),
+          },
           {
             label: `View ${item.name}`,
             icon: Eye,
@@ -182,5 +194,13 @@ export function ApplicationClientsList(props: {
         );
       })}
     </div>
+    <AuthPagePreviewDialog
+      application={props.application}
+      client={previewClient}
+      onOpenChange={(open) => {
+        if (!open) setPreviewClient(null);
+      }}
+    />
+    </>
   );
 }

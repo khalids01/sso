@@ -288,7 +288,15 @@ export function ApplicationAuthSettingsDialog(props: {
                             }}
                           >
                             <SelectTrigger className="mt-2 w-full sm:max-w-64">
-                              <SelectValue />
+                              <SelectValue>
+                                {selectedConnection
+                                  ? `${selectedConnection.name}${
+                                      selectedConnection.status !== "active"
+                                        ? ` (${selectedConnection.status})`
+                                        : ""
+                                    }`
+                                  : "No connection assigned"}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">
