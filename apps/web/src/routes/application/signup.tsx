@@ -17,8 +17,12 @@ export const Route = createFileRoute("/application/signup")({
 function ApplicationSignup() {
   return (
     <ApplicationAuthShell>
-      {(applicationName, policy) => (
-        <SignUpForm applicationName={applicationName} applicationPolicy={policy} />
+      {(applicationName, policy, applicationLogoUrl) => (
+        <SignUpForm
+          applicationName={applicationName}
+          applicationLogoUrl={applicationLogoUrl}
+          applicationPolicy={policy}
+        />
       )}
     </ApplicationAuthShell>
   );

@@ -4,7 +4,6 @@ import { LoaderCircle } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { client } from "@/lib/client";
-import { BRANDING } from "@/constants/branding";
 import { queryKeys } from "@/constants/query-keys";
 
 export type ApplicationAuthPolicy = {
@@ -31,7 +30,11 @@ function getAuthRequest(): AuthRequest | null {
 export function ApplicationAuthShell({
   children,
 }: {
-  children: (applicationName: string, policy: ApplicationAuthPolicy) => ReactNode;
+  children: (
+    applicationName: string,
+    policy: ApplicationAuthPolicy,
+    applicationLogoUrl: string | null,
+  ) => ReactNode;
 }) {
   const authRequest = getAuthRequest();
   const applicationQuery = useQuery({
@@ -61,6 +64,7 @@ export function ApplicationAuthShell({
 
       return {
         name: prelogin.data.client_name || "application",
+        logoUrl: metadataResponse.data.application_logo_url,
         policy: {
           signInMethods: metadataResponse.data.sign_in_methods,
           signUpMethods: metadataResponse.data.sign_up_methods,
@@ -75,9 +79,6 @@ export function ApplicationAuthShell({
   return (
     <main className="min-h-screen bg-background">
       <section className="mx-auto flex max-w-md flex-col items-center px-6 py-16">
-        <p className="text-sm font-medium text-muted-foreground">
-          Secured by {BRANDING.appName}
-        </p>
         {!authRequest || applicationQuery.isError ? (
           <div className="mt-10 text-center">
             <h1 className="text-2xl font-semibold">Application unavailable</h1>
@@ -86,7 +87,11 @@ export function ApplicationAuthShell({
             </p>
           </div>
         ) : applicationQuery.data ? (
-          children(applicationQuery.data.name, applicationQuery.data.policy)
+          children(
+            applicationQuery.data.name,
+            applicationQuery.data.policy,
+            applicationQuery.data.logoUrl,
+          )
         ) : (
           <LoaderCircle className="mt-12 size-8 animate-spin text-muted-foreground" />
         )}

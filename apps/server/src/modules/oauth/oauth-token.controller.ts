@@ -22,6 +22,7 @@ const AuthMethodDto = t.Union([
 const PublicClientMetadataDto = t.Object({
   client_id: t.String(),
   application_id: t.String(),
+  application_logo_url: t.Union([t.String(), t.Null()]),
   audience: t.String(),
   issuer: t.String(),
   sign_in_methods: t.Array(AuthMethodDto),

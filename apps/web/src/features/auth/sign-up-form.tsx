@@ -20,9 +20,11 @@ import { BRANDING } from "@/constants/branding";
 
 export default function SignUpForm({
   applicationName,
+  applicationLogoUrl,
   applicationPolicy,
 }: {
   applicationName?: string;
+  applicationLogoUrl?: string | null;
   applicationPolicy?: ApplicationAuthPolicy;
 }) {
   const search = useLocation({ select: (location) => location.searchStr });
@@ -74,10 +76,25 @@ export default function SignUpForm({
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
+      {isApplicationSignup ? (
+        <div className="relative mx-auto mb-5 flex size-16 items-center justify-center overflow-hidden rounded-2xl border bg-primary/10 text-xl font-bold text-primary shadow-sm">
+          {applicationName?.trim().charAt(0).toUpperCase() || "A"}
+          {applicationLogoUrl ? (
+            <img
+              src={applicationLogoUrl}
+              alt={`${applicationName} logo`}
+              className="absolute inset-0 size-full bg-background object-contain"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
       <h1 className="mb-2 text-center text-3xl font-bold">Create Account</h1>
       {isApplicationSignup ? (
         <p className="mb-6 text-center text-sm text-muted-foreground">
-          Create a {BRANDING.appName} account to continue to {applicationName}.
+          Create an account to continue to {applicationName}.
         </p>
       ) : null}
       {!signupAvailable ? (

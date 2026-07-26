@@ -45,6 +45,7 @@ export type PublicAuthMethod =
 export type PublicClientMetadata = {
   client_id: string;
   application_id: string;
+  application_logo_url: string | null;
   audience: string;
   issuer: string;
   sign_in_methods: PublicAuthMethod[];
@@ -171,6 +172,7 @@ export async function getPublicClientMetadata(
       application: {
         select: {
           status: true,
+          logoUrl: true,
           signInMethods: true,
           signUpMethods: true,
           registrationMode: true,
@@ -204,6 +206,7 @@ export async function getPublicClientMetadata(
   return {
     client_id: client.clientId,
     application_id: client.applicationId,
+    application_logo_url: client.application.logoUrl,
     audience: `urn:sso:application:${client.applicationId}`,
     issuer: env.SSO_ISSUER,
     sign_in_methods: available

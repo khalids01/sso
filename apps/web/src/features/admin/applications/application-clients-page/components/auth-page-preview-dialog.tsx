@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { BRANDING } from "@/constants/branding";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -57,18 +56,23 @@ export function AuthPagePreviewDialog(props: {
           <div className="max-h-[68vh] overflow-y-auto">
             <main className="min-h-[620px] bg-background">
               <section className="mx-auto flex max-w-md flex-col items-center px-6 py-12">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Secured by {BRANDING.appName}
-                </p>
                 <div
                   inert
                   aria-label={`${page} page non-interactive preview`}
                   className="pointer-events-none w-full select-none"
                 >
                   {page === "login" ? (
-                    <SignInForm applicationName={props.application.name} applicationPolicy={policy} />
+                    <SignInForm
+                      applicationName={props.application.name}
+                      applicationLogoUrl={props.application.logoUrl}
+                      applicationPolicy={policy}
+                    />
                   ) : (
-                    <SignUpForm applicationName={props.application.name} applicationPolicy={policy} />
+                    <SignUpForm
+                      applicationName={props.application.name}
+                      applicationLogoUrl={props.application.logoUrl}
+                      applicationPolicy={policy}
+                    />
                   )}
                 </div>
               </section>
