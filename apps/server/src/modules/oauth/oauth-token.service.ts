@@ -34,6 +34,25 @@ type ConsumedCodeRow = {
   expiresAt: Date;
 };
 
+export type PublicAuthMethod =
+  | "magic_link"
+  | "password"
+  | "google"
+  | "facebook"
+  | "linkedin"
+  | "github";
+
+export type PublicClientMetadata = {
+  client_id: string;
+  application_id: string;
+  audience: string;
+  issuer: string;
+  sign_in_methods: PublicAuthMethod[];
+  sign_up_methods: PublicAuthMethod[];
+  registration_mode: "closed" | "invite_only" | "open";
+  password_email_verification_required: boolean;
+};
+
 export type TokenExchangeInput = {
   clientId: string;
   code: string;
@@ -139,7 +158,9 @@ export async function isOriginRegisteredForActiveClient(origin: string) {
   return Boolean(client);
 }
 
-export async function getPublicClientMetadata(clientId: string) {
+export async function getPublicClientMetadata(
+  clientId: string,
+): Promise<PublicClientMetadata | null> {
   const client = await prisma.applicationClient.findFirst({
     where: { clientId, public: true },
     select: {
@@ -188,15 +209,15 @@ export async function getPublicClientMetadata(clientId: string) {
     sign_in_methods: available
       ? client.application.signInMethods.filter((method) =>
           availableMethodIds.has(method),
-        )
+        ) as PublicAuthMethod[]
       : [],
     sign_up_methods:
       available && client.application.registrationMode !== "closed"
         ? client.application.signUpMethods.filter((method) =>
             availableMethodIds.has(method),
-          )
+          ) as PublicAuthMethod[]
         : [],
-    registration_mode: client.application.registrationMode,
+    registration_mode: client.application.registrationMode as PublicClientMetadata["registration_mode"],
     password_email_verification_required:
       client.application.passwordEmailVerificationRequired,
   };

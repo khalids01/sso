@@ -1,4 +1,7 @@
 export const queryKeys = {
+  oauth: {
+    prelogin: (oauthQuery: string) => ["oauth-prelogin", oauthQuery] as const,
+  },
   session: {
     devices: () => ["session-devices"] as const,
   },

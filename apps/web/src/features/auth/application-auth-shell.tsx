@@ -1,9 +1,11 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
-import { env } from "@env/public";
+import { client } from "@/lib/client";
 import { BRANDING } from "@/constants/branding";
+import { queryKeys } from "@/constants/query-keys";
 
 export type ApplicationAuthPolicy = {
   signInMethods: Array<
@@ -16,33 +18,14 @@ export type ApplicationAuthPolicy = {
   passwordEmailVerificationRequired: boolean;
 };
 
-function isApplicationAuthPolicy(metadata: Record<string, unknown>) {
-  return (
-    Array.isArray(metadata.sign_in_methods) &&
-    metadata.sign_in_methods.every(
-      (method) =>
-        method === "magic_link" ||
-        method === "password" ||
-        method === "google" ||
-        method === "facebook" ||
-        method === "linkedin" ||
-        method === "github",
-    ) &&
-    Array.isArray(metadata.sign_up_methods) &&
-    metadata.sign_up_methods.every(
-      (method) =>
-        method === "magic_link" ||
-        method === "password" ||
-        method === "google" ||
-        method === "facebook" ||
-        method === "linkedin" ||
-        method === "github",
-    ) &&
-    (metadata.registration_mode === "closed" ||
-      metadata.registration_mode === "invite_only" ||
-      metadata.registration_mode === "open") &&
-    typeof metadata.password_email_verification_required === "boolean"
-  );
+type AuthRequest = { clientId: string; oauthQuery: string };
+
+function getAuthRequest(): AuthRequest | null {
+  if (typeof window === "undefined") return null;
+
+  const oauthQuery = window.location.search.slice(1);
+  const clientId = new URLSearchParams(oauthQuery).get("client_id");
+  return oauthQuery && clientId ? { clientId, oauthQuery } : null;
 }
 
 export function ApplicationAuthShell({
@@ -50,56 +33,44 @@ export function ApplicationAuthShell({
 }: {
   children: (applicationName: string, policy: ApplicationAuthPolicy) => ReactNode;
 }) {
-  const [application, setApplication] = useState<{
-    name: string;
-    policy: ApplicationAuthPolicy;
-  } | null>(null);
-  const [unavailable, setUnavailable] = useState(false);
+  const authRequest = getAuthRequest();
+  const applicationQuery = useQuery({
+    queryKey: queryKeys.oauth.prelogin(authRequest?.oauthQuery ?? ""),
+    enabled: Boolean(authRequest),
+    retry: false,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      if (!authRequest) throw new Error("Missing OAuth request");
 
-  useEffect(() => {
-    const oauthQuery = window.location.search.slice(1);
-    const clientId = new URLSearchParams(oauthQuery).get("client_id");
-    if (!oauthQuery || !clientId) {
-      setUnavailable(true);
-      return;
-    }
+      const [prelogin, metadataResponse] = await Promise.all([
+        authClient.oauth2.publicClientPrelogin({
+          client_id: authRequest.clientId,
+          oauth_query: authRequest.oauthQuery,
+        }),
+        client.api.oauth["client-metadata"].get({
+          query: { client_id: authRequest.clientId },
+        }),
+      ]);
 
-    void Promise.all([
-      authClient.oauth2.publicClientPrelogin({
-        client_id: clientId,
-        oauth_query: oauthQuery,
-      }),
-      fetch(
-        `${env.VITE_SERVER_URL}/api/oauth/client-metadata?client_id=${encodeURIComponent(clientId)}`,
-      ).then(async (response) => (response.ok ? response.json() : null)),
-    ])
-      .then(([{ data, error }, metadata]) => {
-        if (error || !data) {
-          setUnavailable(true);
-          return;
-        }
-        if (
-          !metadata ||
-          metadata.client_id !== clientId ||
-          typeof metadata !== "object" ||
-          !isApplicationAuthPolicy(metadata)
-        ) {
-          setUnavailable(true);
-          return;
-        }
-        setApplication({
-          name: data.client_name || "application",
-          policy: {
-            signInMethods: metadata.sign_in_methods,
-            signUpMethods: metadata.sign_up_methods,
-            registrationMode: metadata.registration_mode,
-            passwordEmailVerificationRequired:
-              metadata.password_email_verification_required,
-          },
-        });
-      })
-      .catch(() => setUnavailable(true));
-  }, []);
+      if (prelogin.error || !prelogin.data || metadataResponse.error || !metadataResponse.data) {
+        throw new Error("Invalid OAuth request");
+      }
+      if (metadataResponse.data.client_id !== authRequest.clientId) {
+        throw new Error("Client metadata does not match OAuth request");
+      }
+
+      return {
+        name: prelogin.data.client_name || "application",
+        policy: {
+          signInMethods: metadataResponse.data.sign_in_methods,
+          signUpMethods: metadataResponse.data.sign_up_methods,
+          registrationMode: metadataResponse.data.registration_mode,
+          passwordEmailVerificationRequired:
+            metadataResponse.data.password_email_verification_required,
+        } satisfies ApplicationAuthPolicy,
+      };
+    },
+  });
 
   return (
     <main className="min-h-screen bg-background">
@@ -107,15 +78,15 @@ export function ApplicationAuthShell({
         <p className="text-sm font-medium text-muted-foreground">
           Secured by {BRANDING.appName}
         </p>
-        {unavailable ? (
+        {!authRequest || applicationQuery.isError ? (
           <div className="mt-10 text-center">
             <h1 className="text-2xl font-semibold">Application unavailable</h1>
             <p className="mt-3 text-sm text-muted-foreground">
               This sign-in request is invalid or has expired.
             </p>
           </div>
-        ) : application ? (
-          children(application.name, application.policy)
+        ) : applicationQuery.data ? (
+          children(applicationQuery.data.name, applicationQuery.data.policy)
         ) : (
           <LoaderCircle className="mt-12 size-8 animate-spin text-muted-foreground" />
         )}
