@@ -57,10 +57,22 @@ export const LandingNav = () => {
               >
                 FAQ
               </a>
+              <Link
+                to="/docs"
+                className="hover:text-foreground transition-colors"
+              >
+                Docs
+              </Link>
             </nav>
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              to="/docs"
+              className="rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"
+            >
+              Docs
+            </Link>
             <Button
               variant="ghost"
               size="icon"

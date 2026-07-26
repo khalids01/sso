@@ -31,6 +31,7 @@ import { Route as AdminApplicationUsageRouteImport } from './routes/admin/applic
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
 import { Route as PublicTermsRouteImport } from './routes/_public/terms'
 import { Route as PublicPrivacyRouteImport } from './routes/_public/privacy'
+import { Route as PublicDocsRouteImport } from './routes/_public/docs'
 import { Route as PublicDataDeletionRouteImport } from './routes/_public/data-deletion'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
@@ -152,6 +153,11 @@ const PublicPrivacyRoute = PublicPrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PublicDocsRoute = PublicDocsRouteImport.update({
+  id: '/_public/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PublicDataDeletionRoute = PublicDataDeletionRouteImport.update({
   id: '/_public/data-deletion',
   path: '/data-deletion',
@@ -224,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
   '/data-deletion': typeof PublicDataDeletionRoute
+  '/docs': typeof PublicDocsRoute
   '/privacy': typeof PublicPrivacyRoute
   '/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
@@ -257,6 +264,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
   '/data-deletion': typeof PublicDataDeletionRoute
+  '/docs': typeof PublicDocsRoute
   '/privacy': typeof PublicPrivacyRoute
   '/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
@@ -292,6 +300,7 @@ export interface FileRoutesById {
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
   '/_public/data-deletion': typeof PublicDataDeletionRoute
+  '/_public/docs': typeof PublicDocsRoute
   '/_public/privacy': typeof PublicPrivacyRoute
   '/_public/terms': typeof PublicTermsRoute
   '/admin/activity': typeof AdminActivityRoute
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/data-deletion'
+    | '/docs'
     | '/privacy'
     | '/terms'
     | '/admin/activity'
@@ -362,6 +372,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/data-deletion'
+    | '/docs'
     | '/privacy'
     | '/terms'
     | '/admin/activity'
@@ -396,6 +407,7 @@ export interface FileRouteTypes {
     | '/_protected/dashboard'
     | '/_protected/settings'
     | '/_public/data-deletion'
+    | '/_public/docs'
     | '/_public/privacy'
     | '/_public/terms'
     | '/admin/activity'
@@ -428,6 +440,7 @@ export interface RootRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
   PublicDataDeletionRoute: typeof PublicDataDeletionRoute
+  PublicDocsRoute: typeof PublicDocsRoute
   PublicPrivacyRoute: typeof PublicPrivacyRoute
   PublicTermsRoute: typeof PublicTermsRoute
   ApplicationLoginRoute: typeof ApplicationLoginRoute
@@ -592,6 +605,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_public/docs': {
+      id: '/_public/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof PublicDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_public/data-deletion': {
       id: '/_public/data-deletion'
       path: '/data-deletion'
@@ -750,6 +770,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
   PublicDataDeletionRoute: PublicDataDeletionRoute,
+  PublicDocsRoute: PublicDocsRoute,
   PublicPrivacyRoute: PublicPrivacyRoute,
   PublicTermsRoute: PublicTermsRoute,
   ApplicationLoginRoute: ApplicationLoginRoute,
