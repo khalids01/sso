@@ -1,5 +1,5 @@
 import { client } from "@/lib/client";
-import type { AdminApplication, ApplicationAuthMethod, ApplicationOAuthConnections, ApplicationRegistrationMode, ApplicationSignupMethod, ApplicationStatus } from "../types";
+import type { AdminApplication, ApplicationAuthMethod, ApplicationEmailConnections, ApplicationOAuthConnections, ApplicationRegistrationMode, ApplicationSignupMethod, ApplicationStatus } from "../types";
 
 export type UpdateApplicationInput = {
   id: string;
@@ -7,12 +7,14 @@ export type UpdateApplicationInput = {
     name?: string;
     slug?: string;
     description?: string;
+    logoUrl?: string | null;
     status?: ApplicationStatus;
     signInMethods?: ApplicationAuthMethod[];
     signUpMethods?: ApplicationSignupMethod[];
     registrationMode?: ApplicationRegistrationMode;
     passwordEmailVerificationRequired?: boolean;
     oauthConnections?: ApplicationOAuthConnections;
+    emailConnections?: ApplicationEmailConnections;
   };
 };
 
@@ -41,8 +43,10 @@ export async function createApplication(input: {
   name: string;
   slug?: string;
   description?: string;
+  logoUrl?: string | null;
   status: ApplicationStatus;
   oauthConnections?: ApplicationOAuthConnections;
+  emailConnections?: ApplicationEmailConnections;
 }) {
   const { data, error } = await client.admin.applications.post(input);
   if (error) throw error;

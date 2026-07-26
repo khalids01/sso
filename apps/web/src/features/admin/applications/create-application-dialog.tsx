@@ -12,11 +12,13 @@ import {
 import { CreateApplicationForm } from "./application.form";
 import type { CreateApplicationInput } from "./schema";
 import type { OAuthConnectionOption } from "../oauth-connections/types";
+import type { EmailConnectionOption } from "../email-connections/types";
 
 type CreateApplicationDialogProps = {
   isLoading: boolean;
   onCreate: (input: CreateApplicationInput) => Promise<void>;
   oauthConnectionOptions?: OAuthConnectionOption[];
+  emailConnectionOptions?: EmailConnectionOption[];
   errorMessage?: string | null;
   onResetError?: () => void;
 };
@@ -25,6 +27,7 @@ export function CreateApplicationDialog({
   isLoading,
   onCreate,
   oauthConnectionOptions,
+  emailConnectionOptions,
   errorMessage,
   onResetError,
 }: CreateApplicationDialogProps) {
@@ -60,6 +63,7 @@ export function CreateApplicationDialog({
           onCreated={() => setOpen(false)}
           resetKey={open ? "open" : "closed"}
           oauthConnectionOptions={oauthConnectionOptions}
+          emailConnectionOptions={emailConnectionOptions}
           errorMessage={errorMessage}
         />
       </DialogContent>

@@ -15,6 +15,7 @@ import { adminWebhooksController } from "./admin/webhooks/webhooks.controller";
 import { rolesController } from "./admin/roles/roles.controller";
 import { applicationsController } from "./admin/applications/applications.controller";
 import { oauthConnectionsController } from "./admin/oauth-connections/oauth-connections.controller";
+import { emailConnectionsController } from "./admin/email-connections/email-connections.controller";
 
 export const app = new Elysia()
   .use(authController)
@@ -23,6 +24,7 @@ export const app = new Elysia()
   .use(rolesController)
   .use(applicationsController)
   .use(oauthConnectionsController)
+  .use(emailConnectionsController)
   .use(adminInvitationsController)
   .use(metadataController)
   .use(rateLimitController)

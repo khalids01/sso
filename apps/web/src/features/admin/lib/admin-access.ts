@@ -105,6 +105,13 @@ export function canShowOAuthManagerNav(
   );
 }
 
+export function canShowEmailManagerNav(session: ClientSession | null | undefined) {
+  return (
+    isPlatformOwner(session) ||
+    sessionHasAnyPermissionPrefix(session?.permissions, "admin.email_connections.")
+  );
+}
+
 export function canShowApplicationUsageNav(
   session: ClientSession | null | undefined,
 ) {

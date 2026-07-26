@@ -45,6 +45,10 @@ const ApplicationOAuthConnectionsSchema = t.Object({
   facebook: t.Optional(t.Union([t.String({ minLength: 1 }), t.Null()])),
   linkedin: t.Optional(t.Union([t.String({ minLength: 1 }), t.Null()])),
 });
+const ApplicationEmailConnectionsSchema = t.Object({
+  primary: t.Optional(t.Union([t.String({ minLength: 1 }), t.Null()])),
+  fallback: t.Optional(t.Union([t.String({ minLength: 1 }), t.Null()])),
+});
 
 export const ApplicationsQueryDto = t.Object({
   page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
@@ -59,9 +63,10 @@ export const CreateApplicationDto = t.Object({
   name: t.String({ minLength: 1, maxLength: 120 }),
   description: t.Optional(t.String({ maxLength: 500 })),
   status: t.Optional(ApplicationStatusSchema),
-  logoUrl: t.Optional(t.String({ format: "uri" })),
+  logoUrl: t.Optional(t.Union([t.String({ format: "uri" }), t.Null()])),
   homepageUrl: t.Optional(t.String({ format: "uri" })),
   oauthConnections: t.Optional(ApplicationOAuthConnectionsSchema),
+  emailConnections: t.Optional(ApplicationEmailConnectionsSchema),
 });
 
 export const CreateApplicationClientDto = t.Object({
@@ -77,13 +82,14 @@ export const UpdateApplicationDto = t.Object({
   name: t.Optional(t.String({ minLength: 1, maxLength: 120 })),
   description: t.Optional(t.String({ maxLength: 500 })),
   status: t.Optional(ApplicationStatusSchema),
-  logoUrl: t.Optional(t.String({ format: "uri" })),
+  logoUrl: t.Optional(t.Union([t.String({ format: "uri" }), t.Null()])),
   homepageUrl: t.Optional(t.String({ format: "uri" })),
   signInMethods: t.Optional(t.Array(ApplicationAuthMethodSchema, { minItems: 1 })),
   signUpMethods: t.Optional(t.Array(ApplicationSignupMethodSchema)),
   registrationMode: t.Optional(ApplicationRegistrationModeSchema),
   passwordEmailVerificationRequired: t.Optional(t.Boolean()),
   oauthConnections: t.Optional(ApplicationOAuthConnectionsSchema),
+  emailConnections: t.Optional(ApplicationEmailConnectionsSchema),
 });
 
 export const CreateApplicationInvitationDto = t.Object({

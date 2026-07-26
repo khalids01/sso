@@ -32,8 +32,19 @@ export function ApplicationItem(props: {
       >
         <CardHeader className="grid-cols-[1fr_auto] gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <AppWindow className="size-5" />
+            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-primary">
+              {application.logoUrl ? (
+                <img
+                  src={application.logoUrl}
+                  alt=""
+                  className="size-full object-contain"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                    event.currentTarget.nextElementSibling?.classList.remove("hidden");
+                  }}
+                />
+              ) : null}
+              <AppWindow className={application.logoUrl ? "hidden size-5" : "size-5"} />
             </div>
             <div className="min-w-0">
               <CardTitle className="truncate text-base">

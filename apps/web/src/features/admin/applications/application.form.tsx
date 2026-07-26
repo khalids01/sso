@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -21,6 +21,8 @@ import {
   type CreateApplicationInput,
 } from "./schema";
 import type { OAuthConnectionOption } from "../oauth-connections/types";
+import type { EmailConnectionOption } from "../email-connections/types";
+import { AppWindow, X } from "lucide-react";
 
 const oauthProviders = [
   { id: "google", label: "Google" },
@@ -50,6 +52,7 @@ type ApplicationFormProps = {
   submitLabel?: string;
   loadingLabel?: string;
   oauthConnectionOptions?: OAuthConnectionOption[];
+  emailConnectionOptions?: EmailConnectionOption[];
   errorMessage?: string | null;
 };
 
@@ -62,6 +65,7 @@ export function ApplicationForm({
   submitLabel = "Save application",
   loadingLabel = "Saving...",
   oauthConnectionOptions = [],
+  emailConnectionOptions = [],
   errorMessage,
 }: ApplicationFormProps) {
   const form = useForm<
@@ -72,9 +76,12 @@ export function ApplicationForm({
     resolver: zodResolver(createApplicationSchema),
     defaultValues: initialValues,
   });
+  const [logoFailed, setLogoFailed] = useState(false);
+  const logoUrl = form.watch("logoUrl");
 
   useEffect(() => {
     form.reset(initialValues);
+    setLogoFailed(false);
   }, [form, initialValues, resetKey]);
 
   return (
@@ -120,6 +127,48 @@ export function ApplicationForm({
           {...form.register("description")}
         />
         <FieldError errors={[form.formState.errors.description]} />
+      </Field>
+
+      <Field>
+        <FieldLabel htmlFor="application-logo-url">Logo URL</FieldLabel>
+        <div className="flex items-center gap-3">
+          <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+            {logoUrl && !logoFailed ? (
+              <img
+                src={logoUrl}
+                alt="Application logo preview"
+                className="size-full object-contain"
+                onError={() => setLogoFailed(true)}
+                onLoad={() => setLogoFailed(false)}
+              />
+            ) : (
+              <AppWindow className="size-6 text-muted-foreground" />
+            )}
+          </div>
+          <Input
+            id="application-logo-url"
+            placeholder="https://example.com/logo.png"
+            aria-invalid={Boolean(form.formState.errors.logoUrl)}
+            {...form.register("logoUrl", {
+              onChange: () => setLogoFailed(false),
+            })}
+          />
+          {logoUrl ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              aria-label="Clear logo URL"
+              onClick={() => {
+                form.setValue("logoUrl", "", { shouldDirty: true });
+                setLogoFailed(false);
+              }}
+            >
+              <X />
+            </Button>
+          ) : null}
+        </div>
+        <FieldError errors={[form.formState.errors.logoUrl]} />
       </Field>
 
       <Controller
@@ -217,6 +266,59 @@ export function ApplicationForm({
           </div>
       </div>
 
+      <div className="grid gap-3 border-t pt-4">
+        <div>
+          <h3 className="text-sm font-medium">Email connections</h3>
+          <p className="text-xs text-muted-foreground">
+            Authentication email uses the primary connection and retries with
+            the optional fallback when delivery fails.
+          </p>
+          {emailConnectionOptions.length === 0 ? (
+            <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+              No active email connections are available. Add one in{" "}
+              <Link to="/admin/email-manager" className="underline">
+                Email Manager
+              </Link>
+              .
+            </p>
+          ) : null}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(["primary", "fallback"] as const).map((role) => (
+            <Controller
+              key={role}
+              control={form.control}
+              name={`emailConnections.${role}`}
+              render={({ field, fieldState }) => (
+                <Field>
+                  <FieldLabel htmlFor={`application-email-${role}`}>
+                    {role === "primary" ? "Primary" : "Fallback"}
+                  </FieldLabel>
+                  <Select
+                    value={field.value ?? "none"}
+                    onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                  >
+                    <SelectTrigger id={`application-email-${role}`} className="w-full">
+                      <SelectValue placeholder="Not assigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not assigned</SelectItem>
+                      {emailConnectionOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.name} ({option.provider})
+                          {option.status !== "active" ? ` — ${option.status}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldError errors={[fieldState.error]} />
+                </Field>
+              )}
+            />
+          ))}
+        </div>
+      </div>
+
       {errorMessage ? (
         <div
           role="alert"
@@ -241,6 +343,7 @@ type CreateApplicationFormProps = {
   onCreated: () => void;
   resetKey: string;
   oauthConnectionOptions?: OAuthConnectionOption[];
+  emailConnectionOptions?: EmailConnectionOption[];
   errorMessage?: string | null;
 };
 
@@ -254,6 +357,7 @@ export function CreateApplicationForm(props: CreateApplicationFormProps) {
       submitLabel="Create application"
       loadingLabel="Creating..."
       oauthConnectionOptions={props.oauthConnectionOptions}
+      emailConnectionOptions={props.emailConnectionOptions}
       errorMessage={props.errorMessage}
     />
   );

@@ -1,0 +1,5 @@
+-- RenameForeignKey
+ALTER TABLE "application_email_provider_connection" RENAME CONSTRAINT "application_email_provider_connection_emailProviderConnectionId" TO "application_email_provider_connection_emailProviderConnect_fkey";
+
+-- RenameIndex
+ALTER INDEX "application_email_provider_connection_emailProviderConnectionId" RENAME TO "application_email_provider_connection_emailProviderConnecti_idx";

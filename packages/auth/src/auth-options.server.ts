@@ -9,7 +9,9 @@ import type { BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import {
   emailVerificationTemplate,
+  getApplicationIdFromEmailUrl,
   magicLinkTemplate,
+  sendApplicationEmail,
   sendEmail,
 } from "../../email/src/index.server";
 
@@ -65,11 +67,15 @@ export const authOptions = {
   emailVerification: {
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await sendEmail({
+      const message = {
         to: user.email,
         subject: "Verify your SSO email",
         html: await emailVerificationTemplate(url),
-      });
+      };
+      const applicationId = await getApplicationIdFromEmailUrl(url);
+      await (applicationId
+        ? sendApplicationEmail(applicationId, message)
+        : sendEmail(message));
     },
   },
   socialProviders: {},
@@ -256,11 +262,15 @@ export const authOptions = {
         max: 5,
       },
       sendMagicLink: async ({ email, url }) => {
-        await sendEmail({
+        const message = {
           to: email,
           subject: "Sign in to SSO",
           html: await magicLinkTemplate(url),
-        });
+        };
+        const applicationId = await getApplicationIdFromEmailUrl(url);
+        await (applicationId
+          ? sendApplicationEmail(applicationId, message)
+          : sendEmail(message));
       },
     }),
     defaultUserRoleOnSignup(),

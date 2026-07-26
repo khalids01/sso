@@ -50,10 +50,10 @@ export function getApplicationAuthCapabilities(
     {
       id: "magic_link",
       label: "Email magic link",
-      available: Boolean(env.SMTP_HOST && env.EMAIL && env.EMAIL_PASSWORD),
+      available: true,
       supportsSignUp: true,
       unavailableReason:
-        "Magic-link authentication requires SMTP_HOST, EMAIL, and EMAIL_PASSWORD on the SSO server",
+        "Magic-link authentication requires an active application email connection",
     },
     {
       id: "password",

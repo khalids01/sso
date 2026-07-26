@@ -29,6 +29,7 @@ import {
   Webhook,
   Shield,
   KeyRound,
+  Mail,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import UserMenu from "@/components/core/user-menu";
@@ -39,6 +40,7 @@ import {
   canShowActivityNav,
   canShowApplicationsNav,
   canShowOAuthManagerNav,
+  canShowEmailManagerNav,
   canShowFeedbackNav,
   canShowRateLimitsNav,
   canShowRolesNav,
@@ -104,6 +106,12 @@ function getAdminNavItems(session: ClientSession | null | undefined): AdminNavIt
       icon: KeyRound,
       url: "/admin/oauth-manager",
       show: canShowOAuthManagerNav(session),
+    },
+    {
+      title: "Email Manager",
+      icon: Mail,
+      url: "/admin/email-manager",
+      show: canShowEmailManagerNav(session),
     },
     {
       title: "Feedback",

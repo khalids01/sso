@@ -39,6 +39,7 @@ export const createApplicationDefaults: CreateApplicationFormValues = {
   name: "",
   slug: "",
   description: "",
+  logoUrl: "",
   status: "active",
   oauthConnections: {
     google: null,
@@ -46,12 +47,18 @@ export const createApplicationDefaults: CreateApplicationFormValues = {
     github: null,
     linkedin: null,
   },
+  emailConnections: { primary: null, fallback: null },
 };
 
 export const createApplicationSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
   slug: optionalTrimmedString(80),
   description: optionalTrimmedString(500),
+  logoUrl: z
+    .string()
+    .trim()
+    .refine((value) => !value || !getHttpUrlError(value), "Logo URL must be a valid HTTP(S) URL")
+    .transform((value) => value || null),
   status: applicationStatusSchema.default("active"),
   oauthConnections: z
     .object({
@@ -61,7 +68,17 @@ export const createApplicationSchema = z.object({
       linkedin: z.string().nullable().optional(),
     })
     .optional(),
-});
+  emailConnections: z.object({
+    primary: z.string().nullable().optional(),
+    fallback: z.string().nullable().optional(),
+  }).optional(),
+}).refine(
+  (value) =>
+    !value.emailConnections?.primary ||
+    !value.emailConnections?.fallback ||
+    value.emailConnections.primary !== value.emailConnections.fallback,
+  { path: ["emailConnections", "fallback"], message: "Fallback must differ from primary" },
+);
 
 export const createApplicationClientDefaults: CreateApplicationClientFormValues = {
   name: "",

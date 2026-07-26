@@ -62,6 +62,13 @@ export const queryKeys = {
       options: () =>
         [...queryKeys.admin.oauthConnections.all(), "options"] as const,
     },
+    emailConnections: {
+      all: () => ["admin-email-connections"] as const,
+      list: (filter: "current" | "archived") =>
+        [...queryKeys.admin.emailConnections.all(), "list", filter] as const,
+      options: () =>
+        [...queryKeys.admin.emailConnections.all(), "options"] as const,
+    },
     applicationUsage: {
       all: () => ["admin-application-usage"] as const,
       overview: (params: object) =>

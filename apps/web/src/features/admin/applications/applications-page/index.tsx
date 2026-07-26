@@ -25,6 +25,7 @@ import { useSession } from "@/providers/session-provider";
 import { Permissions } from "@rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 import type { OAuthConnectionOption } from "../../oauth-connections/types";
+import type { EmailConnectionOption } from "../../email-connections/types";
 import { getMutationErrorMessage } from "../mutation-error";
 
 export function AdminApplicationsPage() {
@@ -61,6 +62,15 @@ export function AdminApplicationsPage() {
         await client.admin["oauth-connections"].options.get();
       if (error) throw error;
       return (data as { items: OAuthConnectionOption[] }).items;
+    },
+  });
+  const emailConnectionOptionsQuery = useQuery({
+    queryKey: queryKeys.admin.emailConnections.options(),
+    queryFn: async () => {
+      const { data, error } =
+        await client.admin["email-connections"].options.get();
+      if (error) throw error;
+      return (data as { items: EmailConnectionOption[] }).items;
     },
   });
 
@@ -141,6 +151,7 @@ export function AdminApplicationsPage() {
               }
               onResetError={createApplicationMutation.reset}
               oauthConnectionOptions={oauthConnectionOptionsQuery.data}
+              emailConnectionOptions={emailConnectionOptionsQuery.data}
             />
           ) : null}
         </div>
@@ -190,6 +201,7 @@ export function AdminApplicationsPage() {
         application={editApplication}
         isLoading={updateApplicationMutation.isPending}
         oauthConnectionOptions={oauthConnectionOptionsQuery.data}
+        emailConnectionOptions={emailConnectionOptionsQuery.data}
         errorMessage={
           updateApplicationMutation.error
             ? getMutationErrorMessage(

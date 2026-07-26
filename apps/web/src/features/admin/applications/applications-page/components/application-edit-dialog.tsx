@@ -16,6 +16,7 @@ import type {
   ApplicationOAuthConnections,
 } from "../../types";
 import type { OAuthConnectionOption } from "../../../oauth-connections/types";
+import type { EmailConnectionOption } from "../../../email-connections/types";
 
 const oauthProviders = [
   "google",
@@ -28,6 +29,7 @@ export function ApplicationEditDialog(props: {
   application: AdminApplication | null;
   isLoading: boolean;
   oauthConnectionOptions?: OAuthConnectionOption[];
+  emailConnectionOptions?: EmailConnectionOption[];
   onOpenChange: (open: boolean) => void;
   errorMessage?: string | null;
   onSubmit: (payload: CreateApplicationInput) => Promise<void>;
@@ -49,8 +51,13 @@ export function ApplicationEditDialog(props: {
             name: props.application.name,
             slug: props.application.slug,
             description: props.application.description ?? "",
+            logoUrl: props.application.logoUrl ?? "",
             status: props.application.status,
             oauthConnections: currentOAuthConnections,
+            emailConnections: {
+              primary: props.application.emailConnections.primary?.id ?? null,
+              fallback: props.application.emailConnections.fallback?.id ?? null,
+            },
           }
         : undefined,
     [currentOAuthConnections, props.application],
@@ -78,6 +85,18 @@ export function ApplicationEditDialog(props: {
             isLoading={props.isLoading}
             resetKey={props.application?.id ?? "closed"}
             oauthConnectionOptions={oauthConnectionOptions}
+            emailConnectionOptions={[
+              ...(props.emailConnectionOptions ?? []),
+              ...Object.values(props.application?.emailConnections ?? {}).filter(
+                (connection): connection is NonNullable<typeof connection> =>
+                  Boolean(
+                    connection &&
+                      !(props.emailConnectionOptions ?? []).some(
+                        (option) => option.id === connection.id,
+                      ),
+                  ),
+              ),
+            ]}
             onSubmit={(input) => {
               const changedOAuthConnections =
                 Object.fromEntries(

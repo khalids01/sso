@@ -17,6 +17,16 @@ export type ApplicationOAuthProvider =
 export type ApplicationOAuthConnections = Partial<
   Record<ApplicationOAuthProvider, string | null>
 >;
+export type ApplicationEmailConnection = {
+  id: string;
+  name: string;
+  provider: "resend" | "nodemailer";
+  status: ApplicationStatus;
+};
+export type ApplicationEmailConnections = {
+  primary?: string | null;
+  fallback?: string | null;
+};
 export type ApplicationAuthCapability = {
   id: string;
   label: string;
@@ -43,6 +53,9 @@ export type AdminApplication = {
     provider: ApplicationOAuthProvider;
     status: ApplicationStatus;
   }>;
+  emailConnections: Partial<
+    Record<"primary" | "fallback", ApplicationEmailConnection>
+  >;
   authCapabilities: ApplicationAuthCapability[];
   clientCount: number;
   memberCount: number;

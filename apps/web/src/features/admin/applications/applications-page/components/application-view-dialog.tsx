@@ -23,6 +23,14 @@ export function ApplicationViewDialog({
           <DialogDescription>{application?.name}</DialogDescription>
         </DialogHeader>
         {application ? (
+          <div className="space-y-4">
+            <div className="flex size-20 items-center justify-center overflow-hidden rounded-xl border bg-muted">
+              {application.logoUrl ? (
+                <img src={application.logoUrl} alt={`${application.name} logo`} className="size-full object-contain" />
+              ) : (
+                <span className="text-xs text-muted-foreground">No logo</span>
+              )}
+            </div>
           <InfoGrid
             rows={[
               ["Name", application.name],
@@ -36,6 +44,7 @@ export function ApplicationViewDialog({
               ["Updated", new Date(application.updatedAt).toLocaleString()],
             ]}
           />
+          </div>
         ) : null}
       </DialogContent>
     </Dialog>

@@ -361,6 +361,19 @@ describe("AdminApplicationsService", () => {
             },
           },
         },
+        emailProviderConnections: {
+          select: {
+            role: true,
+            emailProviderConnection: {
+              select: {
+                id: true,
+                name: true,
+                provider: true,
+                status: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       skip: 0,

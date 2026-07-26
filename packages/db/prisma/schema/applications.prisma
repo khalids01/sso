@@ -29,6 +29,22 @@ enum OAuthProviderConnectionStatus {
   archived
 }
 
+enum EmailProvider {
+  resend
+  nodemailer
+}
+
+enum EmailProviderConnectionStatus {
+  active
+  disabled
+  archived
+}
+
+enum ApplicationEmailConnectionRole {
+  primary
+  fallback
+}
+
 model Application {
   id               String   @id @default(cuid())
   slug             String   @unique
@@ -51,10 +67,68 @@ model Application {
   revocationDeliveries ApplicationRevocationDelivery[]
   invitations          ApplicationInvitation[]
   oauthProviderConnections ApplicationOAuthProviderConnection[]
+  emailProviderConnections ApplicationEmailProviderConnection[]
+  emailDeliveryAttempts EmailDeliveryAttempt[]
   usageEvents          ApplicationUsageEvent[]
 
   @@index([status, createdAt])
   @@map("application")
+}
+
+model EmailProviderConnection {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  provider          EmailProvider
+  fromName          String
+  fromAddress       String
+  replyToAddress    String?
+  encryptedSecret   String
+  smtpHost          String?
+  smtpPort          Int?
+  smtpSecure        Boolean?
+  smtpUsername      String?
+  credentialVersion Int      @default(1)
+  status            EmailProviderConnectionStatus @default(active)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  applicationAssignments ApplicationEmailProviderConnection[]
+  deliveryAttempts       EmailDeliveryAttempt[]
+
+  @@index([provider, status])
+  @@index([status, createdAt])
+  @@map("email_provider_connection")
+}
+
+model ApplicationEmailProviderConnection {
+  applicationId            String
+  role                     ApplicationEmailConnectionRole
+  emailProviderConnectionId String
+
+  application             Application             @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  emailProviderConnection EmailProviderConnection @relation(fields: [emailProviderConnectionId], references: [id], onDelete: Restrict)
+
+  @@id([applicationId, role])
+  @@index([emailProviderConnectionId])
+  @@map("application_email_provider_connection")
+}
+
+model EmailDeliveryAttempt {
+  id                        String   @id @default(cuid())
+  applicationId             String?
+  emailProviderConnectionId String?
+  provider                  EmailProvider?
+  outcome                   String
+  fallbackUsed              Boolean  @default(false)
+  errorCode                 String?
+  createdAt                 DateTime @default(now())
+
+  application             Application?            @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  emailProviderConnection EmailProviderConnection? @relation(fields: [emailProviderConnectionId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, createdAt])
+  @@index([emailProviderConnectionId, createdAt])
+  @@map("email_delivery_attempt")
 }
 
 model ApplicationInvitation {

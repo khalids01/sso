@@ -26,6 +26,7 @@ import { Route as AdminRateLimitsRouteImport } from './routes/admin/rate-limits'
 import { Route as AdminOverviewRouteImport } from './routes/admin/overview'
 import { Route as AdminOauthManagerRouteImport } from './routes/admin/oauth-manager'
 import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
+import { Route as AdminEmailManagerRouteImport } from './routes/admin/email-manager'
 import { Route as AdminApplicationsRouteImport } from './routes/admin/applications'
 import { Route as AdminApplicationUsageRouteImport } from './routes/admin/application-usage'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
@@ -126,6 +127,11 @@ const AdminOauthManagerRoute = AdminOauthManagerRouteImport.update({
 const AdminFeedbackRoute = AdminFeedbackRouteImport.update({
   id: '/feedback',
   path: '/feedback',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEmailManagerRoute = AdminEmailManagerRouteImport.update({
+  id: '/email-manager',
+  path: '/email-manager',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminApplicationsRoute = AdminApplicationsRouteImport.update({
@@ -236,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/application-usage': typeof AdminApplicationUsageRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/email-manager': typeof AdminEmailManagerRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/oauth-manager': typeof AdminOauthManagerRoute
   '/admin/overview': typeof AdminOverviewRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/application-usage': typeof AdminApplicationUsageRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/email-manager': typeof AdminEmailManagerRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/oauth-manager': typeof AdminOauthManagerRoute
   '/admin/overview': typeof AdminOverviewRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/application-usage': typeof AdminApplicationUsageRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/email-manager': typeof AdminEmailManagerRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/oauth-manager': typeof AdminOauthManagerRoute
   '/admin/overview': typeof AdminOverviewRoute
@@ -344,6 +353,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/application-usage'
     | '/admin/applications'
+    | '/admin/email-manager'
     | '/admin/feedback'
     | '/admin/oauth-manager'
     | '/admin/overview'
@@ -378,6 +388,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/application-usage'
     | '/admin/applications'
+    | '/admin/email-manager'
     | '/admin/feedback'
     | '/admin/oauth-manager'
     | '/admin/overview'
@@ -413,6 +424,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/application-usage'
     | '/admin/applications'
+    | '/admin/email-manager'
     | '/admin/feedback'
     | '/admin/oauth-manager'
     | '/admin/overview'
@@ -568,6 +580,13 @@ declare module '@tanstack/react-router' {
       path: '/feedback'
       fullPath: '/admin/feedback'
       preLoaderRoute: typeof AdminFeedbackRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/email-manager': {
+      id: '/admin/email-manager'
+      path: '/email-manager'
+      fullPath: '/admin/email-manager'
+      preLoaderRoute: typeof AdminEmailManagerRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/applications': {
@@ -726,6 +745,7 @@ interface AdminRouteChildren {
   AdminActivityRoute: typeof AdminActivityRoute
   AdminApplicationUsageRoute: typeof AdminApplicationUsageRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
+  AdminEmailManagerRoute: typeof AdminEmailManagerRoute
   AdminFeedbackRoute: typeof AdminFeedbackRoute
   AdminOauthManagerRoute: typeof AdminOauthManagerRoute
   AdminOverviewRoute: typeof AdminOverviewRoute
@@ -743,6 +763,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminActivityRoute: AdminActivityRoute,
   AdminApplicationUsageRoute: AdminApplicationUsageRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
+  AdminEmailManagerRoute: AdminEmailManagerRoute,
   AdminFeedbackRoute: AdminFeedbackRoute,
   AdminOauthManagerRoute: AdminOauthManagerRoute,
   AdminOverviewRoute: AdminOverviewRoute,

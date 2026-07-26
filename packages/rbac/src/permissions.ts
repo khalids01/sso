@@ -20,6 +20,8 @@ export const Permissions = {
   AdminApplicationsManage: "admin.applications.manage",
   AdminOAuthConnectionsRead: "admin.oauth_connections.read",
   AdminOAuthConnectionsManage: "admin.oauth_connections.manage",
+  AdminEmailConnectionsRead: "admin.email_connections.read",
+  AdminEmailConnectionsManage: "admin.email_connections.manage",
 
   AdminRolesList: "admin.roles.list",
   AdminRolesRead: "admin.roles.read",

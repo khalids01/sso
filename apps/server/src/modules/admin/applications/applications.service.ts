@@ -50,11 +50,6 @@ const allowedSignupMethods = new Set([
   ...socialAuthMethods,
 ]);
 const allowedRegistrationModes = new Set(["closed", "invite_only", "open"]);
-const emailDeliveryConfigured = Boolean(
-  env.SMTP_HOST && env.EMAIL && env.EMAIL_PASSWORD,
-);
-
-
 const applicationSelect = {
   id: true,
   slug: true,
@@ -85,6 +80,14 @@ const applicationSelect = {
           provider: true,
           status: true,
         },
+      },
+    },
+  },
+  emailProviderConnections: {
+    select: {
+      role: true,
+      emailProviderConnection: {
+        select: { id: true, name: true, provider: true, status: true },
       },
     },
   },
@@ -244,18 +247,6 @@ function normalizeAuthPolicy(input: {
   ) {
     throw new ApplicationsPolicyError("Invalid application registration mode");
   }
-  if (
-    input.passwordEmailVerificationRequired === true &&
-    !emailDeliveryConfigured
-  ) {
-    throw new ApplicationsPolicyError(
-      "Password email verification requires SMTP_HOST, EMAIL, and EMAIL_PASSWORD on the SSO server",
-      400,
-      "EMAIL_DELIVERY_REQUIRED",
-      { field: "passwordEmailVerificationRequired" },
-    );
-  }
-
   return {
     signInMethods,
     signUpMethods,
@@ -305,6 +296,15 @@ function mapApplication(row: {
       status: string;
     };
   }>;
+  emailProviderConnections?: Array<{
+    role: "primary" | "fallback";
+    emailProviderConnection: {
+      id: string;
+      name: string;
+      provider: string;
+      status: string;
+    };
+  }>;
 }) {
   const oauthConnections = (row.oauthProviderConnections ?? []).map(
     (assignment) => ({
@@ -313,6 +313,24 @@ function mapApplication(row: {
       provider: assignment.provider,
       status: assignment.oauthProviderConnection.status,
     }),
+  );
+  const emailConnections = Object.fromEntries(
+    (row.emailProviderConnections ?? []).map((assignment) => [
+      assignment.role,
+      assignment.emailProviderConnection,
+    ]),
+  );
+  const authCapabilities = getApplicationAuthCapabilities(oauthConnections).map(
+    (capability) =>
+      capability.id === "magic_link" &&
+      emailConnections.primary?.status !== "active"
+        ? {
+            ...capability,
+            available: false,
+            unavailableReason:
+              "No active primary email connection is assigned to this application",
+          }
+        : capability,
   );
   return {
     id: row.id,
@@ -328,7 +346,8 @@ function mapApplication(row: {
     passwordEmailVerificationRequired:
       row.passwordEmailVerificationRequired,
     oauthConnections,
-    authCapabilities: getApplicationAuthCapabilities(oauthConnections),
+    emailConnections,
+    authCapabilities,
     clientCount: row._count?.clients ?? 0,
     memberCount: row._count?.members ?? 0,
     createdAt: row.createdAt.toISOString(),
@@ -358,6 +377,88 @@ function mapClient(row: {
 type OAuthConnectionSelections =
   | CreateApplicationInput["oauthConnections"]
   | UpdateApplicationInput["oauthConnections"];
+
+type EmailConnectionSelections =
+  | CreateApplicationInput["emailConnections"]
+  | UpdateApplicationInput["emailConnections"];
+
+async function applyEmailConnectionSelections(
+  tx: Prisma.TransactionClient,
+  applicationId: string,
+  selections: EmailConnectionSelections,
+) {
+  if (!selections) return;
+  if (selections.primary && selections.fallback && selections.primary === selections.fallback) {
+    throw new ApplicationsPolicyError(
+      "Primary and fallback email connections must be different",
+      400,
+      "EMAIL_CONNECTION_DUPLICATE",
+      { field: "emailConnections.fallback" },
+    );
+  }
+  for (const role of ["primary", "fallback"] as const) {
+    if (!(role in selections)) continue;
+    const connectionId = selections[role];
+    if (!connectionId) {
+      await tx.applicationEmailProviderConnection.deleteMany({
+        where: { applicationId, role },
+      });
+      continue;
+    }
+    const connection = await tx.emailProviderConnection.findUnique({
+      where: { id: connectionId },
+      select: { id: true, status: true },
+    });
+    if (!connection) {
+      throw new ApplicationsPolicyError(
+        `The selected ${role} email connection does not exist`,
+        400,
+        "EMAIL_CONNECTION_NOT_FOUND",
+        { field: `emailConnections.${role}` },
+      );
+    }
+    if (connection.status !== "active") {
+      throw new ApplicationsPolicyError(
+        `The selected ${role} email connection is not active`,
+        400,
+        "EMAIL_CONNECTION_INACTIVE",
+        { field: `emailConnections.${role}` },
+      );
+    }
+    await tx.applicationEmailProviderConnection.upsert({
+      where: { applicationId_role: { applicationId, role } },
+      create: { applicationId, role, emailProviderConnectionId: connection.id },
+      update: { emailProviderConnectionId: connection.id },
+    });
+  }
+}
+
+async function resolveEmailConnectionSelections(
+  tx: Prisma.TransactionClient,
+  selections: EmailConnectionSelections,
+) {
+  if (!selections) return [];
+  if (selections.primary && selections.fallback && selections.primary === selections.fallback) {
+    throw new ApplicationsPolicyError("Primary and fallback email connections must be different");
+  }
+  const resolved: Array<{
+    role: "primary" | "fallback";
+    emailProviderConnectionId: string;
+  }> = [];
+  for (const role of ["primary", "fallback"] as const) {
+    const id = selections[role];
+    if (!id) continue;
+    const connection = await tx.emailProviderConnection.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
+    if (!connection || connection.status !== "active") {
+      throw new ApplicationsPolicyError(`The selected ${role} email connection is unavailable`);
+    }
+    resolved.push({ role, emailProviderConnectionId: connection.id });
+  }
+  return resolved;
+}
 
 async function resolveOAuthConnectionSelections(
   tx: Prisma.TransactionClient,
@@ -602,6 +703,10 @@ export class AdminApplicationsService {
         tx,
         input.oauthConnections,
       );
+      const selectedEmailConnections = await resolveEmailConnectionSelections(
+        tx,
+        input.emailConnections,
+      );
       return tx.application.create({
         data: {
           slug: normalizeSlug(input.slug ?? input.name),
@@ -618,6 +723,13 @@ export class AdminApplicationsService {
             ? {
                 oauthProviderConnections: {
                   create: selectedConnections,
+                },
+              }
+            : {}),
+          ...(selectedEmailConnections.length
+            ? {
+                emailProviderConnections: {
+                  create: selectedEmailConnections,
                 },
               }
             : {}),
@@ -686,6 +798,7 @@ export class AdminApplicationsService {
           status: true,
           signInMethods: true,
           signUpMethods: true,
+          passwordEmailVerificationRequired: true,
           oauthProviderConnections: {
             select: {
               provider: true,
@@ -697,6 +810,7 @@ export class AdminApplicationsService {
         },
       });
       await applyOAuthConnectionSelections(tx, id, input.oauthConnections);
+      await applyEmailConnectionSelections(tx, id, input.emailConnections);
       const nextAssignments =
         input.oauthConnections !== undefined
           ? await tx.applicationOAuthProviderConnection.findMany({
@@ -752,6 +866,31 @@ export class AdminApplicationsService {
         nextSignInMethods,
         policy.signUpMethods ?? current.signUpMethods,
       );
+      const needsEmail =
+        (policy.signInMethods?.includes("magic_link") &&
+          !current.signInMethods.includes("magic_link")) ||
+        (policy.signUpMethods?.includes("magic_link") &&
+          !current.signUpMethods.includes("magic_link")) ||
+        (policy.passwordEmailVerificationRequired === true &&
+          !current.passwordEmailVerificationRequired);
+      if (needsEmail) {
+        const primary = await tx.applicationEmailProviderConnection.findFirst({
+          where: {
+            applicationId: id,
+            role: "primary",
+            emailProviderConnection: { status: "active" },
+          },
+          select: { applicationId: true },
+        });
+        if (!primary) {
+          throw new ApplicationsPolicyError(
+            "Assign an active primary email connection before enabling email authentication",
+            400,
+            "EMAIL_DELIVERY_REQUIRED",
+            { field: "emailConnections.primary" },
+          );
+        }
+      }
       const updated = await tx.application.update({
         where: { id },
         data,

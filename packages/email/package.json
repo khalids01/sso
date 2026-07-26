@@ -16,11 +16,13 @@
     "email:dev": "bunx react-email dev --dir src/templates"
   },
   "dependencies": {
+    "@db": "workspace:*",
     "@env": "workspace:*",
     "@react-email/components": "^1.0.12",
     "nodemailer": "^9.0.3",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "resend": "^6.18.0"
   },
   "devDependencies": {
     "@react-email/ui": "6.9.0",
