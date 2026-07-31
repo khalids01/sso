@@ -4,6 +4,7 @@ export type AuthClientSessionUser = {
   id: string;
   name: string;
   email: string;
+  image?: string | null;
   banned: boolean;
   banReason: string | null;
   archived: boolean;
@@ -32,7 +33,13 @@ export type AuthClientSession = {
 
 export type ClientSessionUser = Pick<
   AuthClientSessionUser,
-  "id" | "name" | "email" | "onboardingComplete" | "plan" | "subscriptionStatus"
+  | "id"
+  | "name"
+  | "email"
+  | "image"
+  | "onboardingComplete"
+  | "plan"
+  | "subscriptionStatus"
 >;
 
 export type ClientSession = {

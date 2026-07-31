@@ -10,6 +10,8 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { client } from "@/lib/client";
 
 import { getAuthCallbackURL } from "./auth-callback";
+import { useAuthMethodStore } from "./auth-method-store";
+import { LastUsedBadge } from "./last-used-badge";
 
 const passwordSignupSchema = z.object({
   name: z.string().trim().min(2, "Enter your name").max(120),
@@ -23,6 +25,7 @@ const passwordSignupSchema = z.object({
 type PasswordSignupValues = z.infer<typeof passwordSignupSchema>;
 
 export function PasswordSignUpForm() {
+  const rememberMethod = useAuthMethodStore((state) => state.rememberMethod);
   const hydrated = useHydrated();
   const form = useForm<PasswordSignupValues>({
     resolver: zodResolver(passwordSignupSchema),
@@ -47,10 +50,12 @@ export function PasswordSignUpForm() {
       "requiresEmailVerification" in data &&
       data.requiresEmailVerification
     ) {
+      rememberMethod("password");
       toast.success("Account created. Check your email to verify it.");
       return;
     }
 
+    rememberMethod("password");
     window.location.assign(callbackURL);
   });
 
@@ -97,13 +102,16 @@ export function PasswordSignUpForm() {
         <FieldError errors={[form.formState.errors.password]} />
       </Field>
       <Button
-        className="w-full"
+        className="relative w-full"
         type="submit"
         disabled={!hydrated || form.formState.isSubmitting}
       >
         {form.formState.isSubmitting
           ? "Creating account..."
           : "Create account with password"}
+        <span className="absolute right-3">
+          <LastUsedBadge method="password" />
+        </span>
       </Button>
     </form>
   );

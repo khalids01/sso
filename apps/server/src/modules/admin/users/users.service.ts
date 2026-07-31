@@ -24,6 +24,7 @@ import {
 } from "@/rbac/policies/owner.policy";
 import { assignUserRoleAndInvalidate } from "@/rbac/assignments";
 import { enqueueMemberRevocation } from "../../application-revocation/revocation.service";
+import { mapUserAuthMethods, userAuthMethodSelect } from "../user-auth-methods";
 
 const adminUserSelect = {
   id: true,
@@ -39,6 +40,7 @@ const adminUserSelect = {
   onboardingComplete: true,
   plan: true,
   subscriptionStatus: true,
+  ...userAuthMethodSelect,
   rbacRoles: {
     take: 1,
     select: {
@@ -52,15 +54,19 @@ const adminUserSelect = {
   },
 } as const;
 
-function mapAdminUser<
-  T extends {
-    rbacRoles: Array<{ role: { slug: string; name: string } }>;
-  },
->(user: T) {
-  const { rbacRoles, ...rest } = user;
+function mapAdminUser(
+  user: Prisma.UserGetPayload<{ select: typeof adminUserSelect }>,
+) {
+  const {
+    rbacRoles,
+    accounts: _accounts,
+    usageEvents: _usageEvents,
+    ...rest
+  } = user;
   const assignment = rbacRoles[0]?.role;
   return {
     ...rest,
+    authMethods: mapUserAuthMethods(user),
     role: assignment
       ? { slug: assignment.slug, name: assignment.name }
       : { slug: Roles.PlatformUser, name: formatRoleLabel(Roles.PlatformUser) },
@@ -116,8 +122,7 @@ async function getAdminTargetUser(id: string) {
     throw new Error("User not found");
   }
 
-  const roleSlug =
-    user.rbacRoles[0]?.role.slug ?? Roles.PlatformUser;
+  const roleSlug = user.rbacRoles[0]?.role.slug ?? Roles.PlatformUser;
 
   return { id: user.id, roleSlug: roleSlug as RoleSlug };
 }
@@ -283,12 +288,12 @@ export class UsersService {
       prisma.user.count({ where }),
     ]);
 
-    const users = (actor
+    const users = actor
       ? filterOwnerUsers(
           rawUsers.map((user) => mapAdminUser(user)),
           actor.permissions,
         )
-      : rawUsers.map((user) => mapAdminUser(user)));
+      : rawUsers.map((user) => mapAdminUser(user));
 
     return {
       users,

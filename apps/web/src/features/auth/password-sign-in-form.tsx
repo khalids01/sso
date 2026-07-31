@@ -13,8 +13,11 @@ import {
   passwordSignInSchema,
   type PasswordSignInValues,
 } from "./sign-in-schema";
+import { useAuthMethodStore } from "./auth-method-store";
+import { LastUsedBadge } from "./last-used-badge";
 
 export function PasswordSignInForm() {
+  const rememberMethod = useAuthMethodStore((state) => state.rememberMethod);
   const hydrated = useHydrated();
   const form = useForm<PasswordSignInValues>({
     resolver: zodResolver(passwordSignInSchema),
@@ -35,6 +38,7 @@ export function PasswordSignInForm() {
       return;
     }
 
+    rememberMethod("password");
     window.location.assign(callbackURL);
   });
 
@@ -72,11 +76,16 @@ export function PasswordSignInForm() {
       </Field>
 
       <Button
-        className="w-full"
+        className="relative w-full"
         type="submit"
         disabled={!hydrated || form.formState.isSubmitting}
       >
-        {form.formState.isSubmitting ? "Signing in..." : "Sign in with password"}
+        {form.formState.isSubmitting
+          ? "Signing in..."
+          : "Sign in with password"}
+        <span className="absolute right-3">
+          <LastUsedBadge method="password" />
+        </span>
       </Button>
     </form>
   );

@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, History, MoreHorizontal, Shield, Trash2 } from "lucide-react";
+import {
+  Ban,
+  Eye,
+  History,
+  MoreHorizontal,
+  Shield,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Roles } from "@sso/rbac";
 import { queryKeys } from "@/constants/query-keys";
@@ -31,6 +38,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { AssignableRole } from "@/features/admin/roles/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AuthMethodBadges } from "../components/auth-method-badges";
+import type { AdminUser } from "./types";
+import { useSession } from "@/providers/session-provider";
 
 type UserSession = {
   id: string;
@@ -71,18 +92,25 @@ function getDeviceLabel(userAgent: string | null) {
   return `${browser} on ${os}`;
 }
 
-export function UserActions({ user }: { user: any }) {
+export function UserActions({ user }: { user: AdminUser }) {
+  const { session } = useSession();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
+  const [banConfirmOpen, setBanConfirmOpen] = useState(false);
   const [roleSlug, setRoleSlug] = useState<string>(user.role.slug);
   const queryClient = useQueryClient();
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: queryKeys.admin.users.sessions(user.id),
     queryFn: async () => {
-      const { data, error } = await client.admin.users({ id: user.id }).sessions.get();
+      const { data, error } = await client.admin
+        .users({ id: user.id })
+        .sessions.get();
       if (error) {
-        throw new Error(error.value ? JSON.stringify(error.value) : "Unknown error");
+        throw new Error(
+          error.value ? JSON.stringify(error.value) : "Unknown error",
+        );
       }
       return data as UserSession[];
     },
@@ -118,7 +146,9 @@ export function UserActions({ user }: { user: any }) {
     },
     onError: (error: any) => {
       toast.error(
-        String(error?.value?.message || error?.message || "Failed to update role"),
+        String(
+          error?.value?.message || error?.message || "Failed to update role",
+        ),
       );
     },
   });
@@ -141,14 +171,18 @@ export function UserActions({ user }: { user: any }) {
     },
     onError: (error: any) => {
       toast.error(
-        String(error?.value?.message || error?.message || "Failed to revoke session"),
+        String(
+          error?.value?.message || error?.message || "Failed to revoke session",
+        ),
       );
     },
   });
 
   const revokeAllSessionsMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await client.admin.users({ id: user.id }).sessions.delete();
+      const { error } = await client.admin
+        .users({ id: user.id })
+        .sessions.delete();
       if (error) {
         throw error;
       }
@@ -161,13 +195,41 @@ export function UserActions({ user }: { user: any }) {
     },
     onError: (error: any) => {
       toast.error(
-        String(error?.value?.message || error?.message || "Failed to revoke sessions"),
+        String(
+          error?.value?.message ||
+            error?.message ||
+            "Failed to revoke sessions",
+        ),
       );
     },
   });
 
+  const banMutation = useMutation({
+    mutationFn: async () => {
+      const endpoint = client.admin.users({ id: user.id });
+      const { error } = user.banned
+        ? await endpoint.unban.post()
+        : await endpoint.ban.post({});
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(user.banned ? "User unbanned" : "User banned");
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.all() });
+      setBanConfirmOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(
+        String(
+          error?.value?.message || error?.message || "Failed to update user",
+        ),
+      );
+    },
+  });
+
+  const isCurrentUser = session?.user.id === user.id;
   const canChangeRole = user.role.slug !== Roles.PlatformOwner;
   const canUseDestructiveActions = user.role.slug !== Roles.PlatformOwner;
+  const showBanAction = canUseDestructiveActions || isCurrentUser;
   const hasRevocableSessions = sessions?.some((session) => !session.isCurrent);
 
   return (
@@ -184,6 +246,10 @@ export function UserActions({ user }: { user: any }) {
         <DropdownMenuContent align="end" className="w-[160px]">
           <DropdownMenuGroup>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => setDetailsOpen(true)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View User
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setSessionsOpen(true)}>
               <History className="mr-2 h-4 w-4" />
               View Sessions
@@ -200,10 +266,17 @@ export function UserActions({ user }: { user: any }) {
               </DropdownMenuItem>
             ) : null}
           </DropdownMenuGroup>
-          {canUseDestructiveActions ? (
+          {showBanAction ? (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem
+                className="text-destructive"
+                disabled={isCurrentUser}
+                title={
+                  isCurrentUser ? "You cannot ban your own account" : undefined
+                }
+                onClick={() => setBanConfirmOpen(true)}
+              >
                 <Ban className="mr-2 h-4 w-4" />
                 {user.banned ? "Unban User" : "Ban User"}
               </DropdownMenuItem>
@@ -212,21 +285,113 @@ export function UserActions({ user }: { user: any }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <Avatar className="size-12">
+                <AvatarImage src={user.image ?? undefined} />
+                <AvatarFallback>
+                  {user.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <DialogTitle>{user.name}</DialogTitle>
+                <DialogDescription>{user.email}</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="grid gap-4 py-2 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Role</p>
+              <p className="font-medium">{user.role.name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Email verified</p>
+              <p className="font-medium">{user.emailVerified ? "Yes" : "No"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Plan</p>
+              <p className="font-medium">{user.plan}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Created</p>
+              <p className="font-medium">
+                {new Date(user.createdAt).toLocaleString()}
+              </p>
+            </div>
+            <div className="sm:col-span-2">
+              <p className="mb-1 text-xs text-muted-foreground">Auth methods</p>
+              <AuthMethodBadges methods={user.authMethods} />
+              {user.authMethods.some((method) => method.oauthConnection) ? (
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {user.authMethods
+                    .filter((method) => method.oauthConnection)
+                    .map((method) => (
+                      <p key={`${method.id}:${method.oauthConnection!.id}`}>
+                        {method.label}: {method.oauthConnection!.name}
+                      </p>
+                    ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={banConfirmOpen} onOpenChange={setBanConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {user.banned ? `Unban ${user.name}?` : `Ban ${user.name}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {user.banned
+                ? "This restores the user's ability to sign in."
+                : "This immediately blocks sign-in and invalidates application access."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant={user.banned ? "default" : "destructive"}
+              disabled={banMutation.isPending}
+              onClick={() => banMutation.mutate()}
+            >
+              {banMutation.isPending
+                ? "Updating..."
+                : user.banned
+                  ? "Unban user"
+                  : "Ban user"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={sessionsOpen} onOpenChange={setSessionsOpen}>
         <DialogContent className="max-w-2xl overflow-hidden">
           <DialogHeader>
             <DialogTitle>User Sessions - {user.name}</DialogTitle>
-            <DialogDescription>Active devices and sessions for this user.</DialogDescription>
+            <DialogDescription>
+              Active devices and sessions for this user.
+            </DialogDescription>
           </DialogHeader>
           <div className="min-w-0 py-4">
             {sessionsLoading ? (
-              <div className="flex justify-center py-8">Loading sessions...</div>
+              <div className="flex justify-center py-8">
+                Loading sessions...
+              </div>
             ) : sessions?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No sessions found.</div>
+              <div className="text-center py-8 text-muted-foreground">
+                No sessions found.
+              </div>
             ) : (
               <div className="max-h-[60vh] space-y-4 overflow-y-auto overflow-x-hidden">
                 {sessions?.map((session) => (
-                  <div key={session.id} className="min-w-0 rounded-lg border p-3 text-sm">
+                  <div
+                    key={session.id}
+                    className="min-w-0 rounded-lg border p-3 text-sm"
+                  >
                     <div className="flex min-w-0 items-start justify-between gap-2 font-medium">
                       <div className="min-w-0">
                         <span className="min-w-0 truncate">
@@ -248,7 +413,9 @@ export function UserActions({ user }: { user: any }) {
                           size="icon"
                           className="h-8 w-8 shrink-0 text-destructive"
                           disabled={revokeSessionMutation.isPending}
-                          onClick={() => revokeSessionMutation.mutate(session.id)}
+                          onClick={() =>
+                            revokeSessionMutation.mutate(session.id)
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                           <span className="sr-only">Revoke session</span>
@@ -290,7 +457,9 @@ export function UserActions({ user }: { user: any }) {
           <div className="grid gap-2 py-4">
             <label htmlFor="user-role">Role</label>
             {rolesLoading ? (
-              <div className="text-sm text-muted-foreground">Loading roles...</div>
+              <div className="text-sm text-muted-foreground">
+                Loading roles...
+              </div>
             ) : (
               <Select
                 value={roleSlug}

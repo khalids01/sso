@@ -101,6 +101,7 @@ export type ApplicationMember = {
     image: string | null;
     archived: boolean;
     banned: boolean;
+    authMethods: UserAuthMethod[];
   };
   createdAt: string;
   updatedAt: string;
@@ -135,3 +136,4 @@ export type ApplicationMembersResponse = {
   page: number;
   limit: number;
 };
+import type { UserAuthMethod } from "../components/auth-method-badges";

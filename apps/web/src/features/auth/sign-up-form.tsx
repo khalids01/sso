@@ -18,6 +18,8 @@ import {
 } from "./social-auth-buttons";
 import { BRANDING } from "@/constants/branding";
 import { env } from "@sso/env/public";
+import { useAuthMethodStore } from "./auth-method-store";
+import { LastUsedBadge } from "./last-used-badge";
 
 export default function SignUpForm({
   applicationName,
@@ -28,13 +30,15 @@ export default function SignUpForm({
   applicationLogoUrl?: string | null;
   applicationPolicy?: ApplicationAuthPolicy;
 }) {
+  const rememberMethod = useAuthMethodStore((state) => state.rememberMethod);
   const search = useLocation({ select: (location) => location.searchStr });
   const isApplicationSignup = Boolean(applicationName);
   const loginHref = isApplicationSignup
     ? getApplicationAuthPath("/application/login", search)
     : "/login";
   const showMagicSignup =
-    !applicationPolicy || applicationPolicy.signUpMethods.includes("magic_link");
+    !applicationPolicy ||
+    applicationPolicy.signUpMethods.includes("magic_link");
   const showPasswordSignup =
     env.VITE_ENABLE_PASSWORD_AUTH &&
     Boolean(applicationPolicy?.signUpMethods.includes("password"));
@@ -67,6 +71,7 @@ export default function SignUpForm({
       }
 
       toast.success("Magic link sent! Check your email to confirm.");
+      rememberMethod("magic_link");
     },
     validators: {
       onSubmit: z.object({
@@ -113,73 +118,84 @@ export default function SignUpForm({
               ) : null}
             </>
           ) : null}
-          {showMagicSignup ? <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          magicLinkForm.handleSubmit();
-        }}
-        className="space-y-4"
-      >
-        <div>
-          <magicLinkForm.Field name="name">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="magic-signup-name">Name</Label>
-                <Input
-                  id="magic-signup-name"
-                  name={field.name}
-                  placeholder="Your name"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500 text-sm">
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </magicLinkForm.Field>
-        </div>
-
-        <div>
-          <magicLinkForm.Field name="email">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="magic-signup-email">Email</Label>
-                <Input
-                  id="magic-signup-email"
-                  name={field.name}
-                  type="email"
-                  placeholder="you@example.com"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500 text-sm">
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </magicLinkForm.Field>
-        </div>
-
-        <magicLinkForm.Subscribe>
-          {(state) => (
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={!state.canSubmit || state.isSubmitting}
+          {showMagicSignup ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                magicLinkForm.handleSubmit();
+              }}
+              className="space-y-4"
             >
-              {state.isSubmitting ? "Sending..." : "Send Magic Link"}
-            </Button>
-          )}
-        </magicLinkForm.Subscribe>
-          </form> : null}
+              <div>
+                <magicLinkForm.Field name="name">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="magic-signup-name">Name</Label>
+                      <Input
+                        id="magic-signup-name"
+                        name={field.name}
+                        placeholder="Your name"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                      />
+                      {field.state.meta.errors.map((error) => (
+                        <p
+                          key={error?.message}
+                          className="text-red-500 text-sm"
+                        >
+                          {error?.message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </magicLinkForm.Field>
+              </div>
+
+              <div>
+                <magicLinkForm.Field name="email">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="magic-signup-email">Email</Label>
+                      <Input
+                        id="magic-signup-email"
+                        name={field.name}
+                        type="email"
+                        placeholder="you@example.com"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                      />
+                      {field.state.meta.errors.map((error) => (
+                        <p
+                          key={error?.message}
+                          className="text-red-500 text-sm"
+                        >
+                          {error?.message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </magicLinkForm.Field>
+              </div>
+
+              <magicLinkForm.Subscribe>
+                {(state) => (
+                  <Button
+                    type="submit"
+                    className="relative w-full"
+                    disabled={!state.canSubmit || state.isSubmitting}
+                  >
+                    {state.isSubmitting ? "Sending..." : "Send Magic Link"}
+                    <span className="absolute right-3">
+                      <LastUsedBadge method="magic_link" />
+                    </span>
+                  </Button>
+                )}
+              </magicLinkForm.Subscribe>
+            </form>
+          ) : null}
           {showMagicSignup && showPasswordSignup ? (
             <AuthMethodDivider label="or use a password" />
           ) : null}
@@ -192,11 +208,7 @@ export default function SignUpForm({
           variant="link"
           className="text-indigo-600 hover:text-indigo-800"
           render={
-            isApplicationSignup ? (
-              <a href={loginHref} />
-            ) : (
-              <Link to="/login" />
-            )
+            isApplicationSignup ? <a href={loginHref} /> : <Link to="/login" />
           }
         >
           Already have an account? Sign In

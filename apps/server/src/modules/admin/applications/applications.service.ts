@@ -35,6 +35,7 @@ import {
   getAvailableApplicationAuthMethodIds,
 } from "@sso/auth/application-capabilities";
 import { recordApplicationUsage } from "../../application-usage/application-usage.service";
+import { mapUserAuthMethods, userAuthMethodSelect } from "../user-auth-methods";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
@@ -122,6 +123,7 @@ const memberSelect = {
       image: true,
       archived: true,
       banned: true,
+      ...userAuthMethodSelect,
     },
   },
 } satisfies Prisma.ApplicationMemberSelect;
@@ -253,8 +255,7 @@ function normalizeAuthPolicy(input: {
     registrationMode: input.registrationMode as
       | ApplicationRegistrationMode
       | undefined,
-    passwordEmailVerificationRequired:
-      input.passwordEmailVerificationRequired,
+    passwordEmailVerificationRequired: input.passwordEmailVerificationRequired,
   };
 }
 
@@ -343,8 +344,7 @@ function mapApplication(row: {
     signInMethods: row.signInMethods,
     signUpMethods: row.signUpMethods,
     registrationMode: row.registrationMode,
-    passwordEmailVerificationRequired:
-      row.passwordEmailVerificationRequired,
+    passwordEmailVerificationRequired: row.passwordEmailVerificationRequired,
     oauthConnections,
     emailConnections,
     authCapabilities,
@@ -388,7 +388,11 @@ async function applyEmailConnectionSelections(
   selections: EmailConnectionSelections,
 ) {
   if (!selections) return;
-  if (selections.primary && selections.fallback && selections.primary === selections.fallback) {
+  if (
+    selections.primary &&
+    selections.fallback &&
+    selections.primary === selections.fallback
+  ) {
     throw new ApplicationsPolicyError(
       "Primary and fallback email connections must be different",
       400,
@@ -438,8 +442,14 @@ async function resolveEmailConnectionSelections(
   selections: EmailConnectionSelections,
 ) {
   if (!selections) return [];
-  if (selections.primary && selections.fallback && selections.primary === selections.fallback) {
-    throw new ApplicationsPolicyError("Primary and fallback email connections must be different");
+  if (
+    selections.primary &&
+    selections.fallback &&
+    selections.primary === selections.fallback
+  ) {
+    throw new ApplicationsPolicyError(
+      "Primary and fallback email connections must be different",
+    );
   }
   const resolved: Array<{
     role: "primary" | "fallback";
@@ -453,7 +463,9 @@ async function resolveEmailConnectionSelections(
       select: { id: true, status: true },
     });
     if (!connection || connection.status !== "active") {
-      throw new ApplicationsPolicyError(`The selected ${role} email connection is unavailable`);
+      throw new ApplicationsPolicyError(
+        `The selected ${role} email connection is unavailable`,
+      );
     }
     resolved.push({ role, emailProviderConnectionId: connection.id });
   }
@@ -542,30 +554,20 @@ async function applyOAuthConnectionSelections(
   }
 }
 
-function mapMember(row: {
-  id: string;
-  applicationId: string;
-  userId: string;
-  status: string;
-  authorizationVersion: number;
-  createdAt: Date;
-  updatedAt: Date;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    image: string | null;
-    archived: boolean;
-    banned: boolean;
-  };
-}) {
+function mapMember(
+  row: Prisma.ApplicationMemberGetPayload<{ select: typeof memberSelect }>,
+) {
+  const { accounts: _accounts, usageEvents: _usageEvents, ...user } = row.user;
   return {
     id: row.id,
     applicationId: row.applicationId,
     userId: row.userId,
     status: row.status,
     authorizationVersion: row.authorizationVersion,
-    user: row.user,
+    user: {
+      ...user,
+      authMethods: mapUserAuthMethods(row.user),
+    },
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -648,7 +650,10 @@ function normalizeClientUrls(input: {
 
 export class AdminApplicationsService {
   async list(query: ApplicationsQuery) {
-    const { requestedPage, limit } = normalizePagination(query.page, query.limit);
+    const { requestedPage, limit } = normalizePagination(
+      query.page,
+      query.limit,
+    );
     const where: Prisma.ApplicationWhereInput = {};
 
     if (query.status) {
@@ -829,9 +834,8 @@ export class AdminApplicationsService {
         status: assignment.oauthProviderConnection.status,
       }));
       const nextSignInMethods = policy.signInMethods ?? current.signInMethods;
-      const availableMethods = getAvailableApplicationAuthMethodIds(
-        configuredProviders,
-      );
+      const availableMethods =
+        getAvailableApplicationAuthMethodIds(configuredProviders);
       if (
         nextSignInMethods.some(
           (method) =>
@@ -904,7 +908,10 @@ export class AdminApplicationsService {
         if (input.status === "disabled" || input.status === "archived") {
           await enqueueApplicationRevocation(tx, {
             applicationId: id,
-            reason: input.status === "disabled" ? "application_disabled" : "application_archived",
+            reason:
+              input.status === "disabled"
+                ? "application_disabled"
+                : "application_archived",
             effectiveAt: new Date(),
           });
         }
@@ -924,11 +931,21 @@ export class AdminApplicationsService {
   }
 
   async archive(id: string, actor: AdminApplicationsActor) {
-    return this.setApplicationStatus(id, "archived", actor, "application.archived");
+    return this.setApplicationStatus(
+      id,
+      "archived",
+      actor,
+      "application.archived",
+    );
   }
 
   async restore(id: string, actor: AdminApplicationsActor) {
-    return this.setApplicationStatus(id, "active", actor, "application.restored");
+    return this.setApplicationStatus(
+      id,
+      "active",
+      actor,
+      "application.restored",
+    );
   }
 
   private async setApplicationStatus(
@@ -1029,8 +1046,14 @@ export class AdminApplicationsService {
     };
   }
 
-  async listMembers(applicationId: string, query: ApplicationMembersQuery = {}) {
-    const { requestedPage, limit } = normalizePagination(query.page, query.limit);
+  async listMembers(
+    applicationId: string,
+    query: ApplicationMembersQuery = {},
+  ) {
+    const { requestedPage, limit } = normalizePagination(
+      query.page,
+      query.limit,
+    );
     const where: Prisma.ApplicationMemberWhereInput = { applicationId };
     applyMemberFilter(where, query.filter);
 
@@ -1092,21 +1115,32 @@ export class AdminApplicationsService {
     actor: AdminApplicationsActor,
   ) {
     if (!actor.id) {
-      throw new ApplicationsPolicyError("Authenticated administrator required", 401);
+      throw new ApplicationsPolicyError(
+        "Authenticated administrator required",
+        401,
+      );
     }
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
       select: { id: true, status: true },
     });
-    if (!application) throw new ApplicationsPolicyError("Application not found", 404);
+    if (!application)
+      throw new ApplicationsPolicyError("Application not found", 404);
     if (application.status === "archived") {
-      throw new ApplicationsPolicyError("Archived applications cannot invite users");
+      throw new ApplicationsPolicyError(
+        "Archived applications cannot invite users",
+      );
     }
 
     const email = input.email.trim().toLowerCase();
     const now = new Date();
     const existing = await prisma.applicationInvitation.findFirst({
-      where: { applicationId, email, status: "pending", expiresAt: { gt: now } },
+      where: {
+        applicationId,
+        email,
+        status: "pending",
+        expiresAt: { gt: now },
+      },
       select: { id: true },
     });
     if (existing) {
@@ -1118,7 +1152,9 @@ export class AdminApplicationsService {
         applicationId,
         email,
         inviterId: actor.id,
-        expiresAt: new Date(now.getTime() + (input.expiresInDays ?? 7) * 86_400_000),
+        expiresAt: new Date(
+          now.getTime() + (input.expiresInDays ?? 7) * 86_400_000,
+        ),
       },
     });
     return {
@@ -1134,9 +1170,12 @@ export class AdminApplicationsService {
       where: { id: invitationId, applicationId },
       select: { id: true, status: true },
     });
-    if (!invitation) throw new ApplicationsPolicyError("Invitation not found", 404);
+    if (!invitation)
+      throw new ApplicationsPolicyError("Invitation not found", 404);
     if (invitation.status !== "pending") {
-      throw new ApplicationsPolicyError("Only pending invitations can be revoked");
+      throw new ApplicationsPolicyError(
+        "Only pending invitations can be revoked",
+      );
     }
     await prisma.applicationInvitation.update({
       where: { id: invitation.id },
@@ -1288,7 +1327,8 @@ export class AdminApplicationsService {
           userId: true,
         },
       });
-      if (!current) throw new ApplicationsPolicyError("Application member not found", 404);
+      if (!current)
+        throw new ApplicationsPolicyError("Application member not found", 404);
 
       const updated = await tx.applicationMember.update({
         where: { id, applicationId },
@@ -1300,9 +1340,14 @@ export class AdminApplicationsService {
         },
         select: memberSelect,
       });
-      if (current.status !== status && (status === "suspended" || status === "revoked")) {
+      if (
+        current.status !== status &&
+        (status === "suspended" || status === "revoked")
+      ) {
         const subject = await tx.applicationSubject.findUniqueOrThrow({
-          where: { applicationId_userId: { applicationId, userId: updated.userId } },
+          where: {
+            applicationId_userId: { applicationId, userId: updated.userId },
+          },
           select: { subject: true },
         });
         await enqueueMemberRevocation(tx, {
@@ -1310,7 +1355,10 @@ export class AdminApplicationsService {
           membershipId: updated.id,
           subject: subject.subject,
           authorizationVersion: updated.authorizationVersion,
-          reason: status === "suspended" ? "membership_suspended" : "membership_revoked",
+          reason:
+            status === "suspended"
+              ? "membership_suspended"
+              : "membership_revoked",
           effectiveAt: new Date(),
         });
       }
@@ -1504,9 +1552,12 @@ export class AdminApplicationsService {
         where: { id: deliveryId, applicationId },
         select: { id: true, status: true },
       });
-      if (!current) throw new ApplicationsPolicyError("Revocation delivery not found", 404);
+      if (!current)
+        throw new ApplicationsPolicyError("Revocation delivery not found", 404);
       if (current.status !== "dead") {
-        throw new ApplicationsPolicyError("Only dead-lettered deliveries can be retried");
+        throw new ApplicationsPolicyError(
+          "Only dead-lettered deliveries can be retried",
+        );
       }
       const now = new Date();
       const updated = await tx.applicationRevocationDelivery.update({
@@ -1729,5 +1780,8 @@ export function canUserAccessApplication(
   userId: string,
   applicationId: string,
 ) {
-  return adminApplicationsService.canUserAccessApplication(userId, applicationId);
+  return adminApplicationsService.canUserAccessApplication(
+    userId,
+    applicationId,
+  );
 }

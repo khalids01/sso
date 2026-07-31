@@ -10,8 +10,11 @@ import { client } from "@/lib/client";
 
 import { getAuthCallbackURL } from "./auth-callback";
 import { emailSchema, type EmailSignInValues } from "./sign-in-schema";
+import { useAuthMethodStore } from "./auth-method-store";
+import { LastUsedBadge } from "./last-used-badge";
 
 export function MagicLinkSignInForm() {
+  const rememberMethod = useAuthMethodStore((state) => state.rememberMethod);
   const hydrated = useHydrated();
   const form = useForm<EmailSignInValues>({
     resolver: zodResolver(emailSchema),
@@ -30,6 +33,7 @@ export function MagicLinkSignInForm() {
     }
 
     toast.success("Magic link sent! Check your email.");
+    rememberMethod("magic_link");
     form.reset();
   });
 
@@ -55,12 +59,15 @@ export function MagicLinkSignInForm() {
       </Field>
 
       <Button
-        className="w-full"
+        className="relative w-full"
         type="submit"
         variant="outline"
         disabled={!hydrated || form.formState.isSubmitting}
       >
         {form.formState.isSubmitting ? "Sending..." : "Send magic link"}
+        <span className="absolute right-3">
+          <LastUsedBadge method="magic_link" />
+        </span>
       </Button>
     </form>
   );

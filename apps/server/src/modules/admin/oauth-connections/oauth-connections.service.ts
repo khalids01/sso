@@ -52,6 +52,7 @@ function mapConnection(
   connection: Prisma.OAuthProviderConnectionGetPayload<{
     select: typeof connectionSelect;
   }>,
+  userCount = connection._count.accounts,
 ) {
   return {
     id: connection.id,
@@ -62,6 +63,7 @@ function mapConnection(
     status: connection.status,
     applicationCount: connection._count.applicationAssignments,
     accountCount: connection._count.accounts,
+    userCount,
     isUsedByPlatform: connection._count.platformAssignments > 0,
     createdAt: connection.createdAt.toISOString(),
     updatedAt: connection.updatedAt.toISOString(),
@@ -106,10 +108,7 @@ export class OAuthConnectionsService {
     const limit = Math.min(Math.max(query.limit ?? 20, 1), 100);
     const requestedPage = Math.max(query.page ?? 1, 1);
     const where: Prisma.OAuthProviderConnectionWhereInput = {
-      status:
-        query.filter === "archived"
-          ? "archived"
-          : { not: "archived" },
+      status: query.filter === "archived" ? "archived" : { not: "archived" },
       ...(query.provider ? { provider: query.provider } : {}),
       ...(query.search?.trim()
         ? {
@@ -135,7 +134,29 @@ export class OAuthConnectionsService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { items: rows.map(mapConnection), total, pages, page, limit };
+    const distinctUsers = rows.length
+      ? await prisma.account.groupBy({
+          by: ["oauthProviderConnectionId", "userId"],
+          where: {
+            oauthProviderConnectionId: { in: rows.map((row) => row.id) },
+          },
+        })
+      : [];
+    const userCounts = distinctUsers.reduce((counts, row) => {
+      if (!row.oauthProviderConnectionId) return counts;
+      counts.set(
+        row.oauthProviderConnectionId,
+        (counts.get(row.oauthProviderConnectionId) ?? 0) + 1,
+      );
+      return counts;
+    }, new Map<string, number>());
+    return {
+      items: rows.map((row) => mapConnection(row, userCounts.get(row.id) ?? 0)),
+      total,
+      pages,
+      page,
+      limit,
+    };
   }
 
   async options() {
@@ -237,9 +258,7 @@ export class OAuthConnectionsService {
           ...(input.name !== undefined
             ? { name: normalizeText(input.name, "Connection name") }
             : {}),
-          ...(input.clientId !== undefined
-            ? { clientId: nextClientId }
-            : {}),
+          ...(input.clientId !== undefined ? { clientId: nextClientId } : {}),
           ...(input.clientSecret !== undefined
             ? {
                 encryptedSecret: encryptSocialProviderSecret(
@@ -298,11 +317,13 @@ export class OAuthConnectionsService {
   }
 
   async archive(id: string, actor: OAuthConnectionsActor) {
-    const connection = await prisma.oAuthProviderConnection.update({
-      where: { id },
-      data: { status: "archived" },
-      select: connectionSelect,
-    }).catch(() => null);
+    const connection = await prisma.oAuthProviderConnection
+      .update({
+        where: { id },
+        data: { status: "archived" },
+        select: connectionSelect,
+      })
+      .catch(() => null);
     if (!connection) {
       throw new OAuthConnectionsPolicyError("OAuth connection not found", 404);
     }
@@ -317,11 +338,13 @@ export class OAuthConnectionsService {
   }
 
   async restore(id: string, actor: OAuthConnectionsActor) {
-    const connection = await prisma.oAuthProviderConnection.update({
-      where: { id },
-      data: { status: "active" },
-      select: connectionSelect,
-    }).catch(() => null);
+    const connection = await prisma.oAuthProviderConnection
+      .update({
+        where: { id },
+        data: { status: "active" },
+        select: connectionSelect,
+      })
+      .catch(() => null);
     if (!connection) {
       throw new OAuthConnectionsPolicyError("OAuth connection not found", 404);
     }

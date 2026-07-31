@@ -65,10 +65,7 @@ export default function UserMenu() {
       label: "Admin Dashboard",
       href: "/admin/overview",
       type: "url",
-      show: sessionHasPermission(
-        session.permissions,
-        Permissions.AdminAccess,
-      ),
+      show: sessionHasPermission(session.permissions, Permissions.AdminAccess),
     },
     {
       label: "Sign out",
@@ -99,9 +96,9 @@ export default function UserMenu() {
           <Button
             variant="outline"
             aria-label="User menu"
-            className="h-10 w-10 shrink-0 rounded-md"
+            className="h-10 w-10 shrink-0 rounded-md border-border p-0"
           >
-            <Avatar className="size-8">
+            <Avatar className="size-8 ring-1 ring-border">
               <AvatarImage
                 src={session.user.image ?? undefined}
                 alt={session.user.name}
@@ -145,7 +142,7 @@ export default function UserMenu() {
                 onClick={item.onClick}
                 className={cn(
                   item.label === "Sign out" ? "text-destructive" : "",
-                  "text-base"
+                  "text-base",
                 )}
               >
                 {item.label}

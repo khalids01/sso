@@ -10,7 +10,9 @@ const sessionDeleteManyMock = mock(async () => ({ count: 0 }));
 const userFindManyMock = mock(async () => []);
 const userCountMock = mock(async () => 0);
 const userFindUniqueMock = mock(async (): Promise<any> => null);
-const userFindUniqueOrThrowMock = mock(async (): Promise<any> => ({ banned: false, archived: false }));
+const userFindUniqueOrThrowMock = mock(
+  async (): Promise<any> => ({ banned: false, archived: false }),
+);
 const userUpdateMock = mock(async (): Promise<any> => null);
 const userDeleteMock = mock(async (): Promise<any> => null);
 const invitationCreateMock = mock(async () => ({ id: "invitation-1" }));
@@ -30,18 +32,22 @@ const ownerActor = {
 const assignUserRoleAndInvalidateMock = mock(async () => undefined);
 const countActivePlatformOwnersMock = mock(async () => 2);
 const getRoleIdBySlugMock = mock(async () => "role-user-id");
-const isAssignableRoleSlugMock = mock(async (slug: string) => slug !== Roles.PlatformOwner);
-const rbacRoleFindUniqueMock = mock(async ({ where }: { where: { slug: string } }) => {
-  if (where.slug === Roles.PlatformAdmin) {
-    return { name: "Admin" };
-  }
+const isAssignableRoleSlugMock = mock(
+  async (slug: string) => slug !== Roles.PlatformOwner,
+);
+const rbacRoleFindUniqueMock = mock(
+  async ({ where }: { where: { slug: string } }) => {
+    if (where.slug === Roles.PlatformAdmin) {
+      return { name: "Admin" };
+    }
 
-  if (where.slug === Roles.PlatformUser) {
-    return { name: "User" };
-  }
+    if (where.slug === Roles.PlatformUser) {
+      return { name: "User" };
+    }
 
-  return { name: where.slug };
-});
+    return { name: where.slug };
+  },
+);
 
 const safeAdminUserSelect = {
   id: true,
@@ -57,6 +63,26 @@ const safeAdminUserSelect = {
   onboardingComplete: true,
   plan: true,
   subscriptionStatus: true,
+  accounts: {
+    select: {
+      providerId: true,
+      oauthProviderConnection: {
+        select: {
+          id: true,
+          name: true,
+          provider: true,
+        },
+      },
+    },
+  },
+  usageEvents: {
+    where: {
+      outcome: "success",
+      authMethod: { in: ["password", "magic_link"] },
+    },
+    distinct: ["authMethod"],
+    select: { authMethod: true },
+  },
   rbacRoles: {
     take: 1,
     select: {
@@ -80,36 +106,37 @@ const sampleRbacRoles = [
 ];
 
 const usersDbMock: any = {
-    user: {
-      findMany: userFindManyMock,
-      count: userCountMock,
-      findUnique: userFindUniqueMock,
-      findUniqueOrThrow: userFindUniqueOrThrowMock,
-      update: userUpdateMock,
-      delete: userDeleteMock,
-    },
-    session: {
-      findMany: sessionFindManyMock,
-      findUnique: sessionFindUniqueMock,
-      delete: sessionDeleteMock,
-      deleteMany: sessionDeleteManyMock,
-    },
-    invitation: {
-      create: invitationCreateMock,
-    },
-    rbacRole: {
-      findUnique: rbacRoleFindUniqueMock,
-    },
-    applicationMember: {
-      findMany: applicationMemberFindManyMock,
-      updateMany: applicationMemberUpdateManyMock,
-    },
-    activityEvent: {
-      create: activityEventCreateMock,
-    },
+  user: {
+    findMany: userFindManyMock,
+    count: userCountMock,
+    findUnique: userFindUniqueMock,
+    findUniqueOrThrow: userFindUniqueOrThrowMock,
+    update: userUpdateMock,
+    delete: userDeleteMock,
+  },
+  session: {
+    findMany: sessionFindManyMock,
+    findUnique: sessionFindUniqueMock,
+    delete: sessionDeleteMock,
+    deleteMany: sessionDeleteManyMock,
+  },
+  invitation: {
+    create: invitationCreateMock,
+  },
+  rbacRole: {
+    findUnique: rbacRoleFindUniqueMock,
+  },
+  applicationMember: {
+    findMany: applicationMemberFindManyMock,
+    updateMany: applicationMemberUpdateManyMock,
+  },
+  activityEvent: {
+    create: activityEventCreateMock,
+  },
 };
 usersDbMock.$transaction = mock(
-  async (callback: (tx: typeof usersDbMock) => unknown) => callback(usersDbMock),
+  async (callback: (tx: typeof usersDbMock) => unknown) =>
+    callback(usersDbMock),
 );
 
 mock.module("@sso/db/server", () => ({
@@ -167,7 +194,10 @@ beforeEach(() => {
   applicationMemberFindManyMock.mockResolvedValue([]);
   applicationMemberUpdateManyMock.mockClear();
   userFindUniqueOrThrowMock.mockReset();
-  userFindUniqueOrThrowMock.mockResolvedValue({ banned: false, archived: false });
+  userFindUniqueOrThrowMock.mockResolvedValue({
+    banned: false,
+    archived: false,
+  });
   sessionFindManyMock.mockResolvedValue([]);
   sessionFindUniqueMock.mockResolvedValue(null);
   sessionDeleteMock.mockResolvedValue(null);
@@ -579,9 +609,7 @@ describe("UsersService", () => {
   it("prevents admins from changing owner accounts", async () => {
     userFindUniqueMock.mockResolvedValueOnce({
       id: "owner-1",
-      rbacRoles: [
-        { role: { slug: Roles.PlatformOwner, name: "Owner" } },
-      ],
+      rbacRoles: [{ role: { slug: Roles.PlatformOwner, name: "Owner" } }],
     });
 
     const { usersService } = await import(
@@ -597,9 +625,7 @@ describe("UsersService", () => {
   it("prevents admins from destructive actions against admin accounts", async () => {
     userFindUniqueMock.mockResolvedValueOnce({
       id: "admin-2",
-      rbacRoles: [
-        { role: { slug: Roles.PlatformAdmin, name: "Admin" } },
-      ],
+      rbacRoles: [{ role: { slug: Roles.PlatformAdmin, name: "Admin" } }],
     });
 
     const { usersService } = await import(
@@ -633,9 +659,7 @@ describe("UsersService", () => {
   it("prevents disabling or deleting owner accounts", async () => {
     userFindUniqueMock.mockResolvedValue({
       id: "owner-2",
-      rbacRoles: [
-        { role: { slug: Roles.PlatformOwner, name: "Owner" } },
-      ],
+      rbacRoles: [{ role: { slug: Roles.PlatformOwner, name: "Owner" } }],
     });
     countActivePlatformOwnersMock.mockResolvedValue(2);
 

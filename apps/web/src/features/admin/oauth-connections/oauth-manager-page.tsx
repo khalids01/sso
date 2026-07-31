@@ -63,10 +63,12 @@ export function OAuthManagerPage() {
     Permissions.AdminOAuthConnectionsManage,
   );
   const [filter, setFilter] = useState<Filter>("current");
-  const [formConnection, setFormConnection] =
-    useState<OAuthConnection | null | undefined>(undefined);
-  const [viewConnection, setViewConnection] =
-    useState<OAuthConnection | null>(null);
+  const [formConnection, setFormConnection] = useState<
+    OAuthConnection | null | undefined
+  >(undefined);
+  const [viewConnection, setViewConnection] = useState<OAuthConnection | null>(
+    null,
+  );
   const [pendingAction, setPendingAction] = useState<{
     connection: OAuthConnection;
     action: "archive" | "restore" | "delete";
@@ -273,14 +275,16 @@ export function OAuthManagerPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">Applications</p>
-                      <p className="font-medium">{connection.applicationCount}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Applications
+                      </p>
+                      <p className="font-medium">
+                        {connection.applicationCount}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">
-                        Linked accounts
-                      </p>
-                      <p className="font-medium">{connection.accountCount}</p>
+                      <p className="text-xs text-muted-foreground">Users</p>
+                      <p className="font-medium">{connection.userCount}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -312,7 +316,9 @@ export function OAuthManagerPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {formConnection ? "Edit OAuth connection" : "Add OAuth connection"}
+              {formConnection
+                ? "Edit OAuth connection"
+                : "Add OAuth connection"}
             </DialogTitle>
             <DialogDescription>
               Provider credentials stay inside the SSO platform.
@@ -321,24 +327,21 @@ export function OAuthManagerPage() {
           {formConnection !== undefined ? (
             <OAuthConnectionForm
               connection={formConnection ?? undefined}
-              isLoading={
-                createMutation.isPending || updateMutation.isPending
-              }
+              isLoading={createMutation.isPending || updateMutation.isPending}
               onSubmit={(input) => {
                 if (!formConnection) {
                   createMutation.mutate(input);
                   return;
                 }
-                const payload: Partial<
-                  Omit<OAuthConnectionInput, "provider">
-                > = {
-                  name: input.name,
-                  clientId: input.clientId,
-                  status: input.status,
-                  ...(input.clientSecret
-                    ? { clientSecret: input.clientSecret }
-                    : {}),
-                };
+                const payload: Partial<Omit<OAuthConnectionInput, "provider">> =
+                  {
+                    name: input.name,
+                    clientId: input.clientId,
+                    status: input.status,
+                    ...(input.clientSecret
+                      ? { clientSecret: input.clientSecret }
+                      : {}),
+                  };
                 updateMutation.mutate({
                   id: formConnection.id,
                   payload,
@@ -374,10 +377,7 @@ export function OAuthManagerPage() {
                 label="Applications"
                 value={String(viewConnection.applicationCount)}
               />
-              <Detail
-                label="Linked accounts"
-                value={String(viewConnection.accountCount)}
-              />
+              <Detail label="Users" value={String(viewConnection.userCount)} />
             </dl>
           ) : null}
           {canManage && viewConnection?.status === "archived" ? (

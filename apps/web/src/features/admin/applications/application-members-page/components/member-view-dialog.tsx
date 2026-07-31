@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import type { ApplicationMember } from "../../types";
 import { InfoGrid } from "../../components/info-grid";
+import { AuthMethodBadges } from "../../../components/auth-method-badges";
 
 export function MemberViewDialog({
   member,
@@ -23,16 +24,22 @@ export function MemberViewDialog({
           <DialogDescription>{member?.user.email}</DialogDescription>
         </DialogHeader>
         {member ? (
-          <InfoGrid
-            rows={[
-              ["Name", member.user.name],
-              ["Email", member.user.email],
-              ["Status", member.status],
-              ["User ID", member.userId],
-              ["Created", new Date(member.createdAt).toLocaleString()],
-              ["Updated", new Date(member.updatedAt).toLocaleString()],
-            ]}
-          />
+          <div className="space-y-4">
+            <InfoGrid
+              rows={[
+                ["Name", member.user.name],
+                ["Email", member.user.email],
+                ["Status", member.status],
+                ["User ID", member.userId],
+                ["Created", new Date(member.createdAt).toLocaleString()],
+                ["Updated", new Date(member.updatedAt).toLocaleString()],
+              ]}
+            />
+            <div>
+              <p className="mb-2 text-sm font-medium">Auth methods</p>
+              <AuthMethodBadges methods={member.user.authMethods} />
+            </div>
+          </div>
         ) : null}
       </DialogContent>
     </Dialog>
