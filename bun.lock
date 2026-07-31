@@ -141,26 +141,6 @@
         "web-vitals": "^5.1.0",
       },
     },
-    "npm_package": {
-      "name": "@skycanvasstudio/free-sso",
-      "version": "0.1.0",
-      "dependencies": {
-        "jose": "^6.1.0",
-      },
-      "devDependencies": {
-        "@types/bun": "^1.3.9",
-        "@types/node": "^24.0.0",
-        "@types/react": "^19.0.0",
-        "react": "^19.0.0",
-        "typescript": "^6.0.2",
-      },
-      "peerDependencies": {
-        "react": ">=18",
-      },
-      "optionalPeers": [
-        "react",
-      ],
-    },
     "packages/auth": {
       "name": "@sso/auth",
       "dependencies": {
@@ -815,8 +795,6 @@
     "@sinclair/typebox": ["@sinclair/typebox@0.34.46", "", {}, "sha512-kiW7CtS/NkdvTUjkjUJo7d5JsFfbJ14YjdhDk9KoEgK6nFjKNXZPrX0jfLA8ZlET4cFLHxOZ/0vFKOP+bOxIOQ=="],
 
     "@sindresorhus/merge-streams": ["@sindresorhus/merge-streams@4.0.0", "", {}, "sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ=="],
-
-    "@skycanvasstudio/free-sso": ["@skycanvasstudio/free-sso@workspace:npm_package"],
 
     "@socket.io/component-emitter": ["@socket.io/component-emitter@3.1.2", "", {}, "sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA=="],
 

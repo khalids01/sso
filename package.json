@@ -10,8 +10,7 @@
     "packages": [
       "apps/*",
       "packages/*",
-      "tests/*",
-      "npm_package"
+      "tests/*"
     ],
     "catalog": {
       "dotenv": "^17.3.1",
