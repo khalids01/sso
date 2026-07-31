@@ -51,10 +51,11 @@ export function decryptSocialProviderSecret(value: string) {
 }
 
 export type SocialProviderContext = {
+  scope?: "application" | "platform";
   provider: ApplicationSocialProviderId;
-  applicationId: string;
-  applicationClientId: string;
-  downstreamClientId: string;
+  applicationId?: string;
+  applicationClientId?: string;
+  downstreamClientId?: string;
   oauthProviderConnectionId: string;
   credentialVersion: number;
   intent: "login" | "signup";
@@ -86,17 +87,20 @@ function isProvider(value: unknown): value is ApplicationSocialProviderId {
 function isSocialProviderContext(value: unknown): value is SocialProviderContext {
   if (!value || typeof value !== "object") return false;
   const context = value as Partial<SocialProviderContext>;
-  return (
+  const common =
     isProvider(context.provider) &&
-    typeof context.applicationId === "string" &&
-    typeof context.applicationClientId === "string" &&
-    typeof context.downstreamClientId === "string" &&
     typeof context.oauthProviderConnectionId === "string" &&
     typeof context.credentialVersion === "number" &&
     (context.intent === "login" || context.intent === "signup") &&
     typeof context.requestId === "string" &&
     typeof context.expiresAt === "number" &&
-    context.expiresAt > Date.now()
+    context.expiresAt > Date.now();
+  if (!common) return false;
+  if (context.scope === "platform") return true;
+  return (
+    typeof context.applicationId === "string" &&
+    typeof context.applicationClientId === "string" &&
+    typeof context.downstreamClientId === "string"
   );
 }
 
@@ -196,16 +200,46 @@ export async function consumeSocialProviderContext(state: string) {
 export async function getOAuthProviderConnectionForCallback(
   context: SocialProviderContext,
 ): Promise<OAuthProviderConnectionCredentials | null> {
+  if (context.scope === "platform") {
+    const assignment = await prisma.platformOAuthProviderConnection.findFirst({
+      where: {
+        settingsId: "platform",
+        provider: context.provider,
+        oauthProviderConnectionId: context.oauthProviderConnectionId,
+      },
+      select: {
+        oauthProviderConnection: {
+          select: {
+            id: true,
+            provider: true,
+            clientId: true,
+            encryptedSecret: true,
+            credentialVersion: true,
+            status: true,
+          },
+        },
+      },
+    });
+    const connection = assignment?.oauthProviderConnection;
+    if (
+      !connection ||
+      connection.status !== "active" ||
+      connection.credentialVersion !== context.credentialVersion
+    ) {
+      return null;
+    }
+    return toRuntimeConnection(connection);
+  }
   const assignment = await prisma.applicationOAuthProviderConnection.findFirst({
     where: {
-      applicationId: context.applicationId,
+      applicationId: context.applicationId!,
       provider: context.provider,
       oauthProviderConnectionId: context.oauthProviderConnectionId,
       application: {
         status: "active",
         clients: {
           some: {
-            clientId: context.downstreamClientId,
+            clientId: context.downstreamClientId!,
             status: "active",
             oauthDisabled: false,
           },

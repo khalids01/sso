@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import SignInForm from "@/features/auth/sign-in-form";
+import { PlatformAuthForm } from "@/features/auth/platform-auth-form";
 import Logo from "@/components/core/logo";
 import { getRootSession } from "@/features/user/lib/get-root-session";
 
@@ -27,7 +27,7 @@ function RouteComponent() {
           </div>
         </div>
       </header>
-      <SignInForm />
+      <PlatformAuthForm page="login" />
     </>
   )
 }

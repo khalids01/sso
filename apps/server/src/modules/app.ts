@@ -16,6 +16,7 @@ import { rolesController } from "./admin/roles/roles.controller";
 import { applicationsController } from "./admin/applications/applications.controller";
 import { oauthConnectionsController } from "./admin/oauth-connections/oauth-connections.controller";
 import { emailConnectionsController } from "./admin/email-connections/email-connections.controller";
+import { platformAuthSettingsController } from "./admin/settings/platform-auth.controller";
 
 export const app = new Elysia()
   .use(authController)
@@ -25,6 +26,7 @@ export const app = new Elysia()
   .use(applicationsController)
   .use(oauthConnectionsController)
   .use(emailConnectionsController)
+  .use(platformAuthSettingsController)
   .use(adminInvitationsController)
   .use(metadataController)
   .use(rateLimitController)

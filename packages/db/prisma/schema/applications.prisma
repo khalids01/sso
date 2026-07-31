@@ -272,6 +272,7 @@ model OAuthProviderConnection {
   applicationAssignments ApplicationOAuthProviderConnection[]
   accounts               Account[]
   usageEvents            ApplicationUsageEvent[]
+  platformAssignments    PlatformOAuthProviderConnection[]
 
   @@unique([provider, name])
   @@unique([provider, clientId])

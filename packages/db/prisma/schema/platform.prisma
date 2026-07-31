@@ -1,0 +1,25 @@
+model PlatformAuthSettings {
+  id               String                      @id @default("platform")
+  signInMethods    String[]                    @default(["magic_link"])
+  signUpMethods    String[]                    @default(["magic_link"])
+  registrationMode ApplicationRegistrationMode @default(open)
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+
+  oauthProviderConnections PlatformOAuthProviderConnection[]
+
+  @@map("platform_auth_settings")
+}
+
+model PlatformOAuthProviderConnection {
+  settingsId                String
+  provider                  OAuthProvider
+  oauthProviderConnectionId String
+
+  settings                PlatformAuthSettings     @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  oauthProviderConnection OAuthProviderConnection @relation(fields: [oauthProviderConnectionId, provider], references: [id, provider], onDelete: Restrict)
+
+  @@id([settingsId, provider])
+  @@index([oauthProviderConnectionId])
+  @@map("platform_oauth_provider_connection")
+}

@@ -112,6 +112,13 @@ export function canShowEmailManagerNav(session: ClientSession | null | undefined
   );
 }
 
+export function canShowSettingsNav(session: ClientSession | null | undefined) {
+  return (
+    isPlatformOwner(session) ||
+    sessionHasAnyPermissionPrefix(session?.permissions, "admin.settings.")
+  );
+}
+
 export function canShowApplicationUsageNav(
   session: ClientSession | null | undefined,
 ) {

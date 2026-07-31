@@ -20,6 +20,10 @@ import {
   storeSocialProviderContext,
 } from "./social-provider-credentials.service";
 import { recordApplicationUsage } from "../application-usage/application-usage.service";
+import {
+  getPlatformAuthSettings,
+  getPlatformOAuthConnection,
+} from "./platform-auth-settings.service";
 
 const socialProviderScopes = {
   google: ["openid", "profile", "email"],
@@ -98,6 +102,7 @@ function recordAuthUsage(input: {
 }
 
 export const authController = new Elysia({ prefix: "/auth" })
+  .get("/platform-settings", () => getPlatformAuthSettings())
   .post(
     "/social",
     async ({ body, request, set }) => {
@@ -106,32 +111,40 @@ export const authController = new Elysia({ prefix: "/auth" })
       const callback = new URL(callbackURL);
       const oauthQuery = callback.search.slice(1);
       const requestedClientId = callback.searchParams.get("client_id");
-      if (!oauthQuery || !requestedClientId) {
-        set.status = 403;
-        return { message: "Invalid application authentication request" };
+      const isApplicationRequest = Boolean(oauthQuery && requestedClientId);
+      if (isApplicationRequest) {
+        try {
+          await auth.api.getOAuthClientPublicPrelogin({
+            body: { client_id: requestedClientId!, oauth_query: oauthQuery },
+            headers: request.headers,
+          });
+        } catch {
+          set.status = 403;
+          return {
+            message: "Invalid or expired application authentication request",
+          };
+        }
       }
-      try {
-        await auth.api.getOAuthClientPublicPrelogin({
-          body: { client_id: requestedClientId, oauth_query: oauthQuery },
-          headers: request.headers,
-        });
-      } catch {
-        set.status = 403;
-        return {
-          message: "Invalid or expired application authentication request",
-        };
-      }
-      const policy = await getApplicationPolicy(callbackURL);
+      const policy = isApplicationRequest
+        ? await getApplicationPolicy(callbackURL)
+        : null;
+      const platformSettings = !isApplicationRequest
+        ? await getPlatformAuthSettings()
+        : null;
       const allowedMethods = body.requestSignUp
-        ? policy?.application.signUpMethods
-        : policy?.application.signInMethods;
+        ? (policy?.application.signUpMethods ?? platformSettings?.signUpMethods)
+        : (policy?.application.signInMethods ?? platformSettings?.signInMethods);
       if (
-        !policy ||
-        policy.status !== "active" ||
-        policy.oauthDisabled ||
-        policy.application.status !== "active" ||
-        (body.requestSignUp &&
-          policy.application.registrationMode === "closed") ||
+        (isApplicationRequest &&
+          (!policy ||
+            policy.status !== "active" ||
+            policy.oauthDisabled ||
+            policy.application.status !== "active" ||
+            (body.requestSignUp &&
+              policy.application.registrationMode === "closed"))) ||
+        (!isApplicationRequest &&
+          body.requestSignUp &&
+          platformSettings?.registrationMode === "closed") ||
         !allowedMethods?.includes(body.provider)
       ) {
         await recordApplicationUsage({
@@ -149,16 +162,23 @@ export const authController = new Elysia({ prefix: "/auth" })
           message: `${body.provider} authentication is not available for this application`,
         };
       }
-      const assignedConnection = await getApplicationSocialProviderConnection(
-        policy.clientId,
-        body.provider,
-      );
-      if (!assignedConnection) {
+      const assignedConnection = policy
+        ? await getApplicationSocialProviderConnection(
+            policy.clientId,
+            body.provider,
+          )
+        : null;
+      const platformConnection = !policy
+        ? await getPlatformOAuthConnection(body.provider)
+        : null;
+      const runtimeConnection =
+        assignedConnection?.connection ?? platformConnection;
+      if (!runtimeConnection) {
         await recordApplicationUsage({
           type: body.requestSignUp ? "signup" : "login",
           outcome: "denied",
-          applicationId: policy.applicationId,
-          applicationClientId: policy.id,
+          applicationId: policy?.applicationId,
+          applicationClientId: policy?.id,
           authMethod: body.provider,
           requestId,
           reason: "oauth_connection_unavailable",
@@ -170,7 +190,7 @@ export const authController = new Elysia({ prefix: "/auth" })
         };
       }
       const response = await runWithOAuthProviderConnection(
-        assignedConnection.connection,
+        runtimeConnection,
         () =>
           auth.api.signInSocial({
             body: {
@@ -193,9 +213,9 @@ export const authController = new Elysia({ prefix: "/auth" })
           await recordApplicationUsage({
             type: body.requestSignUp ? "signup" : "login",
             outcome: "error",
-            applicationId: assignedConnection.applicationId,
-            applicationClientId: assignedConnection.applicationClientId,
-            oauthProviderConnectionId: assignedConnection.connection.id,
+            applicationId: assignedConnection?.applicationId,
+            applicationClientId: assignedConnection?.applicationClientId,
+            oauthProviderConnectionId: runtimeConnection.id,
             authMethod: body.provider,
             requestId,
             reason: "provider_state_missing",
@@ -206,12 +226,16 @@ export const authController = new Elysia({ prefix: "/auth" })
         }
         await storeSocialProviderContext(state, {
           provider: body.provider,
-          applicationId: assignedConnection.applicationId,
-          applicationClientId: assignedConnection.applicationClientId,
-          downstreamClientId: assignedConnection.downstreamClientId,
-          oauthProviderConnectionId: assignedConnection.connection.id,
-          credentialVersion:
-            assignedConnection.connection.credentialVersion,
+          scope: assignedConnection ? "application" : "platform",
+          ...(assignedConnection
+            ? {
+                applicationId: assignedConnection.applicationId,
+                applicationClientId: assignedConnection.applicationClientId,
+                downstreamClientId: assignedConnection.downstreamClientId,
+              }
+            : {}),
+          oauthProviderConnectionId: runtimeConnection.id,
+          credentialVersion: runtimeConnection.credentialVersion,
           intent: body.requestSignUp ? "signup" : "login",
           requestId,
         });
@@ -219,9 +243,9 @@ export const authController = new Elysia({ prefix: "/auth" })
         await recordApplicationUsage({
           type: body.requestSignUp ? "signup" : "login",
           outcome: "denied",
-          applicationId: assignedConnection.applicationId,
-          applicationClientId: assignedConnection.applicationClientId,
-          oauthProviderConnectionId: assignedConnection.connection.id,
+          applicationId: assignedConnection?.applicationId,
+          applicationClientId: assignedConnection?.applicationClientId,
+          oauthProviderConnectionId: runtimeConnection.id,
           authMethod: body.provider,
           requestId,
           reason: "provider_authorization_start_failed",
@@ -248,7 +272,11 @@ export const authController = new Elysia({ prefix: "/auth" })
     "/magic-link/login",
     async ({ body, request, set }) => {
       const policy = await getApplicationPolicy(body.callbackURL);
-      if (policy && !policy.application.signInMethods.includes("magic_link")) {
+      const platformSettings = policy ? null : await getPlatformAuthSettings();
+      if (
+        (policy && !policy.application.signInMethods.includes("magic_link")) ||
+        (!policy && !platformSettings?.signInMethods.includes("magic_link"))
+      ) {
         await recordAuthUsage({
           policy,
           type: "login",
@@ -304,11 +332,15 @@ export const authController = new Elysia({ prefix: "/auth" })
     "/magic-link/signup",
     async ({ body, request, set }) => {
       const policy = await getApplicationPolicy(body.callbackURL);
+      const platformSettings = policy ? null : await getPlatformAuthSettings();
       if (
-        policy &&
-        (policy.application.status !== "active" ||
+        (policy &&
+          (policy.application.status !== "active" ||
           policy.application.registrationMode === "closed" ||
-          !policy.application.signUpMethods.includes("magic_link"))
+          !policy.application.signUpMethods.includes("magic_link"))) ||
+        (!policy &&
+          (platformSettings?.registrationMode === "closed" ||
+            !platformSettings?.signUpMethods.includes("magic_link")))
       ) {
         await recordAuthUsage({
           policy,
@@ -364,7 +396,11 @@ export const authController = new Elysia({ prefix: "/auth" })
     async ({ body, request, set }) => {
       const callbackURL = resolveCallbackURL(body.callbackURL);
       const policy = await getApplicationPolicy(callbackURL);
-      if (policy && !policy.application.signInMethods.includes("password")) {
+      const platformSettings = policy ? null : await getPlatformAuthSettings();
+      if (
+        (policy && !policy.application.signInMethods.includes("password")) ||
+        (!policy && !platformSettings?.signInMethods.includes("password"))
+      ) {
         await recordAuthUsage({
           policy,
           type: "login",
@@ -446,11 +482,15 @@ export const authController = new Elysia({ prefix: "/auth" })
     async ({ body, request, set }) => {
       const callbackURL = resolveCallbackURL(body.callbackURL);
       const policy = await getApplicationPolicy(callbackURL);
+      const platformSettings = policy ? null : await getPlatformAuthSettings();
       if (
-        !policy ||
-        policy.application.status !== "active" ||
-        policy.application.registrationMode === "closed" ||
-        !policy.application.signUpMethods.includes("password")
+        (policy &&
+          (policy.application.status !== "active" ||
+            policy.application.registrationMode === "closed" ||
+            !policy.application.signUpMethods.includes("password"))) ||
+        (!policy &&
+          (platformSettings?.registrationMode === "closed" ||
+            !platformSettings?.signUpMethods.includes("password")))
       ) {
         await recordAuthUsage({
           policy,
@@ -499,7 +539,7 @@ export const authController = new Elysia({ prefix: "/auth" })
         reason: "account_created",
       });
 
-      if (policy.application.passwordEmailVerificationRequired) {
+      if (policy?.application.passwordEmailVerificationRequired ?? true) {
         await auth.api.sendVerificationEmail({
           body: { email: body.email, callbackURL },
           headers: request.headers,

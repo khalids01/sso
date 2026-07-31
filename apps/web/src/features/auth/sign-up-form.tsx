@@ -17,6 +17,7 @@ import {
   type SocialAuthMethod,
 } from "./social-auth-buttons";
 import { BRANDING } from "@/constants/branding";
+import { env } from "@env/public";
 
 export default function SignUpForm({
   applicationName,
@@ -35,6 +36,7 @@ export default function SignUpForm({
   const showMagicSignup =
     !applicationPolicy || applicationPolicy.signUpMethods.includes("magic_link");
   const showPasswordSignup =
+    env.VITE_ENABLE_PASSWORD_AUTH &&
     Boolean(applicationPolicy?.signUpMethods.includes("password"));
   const socialMethods = (applicationPolicy?.signUpMethods ?? []).filter(
     (method): method is SocialAuthMethod =>
