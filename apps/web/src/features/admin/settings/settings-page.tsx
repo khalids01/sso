@@ -7,6 +7,13 @@ import { client } from "@/lib/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import SignInForm from "@/features/auth/sign-in-form";
 import SignUpForm from "@/features/auth/sign-up-form";
@@ -54,7 +61,7 @@ export function SettingsPage() {
       return (data as { items: OAuthOption[] }).items;
     },
   });
-  const { register, watch, reset, setValue, handleSubmit } = useForm<FormValues>({
+  const { watch, reset, setValue, handleSubmit } = useForm<FormValues>({
     defaultValues: { signInMethods: [], signUpMethods: [], registrationMode: "open", oauthConnections: {} },
   });
   useEffect(() => {
@@ -103,10 +110,20 @@ export function SettingsPage() {
       <div className="space-y-6">
         <Card><CardHeader><CardTitle className="flex items-center gap-2"><Settings2 className="size-5" />Platform Auth</CardTitle></CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2"><Label>New registrations</Label>
-              <select {...register("registrationMode")} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
-                <option value="open">Open</option><option value="invite_only">Invite only</option><option value="closed">Disabled</option>
-              </select>
+            <div className="space-y-2"><Label htmlFor="registration-mode">New registrations</Label>
+              <Select
+                value={values.registrationMode}
+                onValueChange={(value) => {
+                  if (value) setValue("registrationMode", value as FormValues["registrationMode"], { shouldDirty: true });
+                }}
+              >
+                <SelectTrigger id="registration-mode" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="invite_only">Invite only</SelectItem>
+                  <SelectItem value="closed">Disabled</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {methods.map(({ id, label }) => {
               const social = !["magic_link", "password"].includes(id);
@@ -118,19 +135,25 @@ export function SettingsPage() {
                   <label className="flex items-center gap-2"><Switch disabled={unavailable} checked={values.signInMethods.includes(id)} onCheckedChange={(checked) => toggle("signInMethods", id, checked)} />Sign in</label>
                   <label className="flex items-center gap-2"><Switch disabled={unavailable || !values.signInMethods.includes(id)} checked={values.signUpMethods.includes(id)} onCheckedChange={(checked) => toggle("signUpMethods", id, checked)} />Sign up</label>
                 </div>
-                {social && (values.signInMethods.includes(id) || values.signUpMethods.includes(id)) ? <select
-                  value={values.oauthConnections[id as Provider] ?? ""}
-                  onChange={(event) => setValue(`oauthConnections.${id as Provider}`, event.target.value || null, { shouldDirty: true })}
-                  className="mt-3 h-10 w-full rounded-md border bg-background px-3 text-sm">
-                  <option value="">Select OAuth connection</option>
-                  {providerOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
-                </select> : null}
+                {social && (values.signInMethods.includes(id) || values.signUpMethods.includes(id)) ? <Select
+                  value={values.oauthConnections[id as Provider] ?? "__none"}
+                  onValueChange={(value) => setValue(`oauthConnections.${id as Provider}`, !value || value === "__none" ? null : value, { shouldDirty: true })}
+                >
+                  <SelectTrigger className="mt-3 w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Select OAuth connection</SelectItem>
+                    {providerOptions.map((option) => <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>)}
+                  </SelectContent>
+                </Select> : null}
               </div>;
             })}
           </CardContent>
         </Card>
         <Card><CardHeader><CardTitle className="flex items-center gap-2"><Mail className="size-5" />Platform Email</CardTitle></CardHeader>
-          <CardContent><Label>Email provider</Label><select disabled className="mt-2 h-10 w-full rounded-md border bg-muted px-3 text-sm"><option>From Server Env</option></select>
+          <CardContent><Label htmlFor="email-provider">Email provider</Label><Select value="server-env" disabled>
+            <SelectTrigger id="email-provider" className="mt-2 w-full bg-muted"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="server-env">From Server Env</SelectItem></SelectContent>
+          </Select>
             <p className="mt-2 text-sm text-muted-foreground">{settings.data?.emailConfigured ? "Server email credentials are configured." : "Server email credentials are not configured."}</p>
           </CardContent>
         </Card>
