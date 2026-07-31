@@ -23,6 +23,7 @@ const connectionSelect = {
     select: {
       applicationAssignments: true,
       accounts: true,
+      platformAssignments: true,
     },
   },
 } satisfies Prisma.OAuthProviderConnectionSelect;
@@ -61,6 +62,7 @@ function mapConnection(
     status: connection.status,
     applicationCount: connection._count.applicationAssignments,
     accountCount: connection._count.accounts,
+    isUsedByPlatform: connection._count.platformAssignments > 0,
     createdAt: connection.createdAt.toISOString(),
     updatedAt: connection.updatedAt.toISOString(),
   };

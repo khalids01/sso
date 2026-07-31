@@ -99,6 +99,7 @@ export function SettingsPage() {
     signInMethods: values.signInMethods,
     signUpMethods: values.registrationMode === "closed" ? [] : values.signUpMethods,
     registrationMode: values.registrationMode,
+    passwordEmailVerificationRequired: true,
   };
 
   return <form onSubmit={handleSubmit((value) => save.mutate(value))} className="space-y-6 p-6">
@@ -117,7 +118,11 @@ export function SettingsPage() {
                   if (value) setValue("registrationMode", value as FormValues["registrationMode"], { shouldDirty: true });
                 }}
               >
-                <SelectTrigger id="registration-mode" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="registration-mode" className="w-full">
+                  <SelectValue>
+                    {(value) => ({ open: "Open", invite_only: "Invite only", closed: "Disabled" })[value as FormValues["registrationMode"]]}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="invite_only">Invite only</SelectItem>
@@ -139,7 +144,13 @@ export function SettingsPage() {
                   value={values.oauthConnections[id as Provider] ?? "__none"}
                   onValueChange={(value) => setValue(`oauthConnections.${id as Provider}`, !value || value === "__none" ? null : value, { shouldDirty: true })}
                 >
-                  <SelectTrigger className="mt-3 w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-3 w-full">
+                    <SelectValue>
+                      {(value) => value === "__none"
+                        ? "Select OAuth connection"
+                        : providerOptions.find((option) => option.id === value)?.name ?? "Select OAuth connection"}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none">Select OAuth connection</SelectItem>
                     {providerOptions.map((option) => <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>)}
@@ -160,7 +171,7 @@ export function SettingsPage() {
       </div>
       <Card className="h-fit"><CardHeader><CardTitle>Authentication form preview</CardTitle>
         <div className="flex gap-2"><Button type="button" variant={preview === "login" ? "default" : "outline"} onClick={() => setPreview("login")}>Login</Button><Button type="button" variant={preview === "signup" ? "default" : "outline"} onClick={() => setPreview("signup")}>Signup</Button></div>
-      </CardHeader><CardContent><div inert="" className="max-h-[680px] overflow-y-auto rounded-xl border bg-background">{preview === "login" ? <SignInForm applicationPolicy={previewPolicy} /> : <SignUpForm applicationPolicy={previewPolicy} />}</div></CardContent></Card>
+      </CardHeader><CardContent><div inert className="max-h-[680px] overflow-y-auto rounded-xl border bg-background">{preview === "login" ? <SignInForm applicationPolicy={previewPolicy} /> : <SignUpForm applicationPolicy={previewPolicy} />}</div></CardContent></Card>
     </div>
   </form>;
 }

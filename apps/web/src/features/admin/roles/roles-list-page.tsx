@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Permissions } from "@sso/rbac";
+import { AllPermissions, Permissions } from "@sso/rbac";
 import { queryKeys } from "@/constants/query-keys";
 import { client } from "@/lib/client";
 import { Badge } from "@/components/ui/badge";
@@ -134,7 +134,9 @@ export function RolesListPage() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{role.permissionCount}</TableCell>
+                  <TableCell>
+                    {role.permissionCount} of {AllPermissions.length}
+                  </TableCell>
                   <TableCell>{role.userCount}</TableCell>
                   <TableCell>
                     {role.customizedAt

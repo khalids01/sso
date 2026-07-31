@@ -248,15 +248,20 @@ export function OAuthManagerPage() {
                         {providerLabels[connection.provider]}
                       </CardDescription>
                     </div>
-                    <Badge
-                      variant={
-                        connection.status === "active"
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
-                      {connection.status}
-                    </Badge>
+                    <div className="flex flex-wrap justify-end gap-1">
+                      {connection.isUsedByPlatform ? (
+                        <Badge>Used by platform</Badge>
+                      ) : null}
+                      <Badge
+                        variant={
+                          connection.status === "active"
+                            ? "secondary"
+                            : "outline"
+                        }
+                      >
+                        {connection.status}
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-3 text-sm">
