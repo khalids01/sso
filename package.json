@@ -10,7 +10,8 @@
     "packages": [
       "apps/*",
       "packages/*",
-      "tests/*"
+      "tests/*",
+      "npm_package"
     ],
     "catalog": {
       "dotenv": "^17.3.1",
@@ -33,6 +34,11 @@
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "dev:demo": "turbo -F sso-demo dev",
+    "free-sso:build": "bun run --cwd npm_package build",
+    "free-sso:check-types": "bun run --cwd npm_package check-types",
+    "free-sso:test": "bun run --cwd npm_package test",
+    "free-sso:pack": "bun run --cwd npm_package pack:check",
+    "free-sso:publish": "bun run --cwd npm_package publish:public",
     "db:studio": "turbo -F @sso/db db:studio",
     "db:generate": "turbo -F @sso/db db:generate",
     "db:reset": "turbo -F @sso/db db:reset",
