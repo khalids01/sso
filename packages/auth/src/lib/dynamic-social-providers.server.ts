@@ -39,10 +39,10 @@ export function runWithOAuthProviderConnection<T>(
   return connectionContext.run(connection, operation);
 }
 
-function requireConnection(provider: ApplicationSocialProviderId) {
+function requireConnection() {
   const connection = connectionContext.getStore();
-  if (!connection || connection.provider !== provider) {
-    throw new Error(`Missing ${provider} connection for this OAuth request`);
+  if (!connection) {
+    throw new Error("Missing OAuth connection for this OAuth request");
   }
   return connection;
 }
@@ -63,144 +63,154 @@ export function dynamicApplicationSocialProviders(): BetterAuthPlugin {
           socialProviders: [
             ...retainedProviders,
             () => {
-              const connection = requireConnection("google");
-              const provider = google({
-                clientId: connection.clientId,
-                clientSecret: connection.clientSecret,
-                disableDefaultScope: true,
-                disableImplicitSignUp: true,
-                overrideUserInfoOnSignIn: true,
-              });
-              const getUserInfo = provider.getUserInfo;
-              return {
-                ...provider,
-                async getUserInfo(token: Parameters<typeof getUserInfo>[0]) {
-                  const result = await getUserInfo(token);
-                  if (!result) return null;
-                  const providerAccountId = String(result.user.id);
-                  await captureOAuthProfile(
-                    "google",
-                    result.data ?? result.user,
-                    connection.id,
-                    providerAccountId,
-                  );
+              const connection = requireConnection();
+
+              switch (connection.provider) {
+                case "google": {
+                  const provider = google({
+                    clientId: connection.clientId,
+                    clientSecret: connection.clientSecret,
+                    disableDefaultScope: true,
+                    disableImplicitSignUp: true,
+                    overrideUserInfoOnSignIn: true,
+                  });
+                  const getUserInfo = provider.getUserInfo;
                   return {
-                    ...result,
-                    user: {
-                      ...result.user,
-                      id: namespaceOAuthAccountId(
+                    ...provider,
+                    async getUserInfo(
+                      token: Parameters<typeof getUserInfo>[0],
+                    ) {
+                      const result = await getUserInfo(token);
+                      if (!result) return null;
+                      const providerAccountId = String(result.user.id);
+                      await captureOAuthProfile(
+                        "google",
+                        result.data ?? result.user,
                         connection.id,
                         providerAccountId,
-                      ),
+                      );
+                      return {
+                        ...result,
+                        user: {
+                          ...result.user,
+                          id: namespaceOAuthAccountId(
+                            connection.id,
+                            providerAccountId,
+                          ),
+                        },
+                      };
                     },
                   };
-                },
-              };
-            },
-            () => {
-              const connection = requireConnection("facebook");
-              const provider = facebook({
-                clientId: connection.clientId,
-                clientSecret: connection.clientSecret,
-                disableDefaultScope: true,
-                disableImplicitSignUp: true,
-                overrideUserInfoOnSignIn: true,
-              });
-              const getUserInfo = provider.getUserInfo;
-              return {
-                ...provider,
-                async getUserInfo(token: Parameters<typeof getUserInfo>[0]) {
-                  const result = await getUserInfo(token);
-                  if (!result) return null;
-                  const providerAccountId = String(result.user.id);
-                  await captureOAuthProfile(
-                    "facebook",
-                    result.data ?? result.user,
-                    connection.id,
-                    providerAccountId,
-                  );
+                }
+                case "facebook": {
+                  const provider = facebook({
+                    clientId: connection.clientId,
+                    clientSecret: connection.clientSecret,
+                    disableDefaultScope: true,
+                    disableImplicitSignUp: true,
+                    overrideUserInfoOnSignIn: true,
+                  });
+                  const getUserInfo = provider.getUserInfo;
                   return {
-                    ...result,
-                    user: {
-                      ...result.user,
-                      id: namespaceOAuthAccountId(
+                    ...provider,
+                    async getUserInfo(
+                      token: Parameters<typeof getUserInfo>[0],
+                    ) {
+                      const result = await getUserInfo(token);
+                      if (!result) return null;
+                      const providerAccountId = String(result.user.id);
+                      await captureOAuthProfile(
+                        "facebook",
+                        result.data ?? result.user,
                         connection.id,
                         providerAccountId,
-                      ),
+                      );
+                      return {
+                        ...result,
+                        user: {
+                          ...result.user,
+                          id: namespaceOAuthAccountId(
+                            connection.id,
+                            providerAccountId,
+                          ),
+                        },
+                      };
                     },
                   };
-                },
-              };
-            },
-            () => {
-              const connection = requireConnection("github");
-              const provider = github({
-                clientId: connection.clientId,
-                clientSecret: connection.clientSecret,
-                disableDefaultScope: true,
-                disableImplicitSignUp: true,
-                overrideUserInfoOnSignIn: true,
-              });
-              const getUserInfo = provider.getUserInfo;
-              return {
-                ...provider,
-                async getUserInfo(token: Parameters<typeof getUserInfo>[0]) {
-                  const result = await getUserInfo(token);
-                  if (!result) return null;
-                  const providerAccountId = String(result.user.id);
-                  await captureOAuthProfile(
-                    "github",
-                    result.data ?? result.user,
-                    connection.id,
-                    providerAccountId,
-                  );
+                }
+                case "github": {
+                  const provider = github({
+                    clientId: connection.clientId,
+                    clientSecret: connection.clientSecret,
+                    disableDefaultScope: true,
+                    disableImplicitSignUp: true,
+                    overrideUserInfoOnSignIn: true,
+                  });
+                  const getUserInfo = provider.getUserInfo;
                   return {
-                    ...result,
-                    user: {
-                      ...result.user,
-                      id: namespaceOAuthAccountId(
+                    ...provider,
+                    async getUserInfo(
+                      token: Parameters<typeof getUserInfo>[0],
+                    ) {
+                      const result = await getUserInfo(token);
+                      if (!result) return null;
+                      const providerAccountId = String(result.user.id);
+                      await captureOAuthProfile(
+                        "github",
+                        result.data ?? result.user,
                         connection.id,
                         providerAccountId,
-                      ),
+                      );
+                      return {
+                        ...result,
+                        user: {
+                          ...result.user,
+                          id: namespaceOAuthAccountId(
+                            connection.id,
+                            providerAccountId,
+                          ),
+                        },
+                      };
                     },
                   };
-                },
-              };
-            },
-            () => {
-              const connection = requireConnection("linkedin");
-              const provider = linkedin({
-                clientId: connection.clientId,
-                clientSecret: connection.clientSecret,
-                disableDefaultScope: true,
-                disableImplicitSignUp: true,
-                overrideUserInfoOnSignIn: true,
-              });
-              const getUserInfo = provider.getUserInfo;
-              return {
-                ...provider,
-                async getUserInfo(token: Parameters<typeof getUserInfo>[0]) {
-                  const result = await getUserInfo(token);
-                  if (!result) return null;
-                  const providerAccountId = String(result.user.id);
-                  await captureOAuthProfile(
-                    "linkedin",
-                    result.data ?? result.user,
-                    connection.id,
-                    providerAccountId,
-                  );
+                }
+                case "linkedin": {
+                  const provider = linkedin({
+                    clientId: connection.clientId,
+                    clientSecret: connection.clientSecret,
+                    disableDefaultScope: true,
+                    disableImplicitSignUp: true,
+                    overrideUserInfoOnSignIn: true,
+                  });
+                  const getUserInfo = provider.getUserInfo;
                   return {
-                    ...result,
-                    user: {
-                      ...result.user,
-                      id: namespaceOAuthAccountId(
+                    ...provider,
+                    async getUserInfo(
+                      token: Parameters<typeof getUserInfo>[0],
+                    ) {
+                      const result = await getUserInfo(token);
+                      if (!result) return null;
+                      const providerAccountId = String(result.user.id);
+                      await captureOAuthProfile(
+                        "linkedin",
+                        result.data ?? result.user,
                         connection.id,
                         providerAccountId,
-                      ),
+                      );
+                      return {
+                        ...result,
+                        user: {
+                          ...result.user,
+                          id: namespaceOAuthAccountId(
+                            connection.id,
+                            providerAccountId,
+                          ),
+                        },
+                      };
                     },
                   };
-                },
-              };
+                }
+              }
             },
           ],
         },
