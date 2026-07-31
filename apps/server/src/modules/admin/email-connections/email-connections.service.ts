@@ -1,9 +1,9 @@
-import prisma, { Prisma } from "@db/server";
+import prisma, { Prisma } from "@sso/db/server";
 import {
   decryptEmailProviderSecret,
   encryptEmailProviderSecret,
   testEmailTemplate,
-} from "@email/server";
+} from "@sso/email/server";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import type {

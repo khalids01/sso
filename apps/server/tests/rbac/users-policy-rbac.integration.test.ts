@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { RolePermissionMap, Roles } from "@rbac";
+import { RolePermissionMap, Roles } from "@sso/rbac";
 import * as rbacAssignments from "../../../../packages/db/src/rbac/assignments.server";
 
 const ownerActor = {
@@ -36,7 +36,7 @@ const updateMock = mock(async () => ({
   subscriptionStatus: null,
 }));
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: {
     user: {
       findUnique: findUniqueMock,
@@ -50,11 +50,11 @@ mock.module("@db/server", () => ({
   },
 }));
 
-mock.module("@db/server/rbac/roles", () => ({
+mock.module("@sso/db/server/rbac/roles", () => ({
   isAssignableRoleSlug: async (slug: string) => slug !== Roles.PlatformOwner,
 }));
 
-mock.module("@db/server/rbac/assignments", () => ({
+mock.module("@sso/db/server/rbac/assignments", () => ({
   ...rbacAssignments,
   countActivePlatformOwners: async () => 2,
   getRoleIdBySlug: async () => "role-admin-id",

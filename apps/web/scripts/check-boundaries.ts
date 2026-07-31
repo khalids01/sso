@@ -3,11 +3,11 @@ import path from "node:path";
 
 const webSrcRoot = path.resolve(import.meta.dirname, "../src");
 const forbiddenPatterns = [
-  /@db(?:\/|$)/,
-  /@redis(?:\/|$)/,
-  /@env\/server/,
-  /@auth\/server/,
-  /@email(?:\/|$)/,
+  /@sso\/db(?:\/|$)/,
+  /@sso\/redis(?:\/|$)/,
+  /@sso\/env\/server/,
+  /@sso\/auth\/server/,
+  /@sso\/email(?:\/|$)/,
   /packages\/db\//,
   /packages\/redis\//,
 ];

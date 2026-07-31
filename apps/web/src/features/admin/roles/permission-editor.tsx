@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { permissionGroup, type Permission } from "@rbac";
+import { permissionGroup, type Permission } from "@sso/rbac";
 import {
   Accordion,
   AccordionContent,

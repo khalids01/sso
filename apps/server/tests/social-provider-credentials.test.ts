@@ -12,7 +12,7 @@ const redis = {
 const assignmentFindFirst = mock(async (): Promise<any> => null);
 const applicationClientFindFirst = mock(async (): Promise<any> => null);
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: {
     applicationOAuthProviderConnection: {
       findFirst: assignmentFindFirst,
@@ -24,7 +24,7 @@ mock.module("@db/server", () => ({
   Prisma,
 }));
 
-mock.module("@redis/server", () => ({
+mock.module("@sso/redis/server", () => ({
   connectRedis: mock(async () => redis),
   getRedis: () => redis,
   getCache: mock(async (key: string) => {

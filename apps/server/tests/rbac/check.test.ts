@@ -7,7 +7,7 @@ import {
   hasAllPermissions,
   hasAnyPermission,
   hasPermission,
-} from "@rbac";
+} from "@sso/rbac";
 
 describe("rbac check", () => {
   it("flattens multiple roles without duplicates", () => {

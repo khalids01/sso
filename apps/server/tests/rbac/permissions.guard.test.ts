@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { requirePermission } from "../../src/rbac/guards/permissions.guard";
 
 describe("permissions guard", () => {

@@ -1,4 +1,4 @@
-import type { Permission, PermissionEffect } from "@rbac";
+import type { Permission, PermissionEffect } from "@sso/rbac";
 import prisma from "../client.server";
 import { invalidateUser } from "./cache/invalidate.server";
 

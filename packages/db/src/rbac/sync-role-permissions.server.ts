@@ -1,5 +1,5 @@
 import prisma from "../client.server";
-import { RolePermissionMap, type Permission, type RoleSlug } from "@rbac";
+import { RolePermissionMap, type Permission, type RoleSlug } from "@sso/rbac";
 
 async function getPermissionIdByName() {
   const permissions = await prisma.rbacPermission.findMany({

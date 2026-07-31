@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { Permissions, RolePermissionMap, Roles } from "@rbac";
+import { Permissions, RolePermissionMap, Roles } from "@sso/rbac";
 import {
   assertActorCanAccessOwnerTarget,
   assertActorCanChangePrivilegedAccounts,

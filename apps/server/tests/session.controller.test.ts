@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Elysia } from "elysia";
-import { Permissions, Roles } from "@rbac";
+import { Permissions, Roles } from "@sso/rbac";
 
 const getAuthSessionMock = mock(async () => ({
   user: {
@@ -28,7 +28,7 @@ const getAuthSessionMock = mock(async () => ({
 }));
 const getPolarCustomerStateMock = mock(async () => null);
 
-mock.module("@auth/server", () => ({
+mock.module("@sso/auth/server", () => ({
   getAuthSession: getAuthSessionMock,
   getPolarCustomerState: getPolarCustomerStateMock,
 }));

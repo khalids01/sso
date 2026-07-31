@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { authGuard } from "@/guards/auth.guard";
 import { requirePermission } from "@/rbac/guards/permissions.guard";
 import { getPlatformAuthSettings } from "../../auth/platform-auth-settings.service";

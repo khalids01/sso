@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { Permissions, Roles } from "@rbac";
+import { Permissions, Roles } from "@sso/rbac";
 import { mockRedisModule } from "./helpers/mock-redis-module";
 
 const { store } = mockRedisModule();
@@ -16,10 +16,10 @@ describe("user session rbac cache validation", () => {
 
   it("treats legacy payloads without roles as invalid", async () => {
     const { setCachedUserSessionRbac } = await import(
-      "@db/server/rbac/cache/effective"
+      "@sso/db/server/rbac/cache/effective"
     );
     const { isUserSessionRbacCacheValid } = await import(
-      "@db/server/rbac/cache/invalidate"
+      "@sso/db/server/rbac/cache/invalidate"
     );
 
     await setCachedUserSessionRbac("user-1", {

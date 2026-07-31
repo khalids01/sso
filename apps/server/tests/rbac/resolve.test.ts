@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { Permissions, RolePermissionMap, Roles } from "@rbac";
+import { Permissions, RolePermissionMap, Roles } from "@sso/rbac";
 import { createTestGraph, expectedPermissionsForUser } from "./helpers/fixtures";
 import { createRbacPrismaMock } from "./helpers/mock-prisma-rbac";
 import { mockRedisModule } from "./helpers/mock-redis-module";
@@ -15,7 +15,7 @@ const { store, redis: redisMock } = mockRedisModule();
 
 let getCacheCalls = 0;
 
-mock.module("@db/server/rbac/prisma", () => ({
+mock.module("@sso/db/server/rbac/prisma", () => ({
   default: createRbacPrismaMock(graph),
 }));
 

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { queryKeys } from "@/constants/query-keys";
 import { client } from "@/lib/client";
 import { Badge } from "@/components/ui/badge";

@@ -5,7 +5,7 @@ import prisma, {
   type ApplicationRegistrationMode,
   type ApplicationStatus,
   type OAuthProvider,
-} from "@db/server";
+} from "@sso/db/server";
 import type {
   ApplicationMembersQuery,
   ApplicationsQuery,
@@ -29,11 +29,11 @@ import {
   enqueueMemberRevocation,
   REVOCATION_DELIVERY_TTL_MS,
 } from "../../application-revocation/revocation.service";
-import { env } from "@env/server";
+import { env } from "@sso/env/server";
 import {
   getApplicationAuthCapabilities,
   getAvailableApplicationAuthMethodIds,
-} from "@auth/application-capabilities";
+} from "@sso/auth/application-capabilities";
 import { recordApplicationUsage } from "../../application-usage/application-usage.service";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);

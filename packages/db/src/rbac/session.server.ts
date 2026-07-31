@@ -4,4 +4,4 @@ export {
   createPermissionChecker,
 } from "./resolve/get-session-rbac.server";
 
-export type { UserSessionRbacPayload, SessionRoleSummary } from "@rbac";
+export type { UserSessionRbacPayload, SessionRoleSummary } from "@sso/rbac";

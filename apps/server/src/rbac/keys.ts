@@ -1,1 +1,1 @@
-export * from "@db/server/rbac/keys";
+export * from "@sso/db/server/rbac/keys";

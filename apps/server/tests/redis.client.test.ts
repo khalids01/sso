@@ -7,7 +7,7 @@ describe("Redis client", () => {
         "bun",
         "-e",
         `
-          const { connectRedis } = await import("@redis/server");
+          const { connectRedis } = await import("@sso/redis/server");
 
           try {
             await connectRedis();

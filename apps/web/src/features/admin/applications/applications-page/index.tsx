@@ -22,7 +22,7 @@ import {
 } from "../lifecycle";
 import type { LifecycleFilter, PendingAction } from "../page-types";
 import { useSession } from "@/providers/session-provider";
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 import type { OAuthConnectionOption } from "../../oauth-connections/types";
 import type { EmailConnectionOption } from "../../email-connections/types";

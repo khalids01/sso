@@ -5,7 +5,7 @@ import {
     validateEvent,
     WebhookVerificationError,
 } from "@polar-sh/sdk/webhooks";
-import { env, getRequiredPolarEnv } from "@env/server";
+import { env, getRequiredPolarEnv } from "@sso/env/server";
 import {
     handlePolarPayload,
     processPolarWebhookOnce,

@@ -1,5 +1,5 @@
-import prisma, { type Prisma } from "@db/server";
-import { Roles } from "@rbac";
+import prisma, { type Prisma } from "@sso/db/server";
+import { Roles } from "@sso/rbac";
 import type { ActivityQuery, ActivitySeverity } from "./activity.dto";
 
 type ActivityUser = {

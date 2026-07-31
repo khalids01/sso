@@ -3,7 +3,7 @@ import {
   RolePermissionMap,
   hasPermission,
   type Permission,
-} from "@rbac";
+} from "@sso/rbac";
 
 export class RolesPolicyError extends Error {
   status = 403;

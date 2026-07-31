@@ -4,10 +4,10 @@ import {
   hashOAuthToken,
   isValidPkceVerifier,
   securelyMatchesChallenge,
-} from "@auth/server";
-import prisma from "@db/server";
-import { env } from "@env/server";
-import { getAvailableApplicationAuthMethodIds } from "@auth/server";
+} from "@sso/auth/server";
+import prisma from "@sso/db/server";
+import { env } from "@sso/env/server";
+import { getAvailableApplicationAuthMethodIds } from "@sso/auth/server";
 import { z } from "zod";
 import { recordApplicationUsage } from "../application-usage/application-usage.service";
 

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 
-import { env } from "@env/public";
+import { env } from "@sso/env/public";
 import { authMiddleware } from "@/middleware/auth";
 
 export const getPayment = createServerFn({ method: "GET" })

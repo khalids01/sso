@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { AllPermissions, RolePermissionMap, Roles } from "@rbac";
+import { AllPermissions, RolePermissionMap, Roles } from "@sso/rbac";
 import { mockRedisModule } from "./helpers/mock-redis-module";
 
 mockRedisModule();

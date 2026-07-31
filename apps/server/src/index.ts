@@ -1,7 +1,7 @@
 import { cors } from "@elysiajs/cors";
-import { auth } from "@auth/server";
-import { env } from "@env/server";
-import { connectRedis } from "@redis/server";
+import { auth } from "@sso/auth/server";
+import { env } from "@sso/env/server";
+import { connectRedis } from "@sso/redis/server";
 import { randomUUID } from "node:crypto";
 import { Elysia } from "elysia";
 import { app } from "./modules/app";
@@ -15,7 +15,7 @@ import { observeBetterAuthFailure } from "./modules/auth/auth-observability.serv
 import {
   runWithOAuthProviderConnection,
   type ApplicationSocialProviderId,
-} from "@auth/server";
+} from "@sso/auth/server";
 import {
   consumeSocialProviderContext,
   getOAuthProviderConnectionForCallback,

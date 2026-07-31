@@ -1,10 +1,11 @@
 {
-  "name": "@env",
+  "name": "@sso/env",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     "./client": "./src/env.client.ts",
+    "./public": "./src/env.public.ts",
     "./server": "./src/env.server.ts"
   },
   "dependencies": {
@@ -15,6 +16,6 @@
   "devDependencies": {
     "typescript": "catalog:",
     "@types/bun": "catalog:",
-    "@config": "workspace:*"
+    "@sso/config": "workspace:*"
   }
 }

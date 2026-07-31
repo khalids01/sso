@@ -1,5 +1,5 @@
 import { t } from "elysia";
-import { AllPermissions } from "@rbac";
+import { AllPermissions } from "@sso/rbac";
 
 const PermissionNameSchema = t.Union(
   AllPermissions.map((permission) => t.Literal(permission)),

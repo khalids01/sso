@@ -1,7 +1,7 @@
 import { Check, Copy, ExternalLink, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { env } from "@env/public";
+import { env } from "@sso/env/public";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

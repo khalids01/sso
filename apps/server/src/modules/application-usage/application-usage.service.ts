@@ -4,7 +4,7 @@ import prisma, {
   type ApplicationUsageEventType,
   type ApplicationUsageOutcome,
   type Prisma,
-} from "@db/server";
+} from "@sso/db/server";
 import { getClientIp, type RequestIpLookup } from "@/lib/client-ip";
 
 const RETENTION_DAYS = 180;

@@ -1,8 +1,8 @@
-import prisma from "@db/server";
+import prisma from "@sso/db/server";
 import { auth } from "@/modules/auth/auth.service";
-import { connectRedis } from "@redis/server";
+import { connectRedis } from "@sso/redis/server";
 import { getClientIp } from "../../lib/client-ip";
-import type { RateLimitSettings } from "@db/server";
+import type { RateLimitSettings } from "@sso/db/server";
 import type {
   RateLimitConfigInput,
   UpdateRateLimitInput,

@@ -1,5 +1,5 @@
 import prisma from "../prisma.server";
-import type { Permission, PermissionOverride } from "@rbac";
+import type { Permission, PermissionOverride } from "@sso/rbac";
 
 export type UserRbacContext = {
   roleIds: string[];

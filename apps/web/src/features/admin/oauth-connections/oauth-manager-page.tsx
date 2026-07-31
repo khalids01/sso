@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

@@ -1,4 +1,4 @@
-import prisma from "@db/server";
+import prisma from "@sso/db/server";
 
 type AuthFailureMethod = "magic_link" | "password";
 

@@ -203,7 +203,7 @@ dbMock.$transaction = mock(async (callback: (tx: typeof dbMock) => unknown) =>
   callback(dbMock),
 );
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: dbMock,
   Prisma,
 }));

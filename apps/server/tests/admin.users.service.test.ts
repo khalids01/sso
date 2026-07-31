@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { RolePermissionMap, Roles } from "@rbac";
+import { RolePermissionMap, Roles } from "@sso/rbac";
 import { Prisma } from "../../../packages/db/prisma/generated/client";
 import * as rbacAssignments from "../../../packages/db/src/rbac/assignments.server";
 
@@ -112,16 +112,16 @@ usersDbMock.$transaction = mock(
   async (callback: (tx: typeof usersDbMock) => unknown) => callback(usersDbMock),
 );
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: usersDbMock,
   Prisma,
 }));
 
-mock.module("@db/server/rbac/roles", () => ({
+mock.module("@sso/db/server/rbac/roles", () => ({
   isAssignableRoleSlug: isAssignableRoleSlugMock,
 }));
 
-mock.module("@db/server/rbac/assignments", () => ({
+mock.module("@sso/db/server/rbac/assignments", () => ({
   ...rbacAssignments,
   countActivePlatformOwners: countActivePlatformOwnersMock,
   getRoleIdBySlug: getRoleIdBySlugMock,
@@ -133,7 +133,7 @@ mock.module("../src/modules/admin/activity/activity.service", () => ({
   },
 }));
 
-mock.module("@email/server", () => ({
+mock.module("@sso/email/server", () => ({
   sendEmail: mock(async () => undefined),
   invitationTemplate: mock(async () => "<p>Invitation</p>"),
   magicLinkTemplate: mock(async () => "<p>Magic link</p>"),
@@ -145,13 +145,13 @@ mock.module("@email/server", () => ({
   decryptEmailProviderSecret: mock((value: string) => value),
 }));
 
-mock.module("@env/server", () => ({
+mock.module("@sso/env/server", () => ({
   env: {
     CORS_ORIGIN: "http://localhost:5002",
   },
 }));
 
-mock.module("@config", () => ({
+mock.module("@sso/config", () => ({
   siteConfig: {
     name: "SSO",
   },

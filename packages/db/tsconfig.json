@@ -6,15 +6,7 @@
     "sourceMap": true,
     "outDir": "dist",
     "rootDir": "..",
-    "composite": true,
-    "paths": {
-      "@env/server": ["../env/src/env.server.ts"],
-      "@env/client": ["../env/src/env.client.ts"],
-      "@config": ["../config/src/config.ts"],
-      "@rbac": ["../rbac/src/index.ts"],
-      "@rbac/*": ["../rbac/src/*"],
-      "@redis/server": ["../redis/src/index.server.ts"]
-    }
+    "composite": true
   },
   "include": [
     "src/**/*",

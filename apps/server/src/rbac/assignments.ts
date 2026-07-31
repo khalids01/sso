@@ -1,4 +1,4 @@
-import { assignUserRole as dbAssignUserRole } from "@db/server/rbac/assignments";
+import { assignUserRole as dbAssignUserRole } from "@sso/db/server/rbac/assignments";
 
 export async function assignUserRoleAndInvalidate(
   userId: string,

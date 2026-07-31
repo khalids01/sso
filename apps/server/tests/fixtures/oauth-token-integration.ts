@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { auth, createS256Challenge, hashOAuthToken } from "@auth/server";
-import prisma from "@db/server";
-import { env } from "@env/server";
+import { auth, createS256Challenge, hashOAuthToken } from "@sso/auth/server";
+import prisma from "@sso/db/server";
+import { env } from "@sso/env/server";
 import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
 import { oauthTokenController } from "../../src/modules/oauth/oauth-token.controller";
 

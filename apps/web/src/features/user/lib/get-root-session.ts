@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 
-import type { ClientSession, ClientSessionResult } from "@auth/client";
-import { env } from "@env/public";
+import type { ClientSession, ClientSessionResult } from "@sso/auth/client";
+import { env } from "@sso/env/public";
 
 type BackendSessionContext =
   | ClientSession

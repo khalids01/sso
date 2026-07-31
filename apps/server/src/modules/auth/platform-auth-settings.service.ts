@@ -1,5 +1,5 @@
-import prisma, { Prisma } from "@db/server";
-import { env } from "@env/server";
+import prisma, { Prisma } from "@sso/db/server";
+import { env } from "@sso/env/server";
 import {
   decryptSocialProviderSecret,
 } from "./social-provider-credentials.service";

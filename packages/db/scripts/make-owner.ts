@@ -59,7 +59,7 @@ async function main() {
     import("../src/rbac/assignments.server"),
     import("../src/rbac/cache/invalidate.server"),
     import("../../redis/src/index.server"),
-    import("@rbac"),
+    import("@sso/rbac"),
   ]);
 
   try {

@@ -2,4 +2,4 @@ export {
   getEffectivePermissions,
   createPermissionChecker,
   getUserSessionRbac,
-} from "@db/server/rbac/session";
+} from "@sso/db/server/rbac/session";

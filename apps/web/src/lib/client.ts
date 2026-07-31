@@ -1,6 +1,6 @@
 import { treaty } from '@elysiajs/eden'
 import type { App } from '../../../server'
-import { env } from "@env/public";
+import { env } from "@sso/env/public";
 
 export const client = treaty<App>(env.VITE_SERVER_URL, {
   fetch: {

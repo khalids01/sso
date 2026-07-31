@@ -1,1 +1,1 @@
-export * from "@db/server/rbac/resolve/get-session-rbac";
+export * from "@sso/db/server/rbac/resolve/get-session-rbac";

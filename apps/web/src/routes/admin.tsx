@@ -52,7 +52,7 @@ import {
 } from "@/features/admin/lib/admin-access";
 import { adminMiddleware } from "@/middleware/admin";
 import { useSession } from "@/providers/session-provider";
-import type { ClientSession } from "@auth/client";
+import type { ClientSession } from "@sso/auth/client";
 
 export const Route = createFileRoute("/admin")({
   server: {

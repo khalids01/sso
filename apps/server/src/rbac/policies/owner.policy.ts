@@ -1,4 +1,4 @@
-import { Permissions, Roles, hasPermission, type Permission, type RoleSlug } from "@rbac";
+import { Permissions, Roles, hasPermission, type Permission, type RoleSlug } from "@sso/rbac";
 
 export class RbacPolicyError extends Error {
   status = 403;

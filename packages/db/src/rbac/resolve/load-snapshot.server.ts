@@ -7,7 +7,7 @@ import {
   type PermissionOverride,
   type RoleSlug,
   type SessionRoleSummary,
-} from "@rbac";
+} from "@sso/rbac";
 
 type SnapshotRow = {
   roles: Array<{ id: string; slug: string; name: string }> | null;

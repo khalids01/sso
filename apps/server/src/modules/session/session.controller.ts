@@ -1,8 +1,8 @@
 import { Elysia } from "elysia";
-import { getPolarCustomerState } from "@auth/server";
-import { toClientSession } from "@auth/client";
-import { env } from "@env/server";
-import { Roles } from "@rbac";
+import { getPolarCustomerState } from "@sso/auth/server";
+import { toClientSession } from "@sso/auth/client";
+import { env } from "@sso/env/server";
+import { Roles } from "@sso/rbac";
 import { authGuard } from "@/guards/auth.guard";
 import { resolvePaymentCustomerState } from "./payment.service";
 

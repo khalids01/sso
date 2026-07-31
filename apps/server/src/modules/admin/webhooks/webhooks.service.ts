@@ -1,4 +1,4 @@
-import prisma, { type Prisma } from "@db/server";
+import prisma, { type Prisma } from "@sso/db/server";
 import type { WebhookEventsQuery } from "./webhooks.dto";
 
 type WebhookEventItem = {

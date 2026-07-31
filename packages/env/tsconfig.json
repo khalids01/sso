@@ -1,8 +1,3 @@
 {
-  "extends": "../config/tsconfig.base.json",
-  "compilerOptions": {
-    "paths": {
-      "@config": ["../config/src/config.ts"]
-    }
-  }
+  "extends": "../config/tsconfig.base.json"
 }

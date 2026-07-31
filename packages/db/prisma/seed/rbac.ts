@@ -5,7 +5,7 @@ import {
   permissionGroup,
   type Permission,
   type RoleSlug,
-} from "@rbac";
+} from "@sso/rbac";
 import { syncAllRolePermissionsFromMap } from "../../src/rbac/sync-role-permissions.server";
 import { getRedis, connectRedis } from "../../../redis/src/index.server";
 import {

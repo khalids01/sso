@@ -1,5 +1,5 @@
-import prisma from "@db/server";
-import { Roles } from "@rbac";
+import prisma from "@sso/db/server";
+import { Roles } from "@sso/rbac";
 import { notificationsService } from "../notifications/notifications.service";
 import { activityService } from "../admin/activity/activity.service";
 import type { FeedbackQuery } from "./feedback.dto";

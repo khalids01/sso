@@ -32,7 +32,7 @@ import { ClientEditDialog } from "./components/client-edit-dialog";
 import { ClientViewDialog } from "./components/client-view-dialog";
 import { CreateClientDialog } from "./components/create-client-dialog";
 import { useSession } from "@/providers/session-provider";
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 export function ApplicationClientsPage({

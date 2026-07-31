@@ -1,5 +1,5 @@
 {
-  "name": "@email",
+  "name": "@sso/email",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -16,8 +16,8 @@
     "email:dev": "bunx react-email dev --dir src/templates"
   },
   "dependencies": {
-    "@db": "workspace:*",
-    "@env": "workspace:*",
+    "@sso/db": "workspace:*",
+    "@sso/env": "workspace:*",
     "@react-email/components": "^1.0.12",
     "nodemailer": "^9.0.3",
     "react": "^19.2.5",

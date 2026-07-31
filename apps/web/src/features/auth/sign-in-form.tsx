@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { env } from "@env/public";
+import { env } from "@sso/env/public";
 
 import { Button } from "@/components/ui/button";
 

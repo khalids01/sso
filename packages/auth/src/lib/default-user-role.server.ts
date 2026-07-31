@@ -1,6 +1,6 @@
 import type { BetterAuthPlugin, User } from "better-auth";
 import { assignUserRole } from "../../../db/src/rbac/assignments.server";
-import { Roles } from "@rbac";
+import { Roles } from "@sso/rbac";
 
 type AuthUser = Partial<User> & {
   id?: string;

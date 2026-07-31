@@ -1,5 +1,5 @@
 {
-  "name": "@redis",
+  "name": "@sso/redis",
   "type": "module",
   "exports": {
     "./server": {
@@ -7,11 +7,11 @@
     }
   },
   "dependencies": {
-    "@env": "workspace:*",
+    "@sso/env": "workspace:*",
     "ioredis": "^5.9.2"
   },
   "devDependencies": {
-    "@config": "workspace:*",
+    "@sso/config": "workspace:*",
     "typescript": "catalog:"
   }
 }

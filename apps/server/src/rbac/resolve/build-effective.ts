@@ -1,1 +1,1 @@
-export * from "@db/server/rbac/resolve/build-effective";
+export * from "@sso/db/server/rbac/resolve/build-effective";

@@ -30,7 +30,7 @@ const authApi =
 const sessionDeleteManyMock = mock(async () => ({ count: 1 }));
 const setCacheMock = mock(async () => undefined);
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: {
     user: {
       findUnique: findUniqueMock,
@@ -49,7 +49,7 @@ mock.module("@db/server", () => ({
   Prisma,
 }));
 
-mock.module("@auth/server", () => ({
+mock.module("@sso/auth/server", () => ({
   auth: {
     api: authApi,
   },
@@ -60,7 +60,7 @@ mock.module("@auth/server", () => ({
   ),
 }));
 
-mock.module("@redis/server", () => ({
+mock.module("@sso/redis/server", () => ({
   setCache: setCacheMock,
   getCache: mock(async () => null),
   deleteCache: mock(async () => undefined),
@@ -68,7 +68,7 @@ mock.module("@redis/server", () => ({
   getRedis: () => ({ getdel: mock(async () => null) }),
 }));
 
-mock.module("@env/server", () => ({
+mock.module("@sso/env/server", () => ({
   env: {
     CORS_ORIGIN: "http://localhost:5002",
     ENABLE_PASSWORD_AUTH: true,

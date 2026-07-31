@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Roles } from "@rbac";
+import { Roles } from "@sso/rbac";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

@@ -1,5 +1,5 @@
 import { getCache, setCache } from "../../../../redis/src/index.server";
-import type { Permission } from "@rbac";
+import type { Permission } from "@sso/rbac";
 import { rolePermissionsKey } from "../keys";
 
 export async function getCachedRolePermissions(

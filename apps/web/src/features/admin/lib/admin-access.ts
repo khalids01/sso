@@ -1,5 +1,5 @@
-import type { ClientSession } from "@auth/client";
-import { Permissions, Roles } from "@rbac";
+import type { ClientSession } from "@sso/auth/client";
+import { Permissions, Roles } from "@sso/rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 export function isPlatformOwner(session: ClientSession | null | undefined) {

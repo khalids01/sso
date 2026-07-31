@@ -2,7 +2,7 @@ import { createMiddleware } from "@tanstack/react-start";
 
 import { getRootSession } from "@/features/user/lib/get-root-session";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
-import { Roles, Permissions } from "@rbac";
+import { Roles, Permissions } from "@sso/rbac";
 import { redirect } from "@tanstack/react-router";
 
 function canAccessAdmin(session: {

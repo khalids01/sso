@@ -1,3 +1,3 @@
-import { auth } from "@auth/server";
+import { auth } from "@sso/auth/server";
 
 export { auth };

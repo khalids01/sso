@@ -3,7 +3,7 @@ import {
   Permissions,
   RolePermissionMap,
   Roles,
-} from "@rbac";
+} from "@sso/rbac";
 import {
   assertActorCanGrantPermissions,
   assertActorCannotManageOwnRole,

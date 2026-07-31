@@ -15,8 +15,8 @@ import { useSession } from "@/providers/session-provider";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { cn } from "@/lib/utils";
-import { Permissions } from "@rbac";
-import { env } from "@env/public";
+import { Permissions } from "@sso/rbac";
+import { env } from "@sso/env/public";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 function expireCookie(name: string) {

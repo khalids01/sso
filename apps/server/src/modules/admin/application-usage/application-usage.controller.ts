@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { adminModuleGuard } from "../admin-rbac.plugin";
 import {
   ApplicationUsageEventsQueryDto,

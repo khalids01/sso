@@ -3,8 +3,8 @@ import {
   hasAnyPermission,
   hasPermission,
   type Permission,
-} from "@rbac";
-import type { AuthUser } from "@auth/server";
+} from "@sso/rbac";
+import type { AuthUser } from "@sso/auth/server";
 import { getAccountStatusRejection } from "@/guards/account-status";
 
 type PermissionGuardContext = {

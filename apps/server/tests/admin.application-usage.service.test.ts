@@ -7,7 +7,7 @@ const findManyMock = mock(async (): Promise<any[]> => []);
 const applicationFindManyMock = mock(async (): Promise<any[]> => []);
 const queryRawMock = mock(async (): Promise<any[]> => []);
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: {
     applicationUsageEvent: {
       count: countMock,

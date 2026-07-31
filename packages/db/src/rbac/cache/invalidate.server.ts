@@ -1,5 +1,5 @@
 import { connectRedis } from "../../../../redis/src/index.server";
-import type { UserSessionRbacPayload } from "@rbac";
+import type { UserSessionRbacPayload } from "@sso/rbac";
 import { deleteCachedUserSessionRbac } from "./effective.server";
 import { RBAC_CATALOG_VERSION_KEY } from "../keys";
 

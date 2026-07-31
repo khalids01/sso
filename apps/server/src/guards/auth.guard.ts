@@ -1,11 +1,11 @@
 import { Elysia } from "elysia";
-import type { Permission } from "@rbac";
+import type { Permission } from "@sso/rbac";
 import {
   getAuthSession,
   type AuthGetSessionResult,
   type AuthSessionData,
   type AuthUser,
-} from "@auth/server";
+} from "@sso/auth/server";
 import {
   createPermissionChecker,
   getEffectivePermissions,

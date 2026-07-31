@@ -1,5 +1,5 @@
-import prisma from "@db/server";
-import { Roles, type RoleSlug } from "@rbac";
+import prisma from "@sso/db/server";
+import { Roles, type RoleSlug } from "@sso/rbac";
 import { assignUserRoleAndInvalidate } from "@/rbac/assignments";
 
 type InvitationErrorCode =

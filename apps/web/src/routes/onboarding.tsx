@@ -29,7 +29,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-import { Permissions, Roles } from "@rbac";
+import { Permissions, Roles } from "@sso/rbac";
 import { getRootSession } from "@/features/user/lib/get-root-session";
 import {
   getOnboardingPlans,

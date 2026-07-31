@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { PLANS } from "@auth/client";
+import { PLANS } from "@sso/auth/client";
 
 export type OnboardingPlanOption = {
   slug: string;

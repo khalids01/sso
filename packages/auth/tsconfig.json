@@ -6,16 +6,7 @@
     "sourceMap": true,
     "jsx": "react-jsx",
     "outDir": "dist",
-    "rootDir": "..",
-    "paths": {
-      "@db/server": ["../db/src/index.server.ts"],
-      "@db/server/*": ["../db/src/*"],
-      "@env/client": ["../env/src/env.client.ts"],
-      "@env/server": ["../env/src/env.server.ts"],
-      "@config": ["../config/src/config.ts"],
-      "@email/server": ["../email/src/index.server.ts"],
-      "@rbac": ["../rbac/src/index.ts"]
-    }
+    "rootDir": ".."
   },
   "include": [
     "src/**/*",

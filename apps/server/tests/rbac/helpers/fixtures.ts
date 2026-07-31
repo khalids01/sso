@@ -4,7 +4,7 @@ import {
   Roles,
   type Permission,
   type RoleSlug,
-} from "@rbac";
+} from "@sso/rbac";
 
 export type RbacGraphRole = {
   id: string;

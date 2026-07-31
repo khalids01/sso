@@ -1,5 +1,5 @@
-import { Permissions } from "@rbac";
-import type { ClientSession } from "@auth/client";
+import { Permissions } from "@sso/rbac";
+import type { ClientSession } from "@sso/auth/client";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 export function isOwnAssignedRole(

@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { Permissions, type Permission } from "@rbac";
+import { Permissions, type Permission } from "@sso/rbac";
 import { authGuard } from "@/guards/auth.guard";
 import { requirePermission } from "@/rbac/guards/permissions.guard";
 

@@ -1,5 +1,5 @@
-import prisma from "@db/server";
-import { env } from "@env/server";
+import prisma from "@sso/db/server";
+import { env } from "@sso/env/server";
 import {
   getPlatformAuthSettings,
   platformAuthMethods,

@@ -1,9 +1,10 @@
 {
-  "name": "@db",
+  "name": "@sso/db",
   "type": "module",
   "exports": {
-    ".": "./src/server/index.ts",
-    "./*": "./src/*.ts"
+    "./server": "./src/index.server.ts",
+    "./server/rbac/keys": "./src/rbac/keys.ts",
+    "./server/rbac/*": "./src/rbac/*.server.ts"
   },
   "scripts": {
     "db:generate": "prisma generate",
@@ -13,16 +14,16 @@
     "db:make-owner": "bun run scripts/make-owner.ts"
   },
   "devDependencies": {
-    "@config": "workspace:*",
+    "@sso/config": "workspace:*",
     "@types/pg": "^8.16.0",
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@env": "workspace:*",
+    "@sso/env": "workspace:*",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
-    "@rbac": "workspace:*",
-    "@redis": "workspace:*",
+    "@sso/rbac": "workspace:*",
+    "@sso/redis": "workspace:*",
     "dotenv": "^17.3.1",
     "pg": "^8.18.0",
     "prisma": "^7.9.1",

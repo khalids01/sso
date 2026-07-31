@@ -1,4 +1,4 @@
-import type { Permission, RoleSlug, SessionRoleSummary } from "@rbac";
+import type { Permission, RoleSlug, SessionRoleSummary } from "@sso/rbac";
 
 export type AuthClientSessionUser = {
   id: string;

@@ -1,1 +1,1 @@
-export * from "@db/server/rbac/resolve/load-user-context";
+export * from "@sso/db/server/rbac/resolve/load-user-context";

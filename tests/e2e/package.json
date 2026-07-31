@@ -14,10 +14,10 @@
     "check-types": "../../node_modules/@typescript/native/bin/tsc --noEmit"
   },
   "dependencies": {
-    "@db": "workspace:*",
-    "@env": "workspace:*",
-    "@redis": "workspace:*",
-    "@rbac": "workspace:*",
+    "@sso/db": "workspace:*",
+    "@sso/env": "workspace:*",
+    "@sso/redis": "workspace:*",
+    "@sso/rbac": "workspace:*",
     "better-auth": "1.6.23",
     "dotenv": "^17.3.1",
     "zod": "^4.3.6"

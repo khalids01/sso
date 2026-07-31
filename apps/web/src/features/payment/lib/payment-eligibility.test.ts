@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { Roles, type RoleSlug } from "@rbac";
+import { Roles, type RoleSlug } from "@sso/rbac";
 
 import { isBillingEligible } from "./payment-eligibility";
 

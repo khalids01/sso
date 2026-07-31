@@ -3,9 +3,9 @@ import {
   auth,
   runWithOAuthProviderConnection,
   type ApplicationSocialProviderId,
-} from "@auth/server";
-import prisma from "@db/server";
-import { env } from "@env/server";
+} from "@sso/auth/server";
+import prisma from "@sso/db/server";
+import { env } from "@sso/env/server";
 import { randomUUID } from "node:crypto";
 import {
   CheckEmailDto,

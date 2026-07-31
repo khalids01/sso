@@ -10,8 +10,8 @@ import {
   replaceRolePermissions,
   resetRolePermissionsFromMap,
   updateCustomRoleMetadata,
-} from "@db/server/rbac/roles";
-import { type Permission } from "@rbac";
+} from "@sso/db/server/rbac/roles";
+import { type Permission } from "@sso/rbac";
 import { activityService } from "../activity/activity.service";
 import { setCachedRolePermissions } from "@/rbac/cache/role-permissions";
 import { assignUserRoleAndInvalidate } from "@/rbac/assignments";

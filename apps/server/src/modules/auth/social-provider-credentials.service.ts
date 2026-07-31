@@ -8,10 +8,10 @@ import {
 import type {
   ApplicationSocialProviderId,
   OAuthProviderConnectionCredentials,
-} from "@auth/server";
-import prisma from "@db/server";
-import { env } from "@env/server";
-import { connectRedis, getRedis, setCache } from "@redis/server";
+} from "@sso/auth/server";
+import prisma from "@sso/db/server";
+import { env } from "@sso/env/server";
+import { connectRedis, getRedis, setCache } from "@sso/redis/server";
 
 const encryptionKey = createHmac(
   "sha256",

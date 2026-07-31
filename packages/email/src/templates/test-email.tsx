@@ -10,7 +10,7 @@ import {
   Tailwind,
   Text,
 } from "@react-email/components";
-import { siteConfig } from "@config";
+import { siteConfig } from "@sso/config";
 import { renderEmailTemplate } from "../render.server";
 
 export function TestEmail({ connectionName }: { connectionName: string }) {

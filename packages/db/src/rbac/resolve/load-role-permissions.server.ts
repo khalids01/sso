@@ -1,5 +1,5 @@
 import prisma from "../prisma.server";
-import type { Permission } from "@rbac";
+import type { Permission } from "@sso/rbac";
 import {
   getCachedRolePermissions,
   setCachedRolePermissions,

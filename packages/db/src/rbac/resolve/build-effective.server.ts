@@ -3,7 +3,7 @@ import {
   toPermissionArray,
   type Permission,
   type PermissionOverride,
-} from "@rbac";
+} from "@sso/rbac";
 import { getRolePermissions } from "./load-role-permissions.server";
 
 export async function computeEffectivePermissions(args: {

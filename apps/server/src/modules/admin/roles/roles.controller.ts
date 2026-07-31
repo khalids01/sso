@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
-import { Permissions } from "@rbac";
-import type { AuthGetSessionResult } from "@auth/server";
+import { Permissions } from "@sso/rbac";
+import type { AuthGetSessionResult } from "@sso/auth/server";
 import { authGuard } from "@/guards/auth.guard";
 import { requirePermission } from "@/rbac/guards/permissions.guard";
 import {

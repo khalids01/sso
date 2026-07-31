@@ -1,4 +1,4 @@
-import { hasPermission, type Permission } from "@rbac";
+import { hasPermission, type Permission } from "@sso/rbac";
 
 export function sessionHasPermission(
   permissions: readonly string[] | undefined,

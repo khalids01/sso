@@ -1,15 +1,15 @@
-import prisma, { type Prisma } from "@db/server";
-import { getRoleIdBySlug } from "@db/server/rbac/assignments";
-import { isAssignableRoleSlug } from "@db/server/rbac/roles";
+import prisma, { type Prisma } from "@sso/db/server";
+import { getRoleIdBySlug } from "@sso/db/server/rbac/assignments";
+import { isAssignableRoleSlug } from "@sso/db/server/rbac/roles";
 import {
   formatRoleLabel,
   Roles,
   type Permission,
   type RoleSlug,
-} from "@rbac";
-import { sendEmail, invitationTemplate } from "@email/server";
-import { env } from "@env/server";
-import { siteConfig } from "@config";
+} from "@sso/rbac";
+import { sendEmail, invitationTemplate } from "@sso/email/server";
+import { env } from "@sso/env/server";
+import { siteConfig } from "@sso/config";
 import { activityService } from "../activity/activity.service";
 import {
   assertActorCanAccessOwnerTarget,

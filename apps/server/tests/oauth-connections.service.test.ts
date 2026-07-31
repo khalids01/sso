@@ -17,7 +17,7 @@ const connectionFindUnique = mock(async (): Promise<any> => null);
 const connectionDelete = mock(async () => ({}));
 const activityCreate = mock(async () => ({}));
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: {
     oAuthProviderConnection: {
       create: connectionCreate,
@@ -29,7 +29,7 @@ mock.module("@db/server", () => ({
   Prisma,
 }));
 
-mock.module("@env/server", () => ({
+mock.module("@sso/env/server", () => ({
   env: {
     BETTER_AUTH_SECRET: "test-better-auth-secret-that-is-long-enough",
     NODE_ENV: "test",

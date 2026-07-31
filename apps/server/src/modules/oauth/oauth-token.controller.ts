@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Elysia, t } from "elysia";
-import { env } from "@env/server";
+import { env } from "@sso/env/server";
 import {
   exchangeAuthorizationCode,
   getPublicClientMetadata,

@@ -1,7 +1,7 @@
 import type { BetterAuthPlugin, User } from "better-auth";
 import prisma from "../../../db/src/client.server";
 import { getPrimaryRoleSlug } from "../../../db/src/rbac/assignments.server";
-import { Roles } from "@rbac";
+import { Roles } from "@sso/rbac";
 
 import { polarClient } from "./payments.server";
 

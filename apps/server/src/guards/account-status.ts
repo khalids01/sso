@@ -1,4 +1,4 @@
-import type { AuthUser } from "@auth/server";
+import type { AuthUser } from "@sso/auth/server";
 
 export function getAccountStatusRejection(user?: AuthUser | null) {
   if (!user) {

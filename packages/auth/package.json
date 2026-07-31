@@ -1,5 +1,5 @@
 {
-  "name": "@auth",
+  "name": "@sso/auth",
   "type": "module",
   "exports": {
     "./client": {
@@ -14,16 +14,16 @@
   },
   "scripts": {},
   "devDependencies": {
-    "@config": "workspace:*",
+    "@sso/config": "workspace:*",
     "@types/nodemailer": "^8.0.0",
     "typescript": "catalog:"
   },
   "dependencies": {
     "@better-auth/oauth-provider": "1.6.23",
-    "@db": "workspace:*",
-    "@rbac": "workspace:*",
-    "@email": "workspace:*",
-    "@env": "workspace:*",
+    "@sso/db": "workspace:*",
+    "@sso/rbac": "workspace:*",
+    "@sso/email": "workspace:*",
+    "@sso/env": "workspace:*",
     "@polar-sh/better-auth": "^1.8.1",
     "@polar-sh/sdk": "^0.43.1",
     "better-auth": "1.6.23",

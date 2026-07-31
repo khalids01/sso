@@ -1,5 +1,5 @@
 import { t } from "elysia";
-import { InviteableRoleSlugs, Roles } from "@rbac";
+import { InviteableRoleSlugs, Roles } from "@sso/rbac";
 
 export const InviteableUserRoleSchema = t.Union(
   InviteableRoleSlugs.map((slug) => t.Literal(slug)),

@@ -28,7 +28,7 @@ import { ApplicationMembersList } from "./components/application-members-list";
 import { GrantAccessDialog } from "./components/grant-access-dialog";
 import { MemberViewDialog } from "./components/member-view-dialog";
 import { useSession } from "@/providers/session-provider";
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { sessionHasPermission } from "@/features/user/lib/session-permissions";
 
 export function ApplicationMembersPage({

@@ -8,7 +8,7 @@ import {
   LockKeyholeOpen,
 } from "lucide-react";
 import { toast } from "sonner";
-import { env } from "@env/public";
+import { env } from "@sso/env/public";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";

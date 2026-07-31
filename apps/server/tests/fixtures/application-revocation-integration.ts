@@ -1,8 +1,8 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { auth } from "@auth/server";
-import prisma from "@db/server";
-import { env } from "@env/server";
-import { RolePermissionMap, Roles } from "@rbac";
+import { auth } from "@sso/auth/server";
+import prisma from "@sso/db/server";
+import { env } from "@sso/env/server";
+import { RolePermissionMap, Roles } from "@sso/rbac";
 import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
 import { adminApplicationsService } from "../../src/modules/admin/applications/applications.service";
 import { usersService } from "../../src/modules/admin/users/users.service";

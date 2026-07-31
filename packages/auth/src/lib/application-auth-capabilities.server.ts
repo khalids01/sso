@@ -1,4 +1,4 @@
-import { env } from "@env/server";
+import { env } from "@sso/env/server";
 
 export type ApplicationAuthCapability = {
   id: string;

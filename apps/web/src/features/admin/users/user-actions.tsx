@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, History, MoreHorizontal, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Roles } from "@rbac";
+import { Roles } from "@sso/rbac";
 import { queryKeys } from "@/constants/query-keys";
 import { client } from "@/lib/client";
 import { Button } from "@/components/ui/button";

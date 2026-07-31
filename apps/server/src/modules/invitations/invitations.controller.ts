@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { auth } from "@auth/server";
+import { auth } from "@sso/auth/server";
 import { InvitationParamsDto } from "./invitations.dto";
 import { invitationsService } from "./invitations.service";
 

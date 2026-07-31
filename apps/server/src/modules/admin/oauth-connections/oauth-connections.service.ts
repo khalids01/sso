@@ -1,4 +1,4 @@
-import prisma, { Prisma } from "@db/server";
+import prisma, { Prisma } from "@sso/db/server";
 import {
   decryptSocialProviderSecret,
   encryptSocialProviderSecret,

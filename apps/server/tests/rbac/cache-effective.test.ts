@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { Permissions, Roles } from "@rbac";
+import { Permissions, Roles } from "@sso/rbac";
 import { mockRedisModule } from "./helpers/mock-redis-module";
 
 const { store } = mockRedisModule();

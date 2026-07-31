@@ -1,5 +1,5 @@
 import prisma from "../client.server";
-import { Roles, type RoleSlug } from "@rbac";
+import { Roles, type RoleSlug } from "@sso/rbac";
 import { invalidateUser } from "./cache/invalidate.server";
 
 export async function getRoleIdBySlug(slug: string): Promise<string> {

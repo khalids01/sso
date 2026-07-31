@@ -1,4 +1,4 @@
-import { Roles } from "@rbac";
+import { Roles } from "@sso/rbac";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {

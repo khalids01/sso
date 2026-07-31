@@ -3,7 +3,7 @@ import {
   Permissions,
   RolePermissionMap,
   Roles,
-} from "@rbac";
+} from "@sso/rbac";
 import { mockRedisModule } from "./rbac/helpers/mock-redis-module";
 
 const { store } = mockRedisModule();
@@ -38,7 +38,7 @@ const isAssignableRoleSlugMock = mock(async () => true);
 const assignUserRoleAndInvalidateMock = mock(async () => undefined);
 const activityRecordMock = mock(async () => null);
 
-mock.module("@db/server/rbac/roles", () => ({
+mock.module("@sso/db/server/rbac/roles", () => ({
   listRoles: listRolesMock,
   listAssignableRoles: listAssignableRolesMock,
   listPermissionCatalog: listPermissionCatalogMock,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { Roles } from "@rbac";
+import { Roles } from "@sso/rbac";
 
 const assignUserRoleMock = mock(async () => undefined);
 

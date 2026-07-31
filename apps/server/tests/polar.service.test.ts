@@ -87,7 +87,7 @@ const webhookEventMock = {
   }),
 };
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: {
     webhookEvent: webhookEventMock,
   },

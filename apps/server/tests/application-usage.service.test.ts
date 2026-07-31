@@ -4,7 +4,7 @@ import { Prisma } from "../../../packages/db/prisma/generated/client";
 const usageCreate = mock(async (args: unknown) => args);
 const usageDeleteMany = mock(async () => ({ count: 2 }));
 
-mock.module("@db/server", () => ({
+mock.module("@sso/db/server", () => ({
   default: {
     applicationUsageEvent: {
       create: usageCreate,

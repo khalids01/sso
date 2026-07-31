@@ -17,7 +17,7 @@ import {
   type SocialAuthMethod,
 } from "./social-auth-buttons";
 import { BRANDING } from "@/constants/branding";
-import { env } from "@env/public";
+import { env } from "@sso/env/public";
 
 export default function SignUpForm({
   applicationName,

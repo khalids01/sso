@@ -30,7 +30,7 @@ import { ThemeToggle } from "@/components/core/theme-toggle";
 import { NotificationBell } from "@/components/core/notification-bell";
 import Logo from "@/components/core/logo";
 
-import { Permissions } from "@rbac";
+import { Permissions } from "@sso/rbac";
 import { FeedbackButton } from "@/components/core/feedback-button";
 import { getRootSession } from "@/features/user/lib/get-root-session";
 import { getPayment } from "@/features/payment/lib/get-payment";

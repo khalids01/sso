@@ -1,8 +1,8 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { auth } from "@auth/server";
-import prisma, { Prisma } from "@db/server";
-import { env } from "@env/server";
+import { auth } from "@sso/auth/server";
+import prisma, { Prisma } from "@sso/db/server";
+import { env } from "@sso/env/server";
 
 export const REVOCATION_EVENT_TYPE = "application.access.revoked";
 export const REVOCATION_DELIVERY_TTL_MS = 24 * 60 * 60 * 1_000;

@@ -1,1 +1,1 @@
-export * from "@db/server/rbac/cache/effective";
+export * from "@sso/db/server/rbac/cache/effective";

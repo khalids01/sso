@@ -1,4 +1,4 @@
-import type { Permission, UserSessionRbacPayload } from "@rbac";
+import type { Permission, UserSessionRbacPayload } from "@sso/rbac";
 import {
   getCachedUserSessionRbac,
   setCachedUserSessionRbac,

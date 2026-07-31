@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Elysia } from "elysia";
-import { Permissions, RolePermissionMap, Roles } from "@rbac";
+import { Permissions, RolePermissionMap, Roles } from "@sso/rbac";
 import { mockRedisModule } from "./helpers/mock-redis-module";
 
 mockRedisModule();
@@ -19,7 +19,7 @@ const getEffectivePermissionsMock = mock(async () =>
   new Set(RolePermissionMap[Roles.PlatformAdmin]),
 );
 
-mock.module("@auth/server", () => ({
+mock.module("@sso/auth/server", () => ({
   auth: {
     api: {
       getSession: getSessionMock,

@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TanstackQueryProvider } from "@/providers/tanstack-query";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { getRootSession } from "@/features/user/lib/get-root-session";
-import type { ClientSessionResult } from "@auth/client";
+import type { ClientSessionResult } from "@sso/auth/client";
 import { BRANDING } from "@/constants/branding";
 
 

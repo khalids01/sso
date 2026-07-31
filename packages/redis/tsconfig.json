@@ -5,12 +5,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "dist",
-    "rootDir": "..",
-    "paths": {
-      "@env/server": ["../env/src/env.server.ts"],
-      "@env/client": ["../env/src/env.client.ts"],
-      "@config": ["../config/src/config.ts"]
-    }
+    "rootDir": ".."
   },
   "include": [
     "src/**/*",
