@@ -7,7 +7,6 @@
     "outDir": "dist",
     "rootDir": "..",
     "composite": true,
-    "baseUrl": ".",
     "paths": {
       "@env/server": ["../env/src/env.server.ts"],
       "@env/client": ["../env/src/env.client.ts"],

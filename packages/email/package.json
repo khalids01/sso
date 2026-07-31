@@ -12,7 +12,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "check-types": "tsc --noEmit",
+    "check-types": "../../node_modules/@typescript/native/bin/tsc --noEmit",
     "email:dev": "bunx react-email dev --dir src/templates"
   },
   "dependencies": {
@@ -29,6 +29,6 @@
     "@types/node": "^25.3.0",
     "@types/nodemailer": "^8.0.0",
     "react-email": "^6.9.0",
-    "typescript": "^6.0.2"
+    "typescript": "catalog:"
   }
 }
