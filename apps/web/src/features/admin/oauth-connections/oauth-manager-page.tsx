@@ -273,7 +273,7 @@ export function OAuthManagerPage() {
                       {connection.clientId}
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <p className="text-xs text-muted-foreground">
                         Applications
@@ -283,8 +283,20 @@ export function OAuthManagerPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Users</p>
-                      <p className="font-medium">{connection.userCount}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Platform users
+                      </p>
+                      <p className="font-medium">
+                        {connection.platformUserCount}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        App members
+                      </p>
+                      <p className="font-medium">
+                        {connection.applicationMemberCount}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -377,7 +389,14 @@ export function OAuthManagerPage() {
                 label="Applications"
                 value={String(viewConnection.applicationCount)}
               />
-              <Detail label="Users" value={String(viewConnection.userCount)} />
+              <Detail
+                label="Platform users"
+                value={String(viewConnection.platformUserCount)}
+              />
+              <Detail
+                label="Application members"
+                value={String(viewConnection.applicationMemberCount)}
+              />
             </dl>
           ) : null}
           {canManage && viewConnection?.status === "archived" ? (

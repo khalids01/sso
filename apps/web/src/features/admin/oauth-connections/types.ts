@@ -11,6 +11,8 @@ export type OAuthConnection = {
   applicationCount: number;
   accountCount: number;
   userCount: number;
+  platformUserCount: number;
+  applicationMemberCount: number;
   isUsedByPlatform: boolean;
   createdAt: string;
   updatedAt: string;

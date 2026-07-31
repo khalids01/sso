@@ -52,7 +52,18 @@ function mapConnection(
   connection: Prisma.OAuthProviderConnectionGetPayload<{
     select: typeof connectionSelect;
   }>,
-  userCount = connection._count.accounts,
+  counts: {
+    userCount: number;
+    platformUserCount: number;
+    applicationMemberCount: number;
+  } = {
+    userCount: connection._count.accounts,
+    platformUserCount:
+      connection._count.platformAssignments > 0
+        ? connection._count.accounts
+        : 0,
+    applicationMemberCount: 0,
+  },
 ) {
   return {
     id: connection.id,
@@ -63,7 +74,7 @@ function mapConnection(
     status: connection.status,
     applicationCount: connection._count.applicationAssignments,
     accountCount: connection._count.accounts,
-    userCount,
+    ...counts,
     isUsedByPlatform: connection._count.platformAssignments > 0,
     createdAt: connection.createdAt.toISOString(),
     updatedAt: connection.updatedAt.toISOString(),
@@ -150,8 +161,73 @@ export class OAuthConnectionsService {
       );
       return counts;
     }, new Map<string, number>());
+
+    const connectionIds = rows.map((row) => row.id);
+    const memberships = connectionIds.length
+      ? await prisma.applicationMember.findMany({
+          where: {
+            status: { not: "revoked" },
+            user: {
+              accounts: {
+                some: { oauthProviderConnectionId: { in: connectionIds } },
+              },
+            },
+            application: {
+              oauthProviderConnections: {
+                some: { oauthProviderConnectionId: { in: connectionIds } },
+              },
+            },
+          },
+          select: {
+            user: {
+              select: {
+                accounts: {
+                  where: { oauthProviderConnectionId: { in: connectionIds } },
+                  select: { oauthProviderConnectionId: true },
+                },
+              },
+            },
+            application: {
+              select: {
+                oauthProviderConnections: {
+                  where: { oauthProviderConnectionId: { in: connectionIds } },
+                  select: { oauthProviderConnectionId: true },
+                },
+              },
+            },
+          },
+        })
+      : [];
+    const applicationMemberCounts = new Map<string, number>();
+    for (const membership of memberships) {
+      const userConnectionIds = new Set(
+        membership.user.accounts.flatMap((account) =>
+          account.oauthProviderConnectionId
+            ? [account.oauthProviderConnectionId]
+            : [],
+        ),
+      );
+      for (const assignment of membership.application
+        .oauthProviderConnections) {
+        if (!userConnectionIds.has(assignment.oauthProviderConnectionId)) {
+          continue;
+        }
+        applicationMemberCounts.set(
+          assignment.oauthProviderConnectionId,
+          (applicationMemberCounts.get(assignment.oauthProviderConnectionId) ??
+            0) + 1,
+        );
+      }
+    }
     return {
-      items: rows.map((row) => mapConnection(row, userCounts.get(row.id) ?? 0)),
+      items: rows.map((row) => {
+        const userCount = userCounts.get(row.id) ?? 0;
+        return mapConnection(row, {
+          userCount,
+          platformUserCount: row._count.platformAssignments > 0 ? userCount : 0,
+          applicationMemberCount: applicationMemberCounts.get(row.id) ?? 0,
+        });
+      }),
       total,
       pages,
       page,
