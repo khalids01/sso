@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import {
-  createFreeSsoAuthorization,
-  finishFreeSsoAuthorization,
-  type FreeSsoAuthorizationFlow,
+  createSsoAuthorization,
+  createSsoServer,
+  finishSsoAuthorization,
+  type SsoAuthorizationFlow,
 } from "../src/server/index.js";
 
 const clientId = "client_test";
@@ -63,7 +64,7 @@ describe("authorization callback verification", () => {
     expectedNonce = flow.nonce;
     identityNonce = expectedNonce;
 
-    const result = await finishFreeSsoAuthorization({
+    const result = await finishSsoAuthorization({
       clientId,
       code: "authorization_code",
       state: flow.state,
@@ -87,7 +88,7 @@ describe("authorization callback verification", () => {
 
   test("rejects a state mismatch before exchanging the code", async () => {
     const { flow } = await newFlow();
-    await expect(finishFreeSsoAuthorization({
+    await expect(finishSsoAuthorization({
       clientId,
       code: "authorization_code",
       state: "wrong_state",
@@ -98,8 +99,8 @@ describe("authorization callback verification", () => {
 
   test("rejects an expired authorization flow", async () => {
     const { flow } = await newFlow();
-    const expiredFlow: FreeSsoAuthorizationFlow = { ...flow, createdAt: Date.now() - 601_000 };
-    await expect(finishFreeSsoAuthorization({
+    const expiredFlow: SsoAuthorizationFlow = { ...flow, createdAt: Date.now() - 601_000 };
+    await expect(finishSsoAuthorization({
       clientId,
       code: "authorization_code",
       state: expiredFlow.state,
@@ -112,7 +113,7 @@ describe("authorization callback verification", () => {
     const { flow } = await newFlow();
     expectedNonce = flow.nonce;
     identityNonce = "wrong_nonce";
-    await expect(finishFreeSsoAuthorization({
+    await expect(finishSsoAuthorization({
       clientId,
       code: "authorization_code",
       state: flow.state,
@@ -122,8 +123,66 @@ describe("authorization callback verification", () => {
   });
 });
 
+describe("framework-independent SSO server", () => {
+  test("owns login, callback, session, profile, and logout routes", async () => {
+    const sso = createSsoServer({
+      clientId,
+      appUrl: "https://app.example.com",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+
+    const login = await sso.handle(new Request(
+      "https://app.example.com/auth/login?returnTo=/dashboard",
+    ));
+    expect(login.status).toBe(303);
+    const authorizationUrl = new URL(requiredHeader(login, "location"));
+    identityNonce = requiredParam(authorizationUrl, "nonce");
+    const flowCookie = cookiePair(requiredHeader(login, "set-cookie"));
+
+    const callback = await sso.handle(new Request(
+      `https://app.example.com/auth/callback?code=authorization_code&state=${requiredParam(authorizationUrl, "state")}`,
+      { headers: { cookie: flowCookie } },
+    ));
+    expect(callback.status).toBe(303);
+    expect(callback.headers.get("location")).toBe("https://app.example.com/dashboard");
+    const sessionCookie = callback.headers.getSetCookie()
+      .map(cookiePair)
+      .find((cookie) => cookie.startsWith("sso_session="));
+    expect(sessionCookie).toBeDefined();
+
+    const profile = await sso.handle(new Request("https://app.example.com/auth/profile", {
+      headers: { cookie: sessionCookie ?? "" },
+    }));
+    expect(profile.status).toBe(200);
+    expect((await profile.json()).user.email).toBe("test@example.com");
+
+    const rejectedLogout = await sso.handle(new Request("https://app.example.com/auth/logout", {
+      method: "POST",
+      headers: { origin: "https://evil.example.com" },
+    }));
+    expect(rejectedLogout.status).toBe(403);
+
+    const logout = await sso.handle(new Request("https://app.example.com/auth/logout", {
+      method: "POST",
+      headers: { origin: "https://app.example.com" },
+    }));
+    expect(logout.status).toBe(204);
+    expect(logout.headers.get("set-cookie")).toContain("Max-Age=0");
+  });
+
+  test("rejects insecure cross-site cookies", () => {
+    expect(() => createSsoServer({
+      clientId,
+      appUrl: "http://localhost:3000",
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+      cookies: { sameSite: "none" },
+    })).toThrow("must be Secure");
+  });
+});
+
 async function newFlow() {
-  return createFreeSsoAuthorization({
+  return createSsoAuthorization({
     clientId,
     redirectUri: "https://app.example.com/auth/callback",
     returnTo: "/dashboard",
@@ -140,4 +199,20 @@ async function sign(claims: Record<string, unknown>, tokenAudience: string) {
     .setIssuedAt()
     .setExpirationTime("10m")
     .sign(privateKey);
+}
+
+function requiredHeader(response: Response, name: string): string {
+  const value = response.headers.get(name);
+  if (!value) throw new Error(`Missing ${name} header`);
+  return value;
+}
+
+function requiredParam(url: URL, name: string): string {
+  const value = url.searchParams.get(name);
+  if (!value) throw new Error(`Missing ${name} parameter`);
+  return value;
+}
+
+function cookiePair(setCookie: string): string {
+  return setCookie.split(";", 1)[0] ?? "";
 }

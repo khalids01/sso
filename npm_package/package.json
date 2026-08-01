@@ -1,6 +1,6 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Headless SkyCanvas SSO helpers for servers, browsers, and React",
   "type": "module",
   "license": "MIT",
@@ -31,6 +31,10 @@
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"
+    },
+    "./better-auth": {
+      "types": "./dist/better-auth/index.d.ts",
+      "import": "./dist/better-auth/index.js"
     }
   },
   "scripts": {

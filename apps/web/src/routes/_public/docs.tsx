@@ -7,7 +7,7 @@ export const Route = createFileRoute("/_public/docs")({
       { title: "Integration Guide · SkyCanvas SSO" },
       {
         name: "description",
-        content: "Integrate SkyCanvas SSO with React, Node, Better Auth, TanStack React, and Elysia.",
+        content: "Add SkyCanvas SSO with Better Auth, another auth library, no auth library, or a non-JavaScript backend.",
       },
     ],
   }),

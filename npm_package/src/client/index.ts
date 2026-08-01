@@ -1,6 +1,6 @@
-import type { FreeSsoSession, FreeSsoUser } from "../index.js";
+import type { SsoSession, SsoUser } from "../index.js";
 
-export interface FreeSsoClientOptions<TUser extends FreeSsoUser = FreeSsoUser> {
+export interface SsoClientOptions<TUser extends SsoUser = SsoUser> {
   baseUrl?: string;
   loginPath?: string;
   profilePath?: string;
@@ -9,15 +9,15 @@ export interface FreeSsoClientOptions<TUser extends FreeSsoUser = FreeSsoUser> {
   navigate?: (url: string) => void;
 }
 
-export interface FreeSsoClient<TUser extends FreeSsoUser = FreeSsoUser> {
+export interface SsoClient<TUser extends SsoUser = SsoUser> {
   login: (returnTo?: string) => void;
-  getSession: () => Promise<FreeSsoSession<TUser> | null>;
+  getSession: () => Promise<SsoSession<TUser> | null>;
   logout: () => Promise<void>;
 }
 
-export function createFreeSsoClient<TUser extends FreeSsoUser = FreeSsoUser>(
-  options: FreeSsoClientOptions<TUser> = {},
-): FreeSsoClient<TUser> {
+export function createSsoClient<TUser extends SsoUser = SsoUser>(
+  options: SsoClientOptions<TUser> = {},
+): SsoClient<TUser> {
   const baseUrl = options.baseUrl;
   const loginPath = options.loginPath ?? "/auth/login";
   const profilePath = options.profilePath ?? "/auth/profile";
@@ -27,7 +27,7 @@ export function createFreeSsoClient<TUser extends FreeSsoUser = FreeSsoUser>(
     login(returnTo = "/") {
       const target = resolveUrl(loginPath, baseUrl);
       target.searchParams.set("returnTo", returnTo);
-      const navigate = options.navigate ?? ((url: string) => window.location.assign(url));
+      const navigate = options.navigate ?? defaultNavigate;
       navigate(baseUrl ? target.toString() : `${target.pathname}${target.search}`);
     },
     async getSession() {
@@ -37,8 +37,8 @@ export function createFreeSsoClient<TUser extends FreeSsoUser = FreeSsoUser>(
         headers: { accept: "application/json" },
       });
       if (response.status === 401) return null;
-      if (!response.ok) throw new Error(`Free SSO session request failed (${response.status})`);
-      return response.json() as Promise<FreeSsoSession<TUser>>;
+      if (!response.ok) throw await responseError(response, "session request");
+      return response.json() as Promise<SsoSession<TUser>>;
     },
     async logout() {
       const response = await getFetch(options.fetch)(resolveRequestUrl(logoutPath, baseUrl), {
@@ -46,14 +46,19 @@ export function createFreeSsoClient<TUser extends FreeSsoUser = FreeSsoUser>(
         credentials: "include",
         headers: { accept: "application/json" },
       });
-      if (!response.ok) throw new Error(`Free SSO logout failed (${response.status})`);
+      if (!response.ok) throw await responseError(response, "logout");
     },
   };
 }
 
+function defaultNavigate(url: string): void {
+  if (typeof window === "undefined") throw new Error("SSO login requires a browser or a custom navigate function");
+  window.location.assign(url);
+}
+
 function getFetch(customFetch: typeof fetch | undefined): typeof fetch {
   const request = customFetch ?? globalThis.fetch;
-  if (!request) throw new Error("Free SSO requires fetch in this environment");
+  if (!request) throw new Error("SSO requires fetch in this environment");
   return request;
 }
 
@@ -65,4 +70,10 @@ function resolveUrl(path: string, baseUrl: string | undefined): URL {
   if (baseUrl) return new URL(path, baseUrl);
   if (typeof window === "undefined") return new URL(path, "http://localhost");
   return new URL(path, window.location.origin);
+}
+
+async function responseError(response: Response, action: string): Promise<Error> {
+  const body = await response.json().catch(() => null) as { error?: unknown } | null;
+  const detail = typeof body?.error === "string" ? `: ${body.error}` : "";
+  return new Error(`SSO ${action} failed (${response.status})${detail}`);
 }

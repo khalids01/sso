@@ -1,14 +1,15 @@
 import { expect, test } from "bun:test";
-import { createFreeSsoClient } from "../src/client/index.js";
+import { createSsoClient } from "../src/client/index.js";
 
 test("browser client uses local session endpoints with credentials", async () => {
   const requests: Array<{ input: string; init?: RequestInit }> = [];
-  const client = createFreeSsoClient({
+  const client = createSsoClient({
     baseUrl: "https://app.example.com",
     fetch: (async (input: string | URL | Request, init?: RequestInit) => {
       requests.push({ input: String(input), ...(init ? { init } : {}) });
       return Response.json({
         user: { id: "1", name: "Khalid", email: "k@example.com", emailVerified: true, image: null },
+        expiresAt: Date.now() + 60_000,
       });
     }) as typeof fetch,
   });
@@ -21,7 +22,7 @@ test("browser client uses local session endpoints with credentials", async () =>
 
 test("browser client redirects through the local login route", () => {
   let destination = "";
-  const client = createFreeSsoClient({
+  const client = createSsoClient({
     baseUrl: "https://app.example.com",
     navigate: (url) => { destination = url; },
   });
@@ -31,7 +32,7 @@ test("browser client redirects through the local login route", () => {
 });
 
 test("browser client maps unauthorized profile responses to no session", async () => {
-  const client = createFreeSsoClient({
+  const client = createSsoClient({
     fetch: (async () => new Response(null, { status: 401 })) as unknown as typeof fetch,
   });
 
@@ -40,7 +41,7 @@ test("browser client maps unauthorized profile responses to no session", async (
 
 test("browser client sends logout as a credentialed POST", async () => {
   let requestInit: RequestInit | undefined;
-  const client = createFreeSsoClient({
+  const client = createSsoClient({
     fetch: (async (_input: string | URL | Request, init?: RequestInit) => {
       requestInit = init;
       return new Response(null, { status: 204 });

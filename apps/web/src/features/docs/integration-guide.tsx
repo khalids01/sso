@@ -8,7 +8,6 @@ import {
   Clipboard,
   Code2,
   ExternalLink,
-  FileCode2,
   KeyRound,
   Menu,
   Server,
@@ -18,39 +17,7 @@ import {
 import { securityChecklist, type CodeSample } from "./integration-guide-content";
 import { CopyCodeBlock } from "./copy-code-block";
 import ssoAgentGuide from "./sso-agent-guide.md?raw";
-import { betterAuthSamples, manualSamples, nextBetterAuthSamples } from "./framework-recipe-content";
-import { nextManualSamples } from "./next-manual-content";
-
-
-type Recipe = "better" | "manual" | "nextjs" | "next-better";
-type AppType = "fullstack" | "separate";
-type FullstackFramework = "nextjs" | "tanstack";
-type FrontendFramework = "react" | "browser";
-type BackendFramework = "node" | "elysia";
-type AuthMode = "better" | "manual";
-
-const recipeCopy: Record<Recipe, { label: string; description: string; samples: CodeSample[] }> = {
-  better: {
-    label: "Better Auth",
-    description: "Let Better Auth own the OAuth callback, local users, and application sessions.",
-    samples: betterAuthSamples,
-  },
-  manual: {
-    label: "Without auth library",
-    description: "Use the copy-ready Elysia handlers and encrypted local session directly.",
-    samples: manualSamples,
-  },
-  "next-better": {
-    label: "Next.js + Better Auth",
-    description: "Keep Better Auth as the only session system and add SkyCanvas as its OAuth provider.",
-    samples: nextBetterAuthSamples,
-  },
-  nextjs: {
-    label: "Next.js APIs",
-    description: "Use App Router handlers for login, callback, profile, logout, and encrypted sessions.",
-    samples: nextManualSamples,
-  },
-};
+import { packageRecipes, type GuideMode } from "./package-guide-content";
 
 const headingClass =
   "text-[clamp(1.65rem,3vw,2rem)] font-semibold leading-tight tracking-[-0.025em] text-[#f4f6ff]";
@@ -58,28 +25,8 @@ const leadClass = "mt-3 max-w-2xl text-[0.95rem] leading-7 text-[#7f849c]";
 
 export function IntegrationGuide() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [appType, setAppType] = useState<AppType>("fullstack");
-  const [fullstackFramework, setFullstackFramework] = useState<FullstackFramework>("nextjs");
-  const [frontendFramework, setFrontendFramework] = useState<FrontendFramework>("react");
-  const [backendFramework, setBackendFramework] = useState<BackendFramework>("node");
-  const [authMode, setAuthMode] = useState<AuthMode>("better");
-  const recipe: Recipe =
-    authMode === "better"
-      ? appType === "fullstack" && fullstackFramework === "nextjs"
-        ? "next-better"
-        : "better"
-      : appType === "fullstack" && fullstackFramework === "nextjs"
-        ? "nextjs"
-        : "manual";
-  const activeRecipe = recipeCopy[recipe];
-  const stackLabel =
-    appType === "fullstack"
-      ? fullstackFramework === "nextjs"
-        ? "Next.js"
-        : "TanStack Start"
-      : `${frontendFramework === "react" ? "React" : "Browser client"} + ${
-          backendFramework === "node" ? "Node.js" : "Elysia"
-        }`;
+  const [authMode, setAuthMode] = useState<GuideMode>("better");
+  const activeRecipe = packageRecipes[authMode];
   const navigation = [
     {
       label: "Selected guide",
@@ -100,18 +47,7 @@ export function IntegrationGuide() {
       items: [{ label: "Security checklist", href: "#security" }],
     },
   ];
-  const pickerProps = {
-    appType,
-    setAppType,
-    fullstackFramework,
-    setFullstackFramework,
-    frontendFramework,
-    setFrontendFramework,
-    backendFramework,
-    setBackendFramework,
-    authMode,
-    setAuthMode,
-  };
+  const pickerProps = { authMode, setAuthMode };
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-[#c0caf5] [color-scheme:dark]">
@@ -164,51 +100,43 @@ export function IntegrationGuide() {
                 <BookOpen className="size-4" /> Selected integration guide
               </div>
               <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.035em] text-[#f4f6ff] sm:text-5xl">
-                {stackLabel} with {authMode === "better" ? "Better Auth" : "no auth library"}
+                Add SkyCanvas SSO to your application
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-[#a9b1d6] sm:text-lg sm:leading-8">
-                {activeRecipe.description} Only the files for this selection are shown below.
+                {activeRecipe.description} Follow the selected steps from top to bottom.
               </p>
 
               <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-[#292e42] bg-[#292e42] sm:grid-cols-3">
-                <FlowStep number="01" icon={Code2} title="Start login" text="Better Auth redirects" />
-                <FlowStep number="02" icon={Server} title="SSO callback" text="Next.js handles it" />
-                <FlowStep number="03" icon={KeyRound} title="Local session" text="Use Better Auth normally" />
+                <FlowStep number="01" icon={Code2} title="Install" text="Add the SSO package" />
+                <FlowStep number="02" icon={Server} title="Connect server" text="Configure and mount auth" />
+                <FlowStep number="03" icon={KeyRound} title="Use session" text="Sign in, protect, sign out" />
               </div>
 
               <Callout>
-                {recipe === "next-better" ? (
+                {authMode === "better" ? (
                   <span>
                     Better Auth generates <InlineCode>/api/auth/oauth2/callback/skycanvas</InlineCode>. Register that
                     exact path in SkyCanvas. <InlineCode>/api/auth/callback</InlineCode> is wrong for this setup, and
                     you should not add <InlineCode>SSO_CALLBACK_URL</InlineCode>.
                   </span>
+                ) : activeRecipe.callbackPath ? (
+                  <span>
+                    The SSO server owns <InlineCode>{activeRecipe.callbackPath}</InlineCode> and keeps the encrypted
+                    OAuth flow and session in server-only cookies.
+                  </span>
                 ) : (
-                  <span>Register the exact callback shown in the first step of this selected guide.</span>
+                  <span>
+                    Your existing auth library owns the callback and local session. Register the exact
+                    <InlineCode>redirect_uri</InlineCode> that it sends to SkyCanvas.
+                  </span>
                 )}
               </Callout>
-            </section>
-
-            <section id="agent-guide" className="scroll-mt-24 border-b border-[#292e42] py-14">
-              <SectionEyebrow>Agent handoff</SectionEyebrow>
-              <h2 className={headingClass}>Give any coding agent the complete context</h2>
-              <p className={leadClass}>
-                Copy this file into your project or paste it into an agent task before asking for the integration.
-              </p>
-              <div className="mt-7">
-                <CopyCodeBlock
-                  sample={{
-                    filename: "sso-agent-guide.md",
-                    code: ssoAgentGuide,
-                  }}
-                />
-              </div>
             </section>
 
             <section id="selected-guide" className="scroll-mt-24 border-b border-[#292e42] py-14">
               <SectionEyebrow>Selected guide</SectionEyebrow>
               <h2 className={headingClass}>{activeRecipe.label}</h2>
-              <p className={leadClass}>Add these files in order. Do not add separate login, callback, profile, or session handlers.</p>
+              <p className={leadClass}>Complete these steps in order and keep all OAuth tokens on the server.</p>
 
               <ol className="mt-9 space-y-10">
                 {activeRecipe.samples.map((sample, index) => (
@@ -218,10 +146,28 @@ export function IntegrationGuide() {
                     number={String(index + 1)}
                     title={sample.filename}
                   >
+                    {sample.description ? <p>{sample.description}</p> : null}
                     <CodeBlock sample={sample} />
                   </GuideStep>
                 ))}
               </ol>
+            </section>
+
+            <section id="agent-guide" className="scroll-mt-24 border-b border-[#292e42] py-14">
+              <SectionEyebrow>Agent handoff</SectionEyebrow>
+              <h2 className={headingClass}>Give any coding agent the complete context</h2>
+              <p className={leadClass}>
+                Copy this file into the target project or paste it into an agent task. It tells the agent to use the
+                package, select one auth path, preserve the existing session system, and verify the result.
+              </p>
+              <div className="mt-7">
+                <CopyCodeBlock
+                  sample={{
+                    filename: "sso-agent-guide.md",
+                    code: ssoAgentGuide,
+                  }}
+                />
+              </div>
             </section>
 
             <section id="security" className="scroll-mt-24 py-14">
@@ -259,41 +205,17 @@ export function IntegrationGuide() {
 }
 
 type GuidePickerProps = {
-  appType: AppType;
-  setAppType: (value: AppType) => void;
-  fullstackFramework: FullstackFramework;
-  setFullstackFramework: (value: FullstackFramework) => void;
-  frontendFramework: FrontendFramework;
-  setFrontendFramework: (value: FrontendFramework) => void;
-  backendFramework: BackendFramework;
-  setBackendFramework: (value: BackendFramework) => void;
-  authMode: AuthMode;
-  setAuthMode: (value: AuthMode) => void;
+  authMode: GuideMode;
+  setAuthMode: (value: GuideMode) => void;
   compact?: boolean;
 };
 
 function GuidePicker({
-  appType,
-  setAppType,
-  fullstackFramework,
-  setFullstackFramework,
-  frontendFramework,
-  setFrontendFramework,
-  backendFramework,
-  setBackendFramework,
   authMode,
   setAuthMode,
   compact = false,
 }: GuidePickerProps) {
   const titleId = compact ? "guide-picker-title-compact" : "guide-picker-title-sidebar";
-  const stack =
-    appType === "fullstack"
-      ? fullstackFramework === "nextjs"
-        ? "Next.js"
-        : "TanStack Start"
-      : `${frontendFramework === "react" ? "React" : "Browser client"} + ${
-          backendFramework === "node" ? "Node.js" : "Elysia"
-        }`;
 
   return (
     <section
@@ -306,63 +228,22 @@ function GuidePicker({
         </span>
         <div>
           <h2 id={titleId} className="text-sm font-semibold text-[#f4f6ff]">
-            Build your guide
+            Choose your auth setup
           </h2>
-          <p className="mt-1 text-xs leading-5 text-[#7f849c]">Choose only what your app uses.</p>
+          <p className="mt-1 text-xs leading-5 text-[#7f849c]">The server framework does not change the SSO flow.</p>
         </div>
       </div>
 
       <div className={`mt-5 ${compact ? "grid gap-5 sm:grid-cols-2" : "space-y-5"}`}>
         <PickerGroup
-          label="Type of app"
-          value={appType}
-          onChange={setAppType}
-          options={[
-            ["fullstack", "Fullstack"],
-            ["separate", "Separate frontend + backend"],
-          ]}
-        />
-
-        {appType === "fullstack" ? (
-          <PickerGroup
-            label="Fullstack framework"
-            value={fullstackFramework}
-            onChange={setFullstackFramework}
-            options={[
-              ["nextjs", "Next.js"],
-              ["tanstack", "TanStack Start"],
-            ]}
-          />
-        ) : (
-          <>
-            <PickerGroup
-              label="Frontend"
-              value={frontendFramework}
-              onChange={setFrontendFramework}
-              options={[
-                ["react", "React"],
-                ["browser", "Browser client"],
-              ]}
-            />
-            <PickerGroup
-              label="Backend"
-              value={backendFramework}
-              onChange={setBackendFramework}
-              options={[
-                ["node", "Node.js"],
-                ["elysia", "Elysia"],
-              ]}
-            />
-          </>
-        )}
-
-        <PickerGroup
-          label="Authentication"
+          label="Current authentication"
           value={authMode}
           onChange={setAuthMode}
           options={[
-            ["better", "Better Auth"],
+            ["better", "Existing Better Auth"],
+            ["other", "Another auth library"],
             ["manual", "No auth library"],
+            ["language", "Non-JavaScript backend"],
           ]}
         />
       </div>
@@ -370,12 +251,12 @@ function GuidePicker({
       <div className="mt-5 rounded-lg border border-[#3b4261] bg-[#0b0f19] p-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#565f89]">Selected guide</p>
         <p className="mt-2 text-xs font-medium leading-5 text-[#c0caf5]">
-          {stack} · {authMode === "better" ? "Better Auth" : "No auth library"}
+          {packageRecipes[authMode].shortLabel}
         </p>
       </div>
 
       <a
-        href="#framework-guides"
+        href="#selected-guide"
         className="mt-4 flex items-center justify-between rounded-lg bg-[#7aa2f7] px-3 py-2.5 text-xs font-semibold text-[#0b0f19] transition hover:bg-[#8db0ff]"
       >
         View this guide <ArrowRight className="size-3.5" />
@@ -458,9 +339,9 @@ function DocsSidebar({
         ))}
       </nav>
       <div className="mt-10 rounded-xl border border-[#292e42] bg-[#111522] p-4">
-        <p className="text-xs font-medium text-[#c0caf5]">Content format</p>
+        <p className="text-xs font-medium text-[#c0caf5]">Official package</p>
         <p className="mt-2 text-xs leading-5 text-[#7f849c]">
-          Start with one typed guide. Move to MDX when a second docs page is needed.
+          JavaScript guides use @skycanvasstudio/sso. Other backends use the same OAuth/OIDC protocol directly.
         </p>
       </div>
     </aside>
@@ -596,17 +477,4 @@ function highlight(code: string) {
       </span>
     );
   });
-}
-
-function ReferenceRow({ name, value, last = false }: { name: string; value: string; last?: boolean }) {
-  return (
-    <div
-      className={`grid gap-2 bg-[#111522] px-4 py-4 sm:grid-cols-[210px_1fr] ${
-        last ? "" : "border-b border-[#292e42]"
-      }`}
-    >
-      <code className="text-xs font-semibold text-[#7dcfff]">{name}</code>
-      <span className="text-sm text-[#a9b1d6]">{value}</span>
-    </div>
-  );
 }

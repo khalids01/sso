@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 const temporaryRoot = mkdtempSync(join(tmpdir(), "sso-consumer-"));
+const sourceManifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
 
 try {
   const packResult = JSON.parse(exec("npm", [
@@ -31,27 +32,29 @@ try {
   exec("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"], temporaryRoot);
 
   writeFileSync(join(temporaryRoot, "index.mjs"), `
-import { getFreeSsoEndpoints } from "@skycanvasstudio/sso";
-import { createFreeSsoClient } from "@skycanvasstudio/sso/client";
-import { FreeSsoProvider, useFreeSso } from "@skycanvasstudio/sso/react";
-import { createFreeSsoAuthorization, createFreeSsoBetterAuthProvider } from "@skycanvasstudio/sso/server";
+import { getSsoEndpoints } from "@skycanvasstudio/sso";
+import { createSsoClient } from "@skycanvasstudio/sso/client";
+import { SsoProvider, useSso } from "@skycanvasstudio/sso/react";
+import { createSsoAuthorization, createSsoServer } from "@skycanvasstudio/sso/server";
+import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
 
-const values = [getFreeSsoEndpoints, createFreeSsoClient, FreeSsoProvider, useFreeSso, createFreeSsoAuthorization, createFreeSsoBetterAuthProvider];
+const values = [getSsoEndpoints, createSsoClient, SsoProvider, useSso, createSsoAuthorization, createSsoServer, createSsoBetterAuthProvider];
 if (values.some((value) => typeof value !== "function")) throw new Error("A package export is missing");
 console.log("Packed runtime imports passed");
 `);
   exec("node", ["index.mjs"], temporaryRoot, true);
 
   writeFileSync(join(temporaryRoot, "consumer.ts"), `
-import type { FreeSsoSession } from "@skycanvasstudio/sso";
-import { createFreeSsoClient } from "@skycanvasstudio/sso/client";
-import { createFreeSsoBetterAuthProvider } from "@skycanvasstudio/sso/server";
+import type { SsoSession } from "@skycanvasstudio/sso";
+import { createSsoClient } from "@skycanvasstudio/sso/client";
+import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
 
-const session: FreeSsoSession = {
+const session: SsoSession = {
   user: { id: "1", name: "User", email: "user@example.com", emailVerified: true, image: null },
+  expiresAt: Date.now() + 60_000,
 };
-createFreeSsoClient().login("/dashboard");
-createFreeSsoBetterAuthProvider({ clientId: "client_123" });
+createSsoClient().login("/dashboard");
+createSsoBetterAuthProvider({ clientId: "client_123" });
 void session;
 `);
   writeFileSync(join(temporaryRoot, "tsconfig.json"), JSON.stringify({
@@ -69,7 +72,7 @@ void session;
   console.log("Packed TypeScript 7 consumer passed");
 
   const manifest = JSON.parse(readFileSync(join(temporaryRoot, "node_modules/@skycanvasstudio/sso/package.json"), "utf8"));
-  if (manifest.version !== "0.1.0") throw new Error("Installed package version is incorrect");
+  if (manifest.version !== sourceManifest.version) throw new Error("Installed package version is incorrect");
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
 }

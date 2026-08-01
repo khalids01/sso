@@ -1,7 +1,7 @@
 import { genericOAuth } from "better-auth/plugins";
-import { createFreeSsoBetterAuthProvider } from "../src/server/index.js";
+import { createSsoBetterAuthProvider } from "../src/better-auth/index.js";
 
-const provider = createFreeSsoBetterAuthProvider({
+const provider = createSsoBetterAuthProvider({
   clientId: "client_123",
 });
 

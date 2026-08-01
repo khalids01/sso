@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { getFreeSsoEndpoints, safeReturnTo } from "../src/index.js";
-import { createFreeSsoAuthorization } from "../src/server/index.js";
+import { getSsoEndpoints, safeReturnTo } from "../src/index.js";
+import { createSsoAuthorization } from "../src/server/index.js";
 
 describe("shared helpers", () => {
   test("builds canonical endpoints", () => {
-    const endpoints = getFreeSsoEndpoints("https://sso.example.com/path");
+    const endpoints = getSsoEndpoints("https://sso.example.com/path");
     expect(endpoints.authorization).toBe("https://sso.example.com/api/auth/oauth2/authorize");
     expect(endpoints.clientMetadata("client 1")).toBe(
       "https://sso.example.com/api/oauth/client-metadata?client_id=client+1",
@@ -20,7 +20,7 @@ describe("shared helpers", () => {
 
 describe("server authorization", () => {
   test("creates an authorization-code PKCE request", async () => {
-    const { url, flow } = await createFreeSsoAuthorization({
+    const { url, flow } = await createSsoAuthorization({
       clientId: "client_123",
       redirectUri: "https://app.example.com/auth/callback",
       baseUrl: "https://sso.example.com",
