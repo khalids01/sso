@@ -1,6 +1,6 @@
 # SkyCanvas SSO implementation guide for coding agents
 
-Use this document when adding SkyCanvas SSO to an application. The official package is `@skycanvasstudio/sso`. It is headless and provides no UI.
+Use this document when adding SkyCanvas SSO to an application. The official package is `@skycanvasstudio/sso`. Its auth core is headless; React applications may use the optional shadcn-style controls from `/react` and the packaged stylesheet.
 
 ## First inspect the target project
 
@@ -31,6 +31,7 @@ import { genericOAuth } from "better-auth/plugins"
 const skycanvas = createSsoBetterAuthProvider({
   clientId: env.SSO_CLIENT_ID,
   baseUrl: env.SSO_URL, // optional
+  forceLogin: true, // default; set false only for intentional silent SSO
 })
 
 export const auth = betterAuth({
@@ -47,9 +48,10 @@ Requirements:
 
 - Mount the existing `auth.handler` for GET and POST using Better Auth's normal server adapter.
 - Do not create separate SkyCanvas login, callback, profile, session, or logout routes.
-- Use Better Auth's `genericOAuthClient()` and `signIn.oauth2({ providerId: "skycanvas", callbackURL })` on the client.
-- Keep using Better Auth's existing `auth.api.getSession`, `useSession`, and `signOut` APIs.
-- Do not import `@skycanvasstudio/sso/client` or `/react` on this path.
+- Use Better Auth's `genericOAuthClient()` and wrap that client with `createSsoBetterAuthClient()`.
+- Use the wrapper for `signIn`, `switchAccount`, and local/global `signOut`; do not recreate SSO URLs or logout routes in the application.
+- Keep using Better Auth's existing `auth.api.getSession` and `useSession` APIs.
+- Do not import `@skycanvasstudio/sso/client` on this path. The optional controlled `/react` UI is safe to use.
 - Preserve the existing account-linking policy. Do not enable forced linking without an explicit owner decision.
 
 Server environment:
@@ -70,6 +72,21 @@ https://your-domain.example/api/auth/oauth2/callback/skycanvas
 ```
 
 Better Auth derives this URL from `BETTER_AUTH_URL`. Do not add `SSO_CALLBACK_URL`. The package does not read `SSO_URL` automatically; pass it as `baseUrl` when provided.
+
+Browser client:
+
+```ts
+import { createAuthClient } from "better-auth/react"
+import { genericOAuthClient } from "better-auth/client/plugins"
+import { createSsoBetterAuthClient } from "@skycanvasstudio/sso/better-auth"
+
+export const authClient = createAuthClient({ plugins: [genericOAuthClient()] })
+export const sso = createSsoBetterAuthClient({
+  authClient,
+  clientId: env.NEXT_PUBLIC_SSO_CLIENT_ID,
+  baseUrl: env.NEXT_PUBLIC_SSO_URL,
+})
+```
 
 ## Path B: Another JavaScript auth library
 
@@ -166,12 +183,39 @@ For a separate frontend/backend, set `baseUrl` on `createSsoClient`, configure e
 Optional React integration:
 
 ```tsx
-import { SsoProvider, useSso, useSsoSession } from "@skycanvasstudio/sso/react"
+import "@skycanvasstudio/sso/styles.css"
+import { SsoProvider, SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
 
 <SsoProvider client={ssoClient}>{children}</SsoProvider>
 ```
 
-Use `useSso()` for login/logout/refresh and `useSsoSession()` for `user`, `session`, and `status`. Build UI in the target application.
+`SsoSignInButton` and `SsoUserMenu` work directly with this provider. `SsoUserMenu` renders its read-only Profile action first, caller-supplied items next, optional account switching after those items, and Logout last.
+
+## Optional React UI for Better Auth
+
+Use controlled props with Better Auth's session. Do not create application-specific SSO routes:
+
+```tsx
+import "@skycanvasstudio/sso/styles.css"
+import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
+import { authClient, sso } from "./auth-client"
+
+const { data } = authClient.useSession()
+
+return data?.user ? (
+  <SsoUserMenu
+    user={data.user}
+    items={[{ label: "Dashboard", href: "/dashboard" }]}
+    showSwitchAccount
+    onSwitchAccount={() => sso.switchAccount("/dashboard")}
+    onLogout={() => sso.signOut({ global: true, returnTo: "/" })}
+  />
+) : (
+  <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />
+)
+```
+
+The UI uses the same Base UI primitives as the SSO web application's shadcn components. Import `@skycanvasstudio/sso/styles.css` once. It consumes shadcn CSS variables when present and supports both `.dark` and `[data-theme="dark"]`. Prefer `className` and component props for small adaptations; build custom UI with the hooks only when the requested design materially differs.
 
 ## Path D: Non-JavaScript backend
 

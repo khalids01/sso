@@ -1,6 +1,6 @@
 # @skycanvasstudio/sso
 
-Headless helpers for SkyCanvas SSO. The package provides server functionality, browser clients, data, and optional React hooks—no UI.
+SkyCanvas SSO helpers for servers, browsers, and React. The core is headless; the optional React entry includes a small shadcn-style sign-in button, account menu, and read-only profile dialog built on Base UI.
 
 ## Choose one path
 
@@ -25,6 +25,7 @@ import { genericOAuth } from "better-auth/plugins";
 const skycanvas = createSsoBetterAuthProvider({
   clientId: process.env.SSO_CLIENT_ID!,
   baseUrl: process.env.SSO_URL, // optional
+  forceLogin: true, // default; set false only when silent SSO is intentional
 });
 
 export const auth = betterAuth({
@@ -36,7 +37,25 @@ export const auth = betterAuth({
 
 `SSO_URL` is optional and defaults to `https://api-sso.skycanvasstudio.com`. The package does not read environment variables itself; the application passes `SSO_URL` as `baseUrl` when it needs an override.
 
-Mount `auth.handler` using Better Auth's normal server instructions. On the client, use Better Auth's `genericOAuthClient`, `signIn.oauth2({ providerId: "skycanvas" })`, `useSession`, and `signOut`. Do not use this package's `/client` or `/react` entries on this path.
+Mount `auth.handler` using Better Auth's normal server instructions. On the client, wrap the existing Better Auth client once so sign-in, account switching, local logout, and global logout remain package-owned:
+
+```ts
+import { createSsoBetterAuthClient } from "@skycanvasstudio/sso/better-auth";
+import { createAuthClient } from "better-auth/react";
+import { genericOAuthClient } from "better-auth/client/plugins";
+
+export const authClient = createAuthClient({
+  plugins: [genericOAuthClient()],
+});
+
+export const sso = createSsoBetterAuthClient({
+  authClient,
+  clientId: process.env.NEXT_PUBLIC_SSO_CLIENT_ID!,
+  baseUrl: process.env.NEXT_PUBLIC_SSO_URL,
+});
+```
+
+The public client ID and SSO URL are not secrets. Do not use the headless `/client` session implementation on the Better Auth path.
 
 Register the exact callback:
 
@@ -132,16 +151,59 @@ await ssoClient.logout({ global: true, returnTo: "/" });
 
 For a separate frontend, give the client a backend `baseUrl`, allow only the frontend origin in credentialed CORS, and pass that origin through `redirectOrigin` and `trustedOrigins` on `createSsoServer`.
 
-### Optional React hooks
+### Optional React hooks and UI
 
 ```tsx
-import { SsoProvider, useSso, useSsoSession } from "@skycanvasstudio/sso/react";
+import "@skycanvasstudio/sso/styles.css";
+import {
+  SsoProvider,
+  SsoSignInButton,
+  SsoUserMenu,
+  useSso,
+  useSsoSession,
+} from "@skycanvasstudio/sso/react";
 import { ssoClient } from "./sso-client";
 
 <SsoProvider client={ssoClient}>{children}</SsoProvider>;
 
 const { login, logout, refresh } = useSso();
 const { user, session, status } = useSsoSession();
+
+status === "authenticated" ? (
+  <SsoUserMenu
+    items={[
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Settings", href: "/settings" },
+    ]}
+    showSwitchAccount
+  />
+) : (
+  <SsoSignInButton callbackURL="/dashboard">Sign in</SsoSignInButton>
+);
+```
+
+`SsoUserMenu` always renders Profile first, supplied `items` next, optional account switching after them, and Logout last. Its profile dialog is read-only. Import the packaged stylesheet once; it uses shadcn color variables when available and supports `.dark` and `[data-theme="dark"]` automatically.
+
+For Better Auth, pass controlled data and package-owned actions:
+
+```tsx
+import "@skycanvasstudio/sso/styles.css";
+import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react";
+import { authClient, sso } from "./auth-client";
+
+const { data } = authClient.useSession();
+
+return data?.user ? (
+  <SsoUserMenu
+    user={data.user}
+    items={[{ label: "Dashboard", href: "/dashboard" }]}
+    showSwitchAccount
+    onSwitchAccount={() => sso.switchAccount("/dashboard")}
+    onLogout={() => sso.signOut({ global: true, returnTo: "/" })}
+  />
+) : (
+  <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />
+);
 ```
 
 React is an optional peer dependency and required only for `/react`.
@@ -168,4 +230,6 @@ import { createSsoServer } from "@skycanvasstudio/sso/server";
 import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
 import { SsoProvider } from "@skycanvasstudio/sso/react";
+import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react";
+import "@skycanvasstudio/sso/styles.css";
 ```

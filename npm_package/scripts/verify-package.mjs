@@ -35,11 +35,11 @@ try {
   writeFileSync(join(temporaryRoot, "index.mjs"), `
 import { createSsoBetterAuthProvider as createRootBetterAuthProvider, getSsoEndpoints } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
-import { SsoProvider, useSso } from "@skycanvasstudio/sso/react";
+import { SsoProvider, SsoSignInButton, SsoUserMenu, useSso } from "@skycanvasstudio/sso/react";
 import { createSsoAuthorization, createSsoBetterAuthProvider as createServerBetterAuthProvider, createSsoServer } from "@skycanvasstudio/sso/server";
 import { createSsoBetterAuthProvider as createSubpathBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
 
-const values = [getSsoEndpoints, createSsoClient, SsoProvider, useSso, createSsoAuthorization, createSsoServer, createRootBetterAuthProvider, createServerBetterAuthProvider, createSubpathBetterAuthProvider];
+const values = [getSsoEndpoints, createSsoClient, SsoProvider, SsoSignInButton, SsoUserMenu, useSso, createSsoAuthorization, createSsoServer, createRootBetterAuthProvider, createServerBetterAuthProvider, createSubpathBetterAuthProvider];
 if (values.some((value) => typeof value !== "function")) throw new Error("A package export is missing");
 console.log("Packed runtime imports passed");
 `);
@@ -87,6 +87,9 @@ void session;
 
   const manifest = JSON.parse(readFileSync(join(temporaryRoot, "node_modules/@skycanvasstudio/sso/package.json"), "utf8"));
   if (manifest.version !== sourceManifest.version) throw new Error("Installed package version is incorrect");
+  if (!readFileSync(join(temporaryRoot, "node_modules/@skycanvasstudio/sso/dist/react/styles.css"), "utf8").includes(".sso-user-trigger")) {
+    throw new Error("Packaged React styles are missing");
+  }
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
 }

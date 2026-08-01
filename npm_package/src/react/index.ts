@@ -9,7 +9,16 @@ import {
   type ReactNode,
 } from "react";
 import type { SsoSession, SsoUser } from "../index.js";
-import type { SsoClient } from "../client/index.js";
+import type { SsoClient, SsoLoginOptions, SsoLogoutOptions } from "../client/index.js";
+
+export {
+  SsoSignInButton,
+  SsoUserMenu,
+  type SsoDisplayUser,
+  type SsoMenuItem,
+  type SsoSignInButtonProps,
+  type SsoUserMenuProps,
+} from "./components.js";
 
 export type SsoStatus = "loading" | "authenticated" | "unauthenticated" | "error";
 
@@ -17,8 +26,9 @@ export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
   session: SsoSession<TUser> | null;
   status: SsoStatus;
   error: Error | null;
-  login: (returnTo?: string) => void;
-  logout: () => Promise<void>;
+  login: (returnToOrOptions?: string | SsoLoginOptions) => void;
+  logout: (options?: SsoLogoutOptions) => Promise<void>;
+  switchAccount: (returnTo?: string) => Promise<void>;
   refresh: () => Promise<SsoSession<TUser> | null>;
 }
 
@@ -55,10 +65,17 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     if (props.initialSession === undefined) void refresh().catch(() => undefined);
   }, [props.initialSession, refresh]);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (options?: SsoLogoutOptions) => {
+    await props.client.logout(options);
+    setSession(null);
+    setError(null);
+  }, [props.client]);
+
+  const switchAccount = useCallback(async (returnTo = "/") => {
     await props.client.logout();
     setSession(null);
     setError(null);
+    props.client.login({ returnTo, forceLogin: true });
   }, [props.client]);
 
   const value = useMemo<SsoContextValue<TUser>>(() => ({
@@ -67,8 +84,9 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     error,
     login: props.client.login,
     logout,
+    switchAccount,
     refresh,
-  }), [error, loading, logout, props.client.login, refresh, session]);
+  }), [error, loading, logout, props.client.login, refresh, session, switchAccount]);
 
   return createElement(
     SsoContext.Provider,
@@ -81,6 +99,10 @@ export function useSso<TUser extends SsoUser = SsoUser>(): SsoContextValue<TUser
   const value = useContext(SsoContext);
   if (!value) throw new Error("useSso must be used inside SsoProvider");
   return value as SsoContextValue<TUser>;
+}
+
+export function useOptionalSso<TUser extends SsoUser = SsoUser>() {
+  return useContext(SsoContext) as SsoContextValue<TUser> | null;
 }
 
 export function useSsoSession<TUser extends SsoUser = SsoUser>() {

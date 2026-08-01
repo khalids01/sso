@@ -40,6 +40,7 @@ import { genericOAuth } from "better-auth/plugins"
 const skycanvas = createSsoBetterAuthProvider({
   clientId: process.env.SSO_CLIENT_ID!,
   baseUrl: process.env.SSO_URL, // optional
+  forceLogin: true, // default; set false only for intentional silent SSO
 })
 
 export const auth = betterAuth({
@@ -59,21 +60,44 @@ export const GET = (request: Request) => auth.handler(request)
 export const POST = (request: Request) => auth.handler(request)`,
       },
       {
-        filename: "Sign in and use the session",
-        description: "Use Better Auth on the client and server. Do not mix in this package's /client or /react APIs on this path.",
+        filename: "Create the browser client",
+        description: "Wrap Better Auth once. The package then owns sign-in, account switching, and local/global logout navigation.",
         code: `import { createAuthClient } from "better-auth/react"
 import { genericOAuthClient } from "better-auth/client/plugins"
+import { createSsoBetterAuthClient } from "@skycanvasstudio/sso/better-auth"
 
 export const authClient = createAuthClient({
   plugins: [genericOAuthClient()],
 })
 
-export const signInWithSkyCanvas = (callbackURL = "/") =>
-  authClient.signIn.oauth2({ providerId: "skycanvas", callbackURL })
-
-export const { useSession, signOut } = authClient
+export const sso = createSsoBetterAuthClient({
+  authClient,
+  clientId: process.env.NEXT_PUBLIC_SSO_CLIENT_ID!,
+  baseUrl: process.env.NEXT_PUBLIC_SSO_URL,
+})
 
 // On the server, keep using auth.api.getSession({ headers }).`,
+      },
+      {
+        filename: "Optional ready-made UI",
+        description: "Import the stylesheet once. The menu shows read-only Profile first, custom items next, and Logout last. It follows shadcn theme variables and dark mode.",
+        code: `import "@skycanvasstudio/sso/styles.css"
+import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
+import { authClient, sso } from "./auth-client"
+
+const { data } = authClient.useSession()
+
+return data?.user ? (
+  <SsoUserMenu
+    user={data.user}
+    items={[{ label: "Dashboard", href: "/dashboard" }]}
+    showSwitchAccount
+    onSwitchAccount={() => sso.switchAccount("/dashboard")}
+    onLogout={() => sso.signOut({ global: true, returnTo: "/" })}
+  />
+) : (
+  <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />
+)`,
       },
       {
         filename: "Register the callback URL",
@@ -218,15 +242,18 @@ const session = await ssoClient.getSession()
 await ssoClient.logout()`,
       },
       {
-        filename: "Optional React hooks",
-        description: "The package has no UI. Wrap the application once, then use the hooks in your own components.",
-        code: `import { SsoProvider, useSso, useSsoSession } from "@skycanvasstudio/sso/react"
+        filename: "Optional React hooks and UI",
+        description: "Wrap the application once, import the packaged styles, and use the ready-made controls or the hooks for custom UI.",
+        code: `import "@skycanvasstudio/sso/styles.css"
+import { SsoProvider, SsoSignInButton, SsoUserMenu, useSsoSession } from "@skycanvasstudio/sso/react"
 import { ssoClient } from "./sso-client"
 
 <SsoProvider client={ssoClient}>{children}</SsoProvider>
 
-const { login, logout, refresh } = useSso()
-const { user, session, status } = useSsoSession()`,
+const { status } = useSsoSession()
+return status === "authenticated"
+  ? <SsoUserMenu items={[{ label: "Dashboard", href: "/dashboard" }]} />
+  : <SsoSignInButton callbackURL="/dashboard" />`,
       },
       {
         filename: "Register the callback URL",

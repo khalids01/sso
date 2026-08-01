@@ -128,7 +128,7 @@ export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProvider
     tokenUrl: provider.tokenUrl,
     scopes: provider.scopes,
     pkce: provider.pkce,
-    ...(options.forceLogin ? { prompt: "login" as const } : {}),
+    ...(options.forceLogin === false ? {} : { prompt: "login" as const }),
     getUserInfo: async (tokens: BetterAuthTokenSet) => {
       if (!tokens.idToken) return null;
       try {
