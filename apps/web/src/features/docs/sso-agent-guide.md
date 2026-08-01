@@ -30,6 +30,7 @@ import { genericOAuth } from "better-auth/plugins"
 
 const skycanvas = createSsoBetterAuthProvider({
   clientId: env.SSO_CLIENT_ID,
+  baseUrl: env.SSO_URL, // optional
 })
 
 export const auth = betterAuth({
@@ -57,6 +58,8 @@ Server environment:
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=at_least_32_random_characters
 SSO_CLIENT_ID=the_real_client_id
+# Optional; omit to use https://api-sso.skycanvasstudio.com
+SSO_URL=https://api-sso.skycanvasstudio.com
 ```
 
 Register exactly:
@@ -65,6 +68,8 @@ Register exactly:
 http://localhost:3000/api/auth/oauth2/callback/skycanvas
 https://your-domain.example/api/auth/oauth2/callback/skycanvas
 ```
+
+Better Auth derives this URL from `BETTER_AUTH_URL`. Do not add `SSO_CALLBACK_URL`. The package does not read `SSO_URL` automatically; pass it as `baseUrl` when provided.
 
 ## Path B: Another JavaScript auth library
 

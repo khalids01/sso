@@ -27,6 +27,7 @@ try {
       "@types/react": "^19.0.0",
       "@typescript/native": "npm:typescript@^7.0.2",
       react: "^19.0.0",
+      typescript: "^5.9.3",
     },
   }, null, 2));
   exec("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"], temporaryRoot);
@@ -70,6 +71,20 @@ void session;
   }, null, 2));
   exec("node", ["node_modules/@typescript/native/bin/tsc", "-p", "tsconfig.json"], temporaryRoot);
   console.log("Packed TypeScript 7 consumer passed");
+
+  writeFileSync(join(temporaryRoot, "tsconfig.legacy.json"), JSON.stringify({
+    compilerOptions: {
+      target: "ES2022",
+      module: "ESNext",
+      moduleResolution: "Node10",
+      strict: true,
+      skipLibCheck: false,
+      noEmit: true,
+    },
+    include: ["consumer.ts"],
+  }, null, 2));
+  exec("node", ["node_modules/typescript/bin/tsc", "-p", "tsconfig.legacy.json"], temporaryRoot);
+  console.log("Packed legacy TypeScript module resolution passed");
 
   const manifest = JSON.parse(readFileSync(join(temporaryRoot, "node_modules/@skycanvasstudio/sso/package.json"), "utf8"));
   if (manifest.version !== sourceManifest.version) throw new Error("Installed package version is incorrect");

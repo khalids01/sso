@@ -1,6 +1,6 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Headless SkyCanvas SSO helpers for servers, browsers, and React",
   "type": "module",
   "license": "MIT",
@@ -15,26 +15,41 @@
     "LICENSE"
   ],
   "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "server": ["dist/server/index.d.ts"],
+      "client": ["dist/client/index.d.ts"],
+      "react": ["dist/react/index.d.ts"],
+      "better-auth": ["dist/better-auth/index.d.ts"]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./server": {
       "types": "./dist/server/index.d.ts",
-      "import": "./dist/server/index.js"
+      "import": "./dist/server/index.js",
+      "default": "./dist/server/index.js"
     },
     "./client": {
       "types": "./dist/client/index.d.ts",
-      "import": "./dist/client/index.js"
+      "import": "./dist/client/index.js",
+      "default": "./dist/client/index.js"
     },
     "./react": {
       "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js"
+      "import": "./dist/react/index.js",
+      "default": "./dist/react/index.js"
     },
     "./better-auth": {
       "types": "./dist/better-auth/index.d.ts",
-      "import": "./dist/better-auth/index.js"
+      "import": "./dist/better-auth/index.js",
+      "default": "./dist/better-auth/index.js"
     }
   },
   "scripts": {

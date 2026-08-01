@@ -39,6 +39,7 @@ import { genericOAuth } from "better-auth/plugins"
 
 const skycanvas = createSsoBetterAuthProvider({
   clientId: process.env.SSO_CLIENT_ID!,
+  baseUrl: process.env.SSO_URL, // optional
 })
 
 export const auth = betterAuth({
@@ -76,7 +77,7 @@ export const { useSession, signOut } = authClient
       },
       {
         filename: "Register the callback URL",
-        description: "Register the exact Better Auth callback for every environment in the SkyCanvas dashboard.",
+        description: "Register the exact Better Auth callback for every environment. Better Auth derives it from BETTER_AUTH_URL; do not add SSO_CALLBACK_URL.",
         code: `http://localhost:3000/api/auth/oauth2/callback/skycanvas
 https://your-domain.example/api/auth/oauth2/callback/skycanvas`,
       },
