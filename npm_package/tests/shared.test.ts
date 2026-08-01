@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { getSsoEndpoints, safeReturnTo } from "../src/index.js";
+import {
+  createSsoBetterAuthProvider,
+  getSsoEndpoints,
+  safeReturnTo,
+} from "../src/index.js";
 import { createSsoAuthorization } from "../src/server/index.js";
 
 describe("shared helpers", () => {
@@ -15,6 +19,16 @@ describe("shared helpers", () => {
     expect(safeReturnTo("/dashboard")).toBe("/dashboard");
     expect(safeReturnTo("//evil.example")).toBe("/");
     expect(safeReturnTo("https://evil.example")).toBe("/");
+  });
+
+  test("can configure Better Auth to require fresh SSO authentication", () => {
+    const provider = createSsoBetterAuthProvider({
+      clientId: "client_123",
+      baseUrl: "https://sso.example.com",
+      forceLogin: true,
+    });
+
+    expect(provider.prompt).toBe("login");
   });
 });
 

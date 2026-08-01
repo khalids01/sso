@@ -32,6 +32,33 @@ export interface BetterAuthTokenSet {
 
 export interface CreateSsoBetterAuthProviderOptions extends CreateSsoProviderOptions {
   fetch?: typeof fetch;
+  forceLogin?: boolean;
+}
+
+type BetterAuthResult = { error?: unknown };
+
+export interface BetterAuthClientLike {
+  signIn: {
+    oauth2: (input: {
+      providerId: typeof SSO_PROVIDER_ID;
+      callbackURL: string;
+    }) => Promise<BetterAuthResult>;
+  };
+  signOut: () => Promise<BetterAuthResult>;
+}
+
+export interface BetterAuthSsoClientOptions {
+  authClient: BetterAuthClientLike;
+  clientId: string;
+  baseUrl?: string;
+  appUrl?: string;
+  navigate?: (url: string) => void;
+}
+
+export interface BetterAuthSsoClient {
+  signIn: (callbackURL?: string) => Promise<BetterAuthResult>;
+  switchAccount: (callbackURL?: string) => Promise<BetterAuthResult>;
+  signOut: (options?: { global?: boolean; returnTo?: string }) => Promise<BetterAuthResult>;
 }
 
 export interface SsoUser {
@@ -101,6 +128,7 @@ export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProvider
     tokenUrl: provider.tokenUrl,
     scopes: provider.scopes,
     pkce: provider.pkce,
+    ...(options.forceLogin ? { prompt: "login" as const } : {}),
     getUserInfo: async (tokens: BetterAuthTokenSet) => {
       if (!tokens.idToken) return null;
       try {
@@ -119,10 +147,57 @@ export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProvider
   };
 }
 
+export function createSsoBetterAuthClient(
+  options: BetterAuthSsoClientOptions,
+): BetterAuthSsoClient {
+  requireValue(options.clientId, "clientId");
+
+  const signIn = (callbackURL = "/") => options.authClient.signIn.oauth2({
+    providerId: SSO_PROVIDER_ID,
+    callbackURL,
+  });
+
+  return {
+    signIn,
+    async switchAccount(callbackURL = "/") {
+      const result = await options.authClient.signOut();
+      return result.error ? result : signIn(callbackURL);
+    },
+    async signOut(signOutOptions = {}) {
+      const result = await options.authClient.signOut();
+      if (result.error || !signOutOptions.global) return result;
+
+      const appOrigin = getBrowserOrigin(options.appUrl);
+      const returnTo = new URL(
+        safeReturnTo(signOutOptions.returnTo),
+        appOrigin,
+      );
+      const logoutUrl = new URL(getSsoEndpoints(options.baseUrl).globalLogout);
+      logoutUrl.searchParams.set("client_id", options.clientId);
+      logoutUrl.searchParams.set("return_to", returnTo.toString());
+      (options.navigate ?? defaultBrowserNavigate)(logoutUrl.toString());
+      return result;
+    },
+  };
+}
+
 export function safeReturnTo(value: string | null | undefined, fallback = "/"): string {
   return value?.startsWith("/") && !value.startsWith("//") ? value : fallback;
 }
 
 function requireValue(value: string, name: string): void {
   if (!value.trim()) throw new Error(`SSO ${name} is required`);
+}
+
+function getBrowserOrigin(appUrl?: string) {
+  if (appUrl) return new URL(appUrl).origin;
+  if (typeof window !== "undefined") return window.location.origin;
+  throw new Error("SSO global logout requires appUrl outside a browser");
+}
+
+function defaultBrowserNavigate(url: string) {
+  if (typeof window === "undefined") {
+    throw new Error("SSO navigation requires a browser or custom navigate function");
+  }
+  window.location.assign(url);
 }
