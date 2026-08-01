@@ -1,11 +1,11 @@
-# @skycanvasstudio/free-sso
+# @skycanvasstudio/sso
 
 Headless TypeScript helpers for integrating SkyCanvas SSO on the server, in the browser, and with React. The package has no UI.
 
 ## Install
 
 ```bash
-npm install @skycanvasstudio/free-sso
+npm install @skycanvasstudio/sso
 ```
 
 Install React only when using the React entry point.
@@ -14,7 +14,7 @@ Install React only when using the React entry point.
 
 ```ts
 import { genericOAuth } from "better-auth/plugins";
-import { createFreeSsoBetterAuthProvider } from "@skycanvasstudio/free-sso/server";
+import { createFreeSsoBetterAuthProvider } from "@skycanvasstudio/sso/server";
 
 const provider = createFreeSsoBetterAuthProvider({
   clientId: process.env.SSO_CLIENT_ID!,
@@ -39,7 +39,7 @@ The server must store `flow` in an encrypted, HttpOnly, SameSite cookie. Never e
 import {
   createFreeSsoAuthorization,
   finishFreeSsoAuthorization,
-} from "@skycanvasstudio/free-sso/server";
+} from "@skycanvasstudio/sso/server";
 
 const { url, flow } = await createFreeSsoAuthorization({
   clientId: process.env.SSO_CLIENT_ID!,
@@ -66,7 +66,7 @@ The package verifies PKCE state, flow age, issuer, audience, token signatures, n
 The browser client talks only to your application's auth routes. OAuth tokens remain on the server.
 
 ```ts
-import { createFreeSsoClient } from "@skycanvasstudio/free-sso/client";
+import { createFreeSsoClient } from "@skycanvasstudio/sso/client";
 
 export const sso = createFreeSsoClient({
   loginPath: "/auth/login",
@@ -96,7 +96,7 @@ Expected profile response:
 ## React hooks
 
 ```ts
-import { FreeSsoProvider, useFreeSsoSession } from "@skycanvasstudio/free-sso/react";
+import { FreeSsoProvider, useFreeSsoSession } from "@skycanvasstudio/sso/react";
 ```
 
 Wrap the application with `FreeSsoProvider` and pass the browser client as `client`. Use `useFreeSso()` for login, logout, and refresh, or `useFreeSsoSession()` for session state.
