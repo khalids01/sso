@@ -25,6 +25,14 @@ export interface CreateSsoProviderOptions {
   baseUrl?: string;
 }
 
+export interface BetterAuthTokenSet {
+  idToken?: string | undefined;
+}
+
+export interface CreateSsoBetterAuthProviderOptions extends CreateSsoProviderOptions {
+  fetch?: typeof fetch;
+}
+
 export interface SsoUser {
   id: string;
   name: string;
@@ -79,6 +87,33 @@ export function createSsoProvider(options: CreateSsoProviderOptions): SsoProvide
     metadataUrl: endpoints.clientMetadata(options.clientId),
     scopes: [SSO_SCOPE],
     pkce: true,
+  };
+}
+
+export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProviderOptions) {
+  const provider = createSsoProvider(options);
+  return {
+    providerId: provider.providerId,
+    clientId: provider.clientId,
+    authorizationUrl: provider.authorizationUrl,
+    tokenUrl: provider.tokenUrl,
+    scopes: provider.scopes,
+    pkce: provider.pkce,
+    getUserInfo: async (tokens: BetterAuthTokenSet) => {
+      if (!tokens.idToken) return null;
+      try {
+        const { verifySsoIdToken } = await import("./server/index.js");
+        const identity = await verifySsoIdToken({
+          clientId: options.clientId,
+          idToken: tokens.idToken,
+          ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+          ...(options.fetch ? { fetch: options.fetch } : {}),
+        });
+        return { ...identity.user, image: identity.user.image ?? undefined };
+      } catch {
+        return null;
+      }
+    },
   };
 }
 

@@ -33,22 +33,21 @@ try {
   exec("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"], temporaryRoot);
 
   writeFileSync(join(temporaryRoot, "index.mjs"), `
-import { getSsoEndpoints } from "@skycanvasstudio/sso";
+import { createSsoBetterAuthProvider as createRootBetterAuthProvider, getSsoEndpoints } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
 import { SsoProvider, useSso } from "@skycanvasstudio/sso/react";
-import { createSsoAuthorization, createSsoServer } from "@skycanvasstudio/sso/server";
-import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
+import { createSsoAuthorization, createSsoBetterAuthProvider as createServerBetterAuthProvider, createSsoServer } from "@skycanvasstudio/sso/server";
+import { createSsoBetterAuthProvider as createSubpathBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
 
-const values = [getSsoEndpoints, createSsoClient, SsoProvider, useSso, createSsoAuthorization, createSsoServer, createSsoBetterAuthProvider];
+const values = [getSsoEndpoints, createSsoClient, SsoProvider, useSso, createSsoAuthorization, createSsoServer, createRootBetterAuthProvider, createServerBetterAuthProvider, createSubpathBetterAuthProvider];
 if (values.some((value) => typeof value !== "function")) throw new Error("A package export is missing");
 console.log("Packed runtime imports passed");
 `);
   exec("node", ["index.mjs"], temporaryRoot, true);
 
   writeFileSync(join(temporaryRoot, "consumer.ts"), `
-import type { SsoSession } from "@skycanvasstudio/sso";
+import { createSsoBetterAuthProvider, type SsoSession } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
-import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
 
 const session: SsoSession = {
   user: { id: "1", name: "User", email: "user@example.com", emailVerified: true, image: null },

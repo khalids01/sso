@@ -25,7 +25,7 @@ bun add @skycanvasstudio/sso better-auth
 Merge this provider into the existing `betterAuth()` instance:
 
 ```ts
-import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso/better-auth"
+import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso"
 import { genericOAuth } from "better-auth/plugins"
 
 const skycanvas = createSsoBetterAuthProvider({

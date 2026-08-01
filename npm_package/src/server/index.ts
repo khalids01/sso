@@ -16,6 +16,12 @@ import {
   type SsoUser,
 } from "../index.js";
 
+export {
+  createSsoBetterAuthProvider,
+  type BetterAuthTokenSet,
+  type CreateSsoBetterAuthProviderOptions,
+} from "../index.js";
+
 export interface SsoAuthorizationFlow {
   state: string;
   nonce: string;

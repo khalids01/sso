@@ -33,7 +33,7 @@ SSO_CLIENT_ID=your_skycanvas_client_id`,
       {
         filename: "Add the provider to Better Auth",
         description: "Merge this plugin into your existing Better Auth instance. Preserve its database, plugins, and other sign-in methods.",
-        code: `import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso/better-auth"
+        code: `import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso"
 import { betterAuth } from "better-auth"
 import { genericOAuth } from "better-auth/plugins"
 

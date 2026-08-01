@@ -1,6 +1,6 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Headless SkyCanvas SSO helpers for servers, browsers, and React",
   "type": "module",
   "license": "MIT",

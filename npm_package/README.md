@@ -18,7 +18,7 @@ bun add @skycanvasstudio/sso better-auth
 ```
 
 ```ts
-import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
+import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso";
 import { betterAuth } from "better-auth";
 import { genericOAuth } from "better-auth/plugins";
 
@@ -159,7 +159,7 @@ Validate state, flow age, token signatures, issuer, audience, expiry, nonce, req
 ```ts
 import { createSsoProvider } from "@skycanvasstudio/sso";
 import { createSsoServer } from "@skycanvasstudio/sso/server";
-import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
+import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
 import { SsoProvider } from "@skycanvasstudio/sso/react";
 ```
