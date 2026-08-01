@@ -5,6 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { client } from "@/lib/client";
 import { queryKeys } from "@/constants/query-keys";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 export type ApplicationAuthPolicy = {
   signInMethods: Array<
@@ -36,7 +37,8 @@ export function ApplicationAuthShell({
     applicationLogoUrl: string | null,
   ) => ReactNode;
 }) {
-  const authRequest = getAuthRequest();
+  const hydrated = useHydrated();
+  const authRequest = hydrated ? getAuthRequest() : null;
   const applicationQuery = useQuery({
     queryKey: queryKeys.oauth.prelogin(authRequest?.oauthQuery ?? ""),
     enabled: Boolean(authRequest),
@@ -79,7 +81,9 @@ export function ApplicationAuthShell({
   return (
     <main className="min-h-screen bg-background">
       <section className="mx-auto flex max-w-md flex-col items-center px-6 py-16">
-        {!authRequest || applicationQuery.isError ? (
+        {!hydrated ? (
+          <LoaderCircle className="mt-12 size-8 animate-spin text-muted-foreground" />
+        ) : !authRequest || applicationQuery.isError ? (
           <div className="mt-10 text-center">
             <h1 className="text-2xl font-semibold">Application unavailable</h1>
             <p className="mt-3 text-sm text-muted-foreground">

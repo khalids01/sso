@@ -5,22 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import Logo from "@/components/core/logo";
 import { authClient } from "@/lib/auth-client";
 import { BRANDING } from "@/constants/branding";
+import { getProviderRedirect } from "@/features/auth/provider-redirect";
 
 export const Route = createFileRoute("/authorize")({
   component: AuthorizePage,
 });
-
-function getProviderRedirect(data: unknown) {
-  if (!data || typeof data !== "object") {
-    return null;
-  }
-
-  const value = data as { redirect_uri?: unknown; uri?: unknown };
-  if (typeof value.redirect_uri === "string") {
-    return value.redirect_uri;
-  }
-  return typeof value.uri === "string" ? value.uri : null;
-}
 
 function AuthorizePage() {
   const started = useRef(false);
