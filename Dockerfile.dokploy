@@ -69,6 +69,9 @@ COPY packages/env/package.json ./packages/env/package.json
 COPY packages/rbac/package.json ./packages/rbac/package.json
 COPY packages/redis/package.json ./packages/redis/package.json
 COPY tests/e2e/package.json ./tests/e2e/package.json
+# Bun must see every workspace manifest declared by the root package.json,
+# even though this package is excluded by the server/web production filters.
+COPY npm_package/package.json ./npm_package/package.json
 RUN bun install --frozen-lockfile --production --filter server --filter web
 
 # Prisma schema/migrations and shared workspace packages.
