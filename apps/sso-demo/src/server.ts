@@ -13,6 +13,13 @@ const fetch = createStartHandler(async (context) => {
   if (url.pathname === "/auth/logout" && context.request.method === "POST") {
     return endSession(context.request);
   }
+  if (
+    url.pathname === "/auth/logout" &&
+    context.request.method === "GET" &&
+    url.searchParams.get("global") === "true"
+  ) {
+    return endSession(context.request);
+  }
   return defaultStreamHandler(context);
 });
 

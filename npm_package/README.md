@@ -122,6 +122,12 @@ export const ssoClient = createSsoClient();
 ssoClient.login("/dashboard");
 const session = await ssoClient.getSession();
 await ssoClient.logout();
+
+// Always show the SSO login methods so the user can choose another account.
+ssoClient.login({ returnTo: "/dashboard", forceLogin: true });
+
+// Clear this application's session and the central SSO session.
+await ssoClient.logout({ global: true, returnTo: "/" });
 ```
 
 For a separate frontend, give the client a backend `baseUrl`, allow only the frontend origin in credentialed CORS, and pass that origin through `redirectOrigin` and `trustedOrigins` on `createSsoServer`.

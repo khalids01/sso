@@ -21,7 +21,11 @@ function DashboardPage() {
     <main className="mx-auto w-full max-w-6xl px-5 pt-10 md:px-8 md:pt-16">
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div><Badge className="mb-4 border-emerald-200 bg-emerald-50 text-emerald-800"><Check className="mr-1.5 size-3.5" />Verified session</Badge><h1 className="text-4xl font-semibold tracking-[-0.04em]">Welcome to the demo app</h1><p className="mt-3 text-muted-foreground">The SSO authorization code was exchanged and both tokens passed verification.</p></div>
-        <form method="post" action="/auth/logout"><Button type="submit" variant="outline"><LogOut />Sign out locally</Button></form>
+        <div className="flex flex-wrap gap-3">
+          <a href="/auth/start?force_login=true"><Button variant="outline">Use another account</Button></a>
+          <form method="post" action="/auth/logout"><Button type="submit" variant="outline"><LogOut />Sign out locally</Button></form>
+          <a href="/auth/logout?global=true"><Button variant="outline">Sign out everywhere</Button></a>
+        </div>
       </div>
 
       <div className="mt-10 grid gap-5 md:grid-cols-3">

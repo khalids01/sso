@@ -59,6 +59,17 @@ beforeAll(() => {
 afterAll(() => issuerServer.stop(true));
 
 describe("authorization callback verification", () => {
+  test("requests fresh authentication when account switching is required", async () => {
+    const { url } = await createSsoAuthorization({
+      clientId,
+      redirectUri: "https://app.example.com/auth/callback",
+      baseUrl: issuer,
+      forceLogin: true,
+    });
+
+    expect(url.searchParams.get("prompt")).toBe("login");
+  });
+
   test("exchanges and verifies a valid authorization response", async () => {
     const { flow } = await newFlow();
     expectedNonce = flow.nonce;
@@ -169,6 +180,23 @@ describe("framework-independent SSO server", () => {
     }));
     expect(logout.status).toBe(204);
     expect(logout.headers.get("set-cookie")).toContain("Max-Age=0");
+
+    const globalLogout = await sso.handle(new Request(
+      "https://app.example.com/auth/logout?global=true&returnTo=/signed-out",
+    ));
+    expect(globalLogout.status).toBe(303);
+    const globalLogoutUrl = new URL(requiredHeader(globalLogout, "location"));
+    expect(globalLogoutUrl.pathname).toBe("/api/auth/global-sign-out");
+    expect(globalLogoutUrl.searchParams.get("client_id")).toBe(clientId);
+    expect(globalLogoutUrl.searchParams.get("return_to")).toBe(
+      "https://app.example.com/signed-out",
+    );
+
+    const switchAccount = await sso.handle(new Request(
+      "https://app.example.com/auth/login?returnTo=/dashboard&forceLogin=true",
+    ));
+    expect(new URL(requiredHeader(switchAccount, "location")).searchParams.get("prompt"))
+      .toBe("login");
   });
 
   test("rejects insecure cross-site cookies", () => {

@@ -23,3 +23,7 @@ export function getApplicationAuthPath(pathname: string, search: string) {
   if (!search) return pathname;
   return `${pathname}${search.startsWith("?") ? search : `?${search}`}`;
 }
+
+export function requiresFreshAuthentication(search: string) {
+  return new URLSearchParams(search).get("prompt") === "login";
+}

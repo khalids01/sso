@@ -118,6 +118,7 @@ export async function startAuthorization(request: Request): Promise<Response> {
   const config = getConfig();
   const requestUrl = new URL(request.url);
   const clientId = requestUrl.searchParams.get("client_id") ?? process.env.SSO_DEMO_CLIENT_ID;
+  const forceLogin = requestUrl.searchParams.get("force_login") === "true";
   if (!clientId) return safeErrorRedirect(config.origin, "client_not_configured");
 
   const redirectUri = `${config.origin}/auth/callback`;
@@ -141,6 +142,7 @@ export async function startAuthorization(request: Request): Promise<Response> {
     nonce: context.nonce,
     code_challenge_method: "S256",
     code_challenge: challenge,
+    ...(forceLogin ? { prompt: "login" } : {}),
   }).toString();
 
   const headers = new Headers({ location: authorizeUrl.toString(), "cache-control": "no-store" });
@@ -228,9 +230,19 @@ export async function finishAuthorization(request: Request): Promise<Response> {
 
 export function endSession(request: Request): Response {
   const config = getConfig();
+  const requestUrl = new URL(request.url);
   const origin = request.headers.get("origin");
   if (origin && origin !== config.origin) return new Response("Forbidden", { status: 403 });
-  const headers = new Headers({ location: "/", "cache-control": "no-store" });
+  let location = "/";
+  if (requestUrl.searchParams.get("global") === "true") {
+    const clientId = process.env.SSO_DEMO_CLIENT_ID;
+    if (!clientId) return safeErrorRedirect(config.origin, "client_not_configured");
+    const globalLogoutUrl = new URL("/api/auth/global-sign-out", config.apiOrigin);
+    globalLogoutUrl.searchParams.set("client_id", clientId);
+    globalLogoutUrl.searchParams.set("return_to", config.origin);
+    location = globalLogoutUrl.toString();
+  }
+  const headers = new Headers({ location, "cache-control": "no-store" });
   headers.append("set-cookie", clearCookie(SESSION_COOKIE, config.origin.startsWith("https:")));
   headers.append("set-cookie", clearCookie(CONTEXT_COOKIE, config.origin.startsWith("https:")));
   return new Response(null, { status: 303, headers });

@@ -31,6 +31,19 @@ test("browser client redirects through the local login route", () => {
   expect(destination).toBe("https://app.example.com/auth/login?returnTo=%2Fdashboard");
 });
 
+test("browser client can request authentication with another account", () => {
+  let destination = "";
+  const client = createSsoClient({
+    baseUrl: "https://app.example.com",
+    navigate: (url) => { destination = url; },
+  });
+
+  client.login({ returnTo: "/dashboard", forceLogin: true });
+  expect(destination).toBe(
+    "https://app.example.com/auth/login?returnTo=%2Fdashboard&forceLogin=true",
+  );
+});
+
 test("browser client maps unauthorized profile responses to no session", async () => {
   const client = createSsoClient({
     fetch: (async () => new Response(null, { status: 401 })) as unknown as typeof fetch,
@@ -51,4 +64,17 @@ test("browser client sends logout as a credentialed POST", async () => {
   await client.logout();
   expect(requestInit?.method).toBe("POST");
   expect(requestInit?.credentials).toBe("include");
+});
+
+test("browser client uses top-level navigation for global logout", async () => {
+  let destination = "";
+  const client = createSsoClient({
+    baseUrl: "https://app.example.com",
+    navigate: (url) => { destination = url; },
+  });
+
+  await client.logout({ global: true, returnTo: "/signed-out" });
+  expect(destination).toBe(
+    "https://app.example.com/auth/logout?global=true&returnTo=%2Fsigned-out",
+  );
 });

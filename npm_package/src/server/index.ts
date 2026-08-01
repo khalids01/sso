@@ -36,6 +36,7 @@ export interface CreateSsoAuthorizationOptions {
   redirectUri: string;
   baseUrl?: string;
   returnTo?: string | null;
+  forceLogin?: boolean;
 }
 
 export interface FinishSsoAuthorizationOptions {
@@ -152,6 +153,7 @@ export async function createSsoAuthorization(
     nonce: flow.nonce,
     code_challenge_method: "S256",
     code_challenge: challenge,
+    ...(options.forceLogin ? { prompt: "login" } : {}),
   }).toString();
   return { url, flow };
 }
@@ -250,11 +252,14 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
   const key = createSessionKey(options.sessionSecret);
 
   async function login(request: Request): Promise<Response> {
-    const returnTo = new URL(request.url).searchParams.get("returnTo");
+    const requestUrl = new URL(request.url);
+    const returnTo = requestUrl.searchParams.get("returnTo");
+    const forceLogin = requestUrl.searchParams.get("forceLogin") === "true";
     const authorization = await createSsoAuthorization({
       clientId: options.clientId,
       redirectUri: callbackUrl,
       returnTo,
+      forceLogin,
       ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
     });
     return redirectResponse(
@@ -325,15 +330,25 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
   }
 
   async function logout(request: Request): Promise<Response> {
+    const requestUrl = new URL(request.url);
     const origin = request.headers.get("origin");
     if (origin && !trustedOrigins.has(new URL(origin).origin)) {
       return Response.json({ error: "forbidden" }, { status: 403 });
     }
+    const global = requestUrl.searchParams.get("global") === "true";
+    const returnTo = safeReturnTo(requestUrl.searchParams.get("returnTo"));
+    const globalLogoutUrl = new URL(getSsoEndpoints(options.baseUrl).globalLogout);
+    globalLogoutUrl.searchParams.set("client_id", options.clientId);
+    globalLogoutUrl.searchParams.set(
+      "return_to",
+      new URL(returnTo, redirectOrigin).toString(),
+    );
     return new Response(null, {
-      status: 204,
+      status: global ? 303 : 204,
       headers: {
         "cache-control": "no-store",
         "set-cookie": serializeCookie(cookieConfig.sessionName, "", 0, cookieConfig),
+        ...(global ? { location: globalLogoutUrl.toString() } : {}),
       },
     });
   }
@@ -344,6 +359,11 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     if (pathname === paths.callback && request.method === "GET") return callback(request);
     if (pathname === paths.profile && request.method === "GET") return profile(request);
     if (pathname === paths.logout && request.method === "POST") return logout(request);
+    if (
+      pathname === paths.logout &&
+      request.method === "GET" &&
+      new URL(request.url).searchParams.get("global") === "true"
+    ) return logout(request);
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 

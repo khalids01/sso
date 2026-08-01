@@ -7,6 +7,7 @@ export interface SsoEndpoints {
   token: string;
   jwks: string;
   clientMetadata: (clientId: string) => string;
+  globalLogout: string;
 }
 
 export interface SsoProvider {
@@ -67,6 +68,7 @@ export function getSsoEndpoints(baseUrl = SSO_DEFAULT_URL): SsoEndpoints {
     authorization: new URL("/api/auth/oauth2/authorize", origin).toString(),
     token: new URL("/api/auth/oauth2/token", origin).toString(),
     jwks: new URL("/api/auth/jwks", origin).toString(),
+    globalLogout: new URL("/api/auth/global-sign-out", origin).toString(),
     clientMetadata: (clientId) => {
       const url = new URL("/api/oauth/client-metadata", origin);
       url.searchParams.set("client_id", clientId);

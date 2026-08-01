@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { auth } from "@sso/auth/server";
 import { env } from "@sso/env/server";
+import prisma from "@sso/db/server";
 import { connectRedis } from "@sso/redis/server";
 import { randomUUID } from "node:crypto";
 import { Elysia } from "elysia";
@@ -107,6 +108,58 @@ async function handleBetterAuthRequest(request: Request) {
   return response;
 }
 
+async function handleGlobalSignOut(request: Request) {
+  const url = new URL(request.url);
+  const clientId = url.searchParams.get("client_id");
+  const returnToValue = url.searchParams.get("return_to");
+  if (!clientId || !returnToValue) {
+    return Response.json({ message: "Invalid global logout request" }, { status: 400 });
+  }
+
+  let returnTo: URL;
+  try {
+    returnTo = new URL(returnToValue);
+  } catch {
+    return Response.json({ message: "Invalid logout return URL" }, { status: 400 });
+  }
+
+  const client = await prisma.applicationClient.findFirst({
+    where: {
+      clientId,
+      status: "active",
+      oauthDisabled: false,
+      application: { status: "active" },
+    },
+    select: { allowedOrigins: true, redirectUris: true },
+  });
+  const registeredReturnOrigin = client && (
+    client.allowedOrigins.includes(returnTo.origin) ||
+    client.redirectUris.some((redirectUri) => {
+      try {
+        return new URL(redirectUri).origin === returnTo.origin;
+      } catch {
+        return false;
+      }
+    })
+  );
+  if (!registeredReturnOrigin) {
+    return Response.json({ message: "Logout return URL is not registered" }, { status: 403 });
+  }
+
+  const signOutResponse = await auth.api.signOut({
+    headers: request.headers,
+    asResponse: true,
+  });
+  const headers = new Headers({
+    location: returnTo.toString(),
+    "cache-control": "no-store",
+  });
+  for (const cookie of signOutResponse.headers.getSetCookie()) {
+    headers.append("set-cookie", cookie);
+  }
+  return new Response(null, { status: 303, headers });
+}
+
 const shouldLogRequests = env.NODE_ENV === "development";
 const port = env.PORT;
 const docsPlugin =
@@ -144,6 +197,7 @@ const server = new Elysia()
     return enforceRateLimit(context as any);
   })
   .use(oauthTokenController)
+  .get("/api/auth/global-sign-out", ({ request }) => handleGlobalSignOut(request))
   .all("/api/auth/*", async (context) => {
     const { request, status } = context;
     if (["POST", "GET"].includes(request.method)) {

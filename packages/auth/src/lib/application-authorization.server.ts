@@ -37,10 +37,10 @@ export function validateAuthorizationQuery(query: AuthorizationQuery) {
     });
   }
 
-  if (query.prompt !== undefined) {
+  if (query.prompt !== undefined && query.prompt !== "login") {
     throw new APIError("BAD_REQUEST", {
       error: "invalid_request",
-      error_description: "prompt is not supported",
+      error_description: "only prompt=login is supported",
     });
   }
 

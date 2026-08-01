@@ -9,10 +9,20 @@ export interface SsoClientOptions<TUser extends SsoUser = SsoUser> {
   navigate?: (url: string) => void;
 }
 
+export interface SsoLoginOptions {
+  returnTo?: string;
+  forceLogin?: boolean;
+}
+
+export interface SsoLogoutOptions {
+  global?: boolean;
+  returnTo?: string;
+}
+
 export interface SsoClient<TUser extends SsoUser = SsoUser> {
-  login: (returnTo?: string) => void;
+  login: (returnToOrOptions?: string | SsoLoginOptions) => void;
   getSession: () => Promise<SsoSession<TUser> | null>;
-  logout: () => Promise<void>;
+  logout: (options?: SsoLogoutOptions) => Promise<void>;
 }
 
 export function createSsoClient<TUser extends SsoUser = SsoUser>(
@@ -24,9 +34,13 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
   const logoutPath = options.logoutPath ?? "/auth/logout";
 
   return {
-    login(returnTo = "/") {
+    login(returnToOrOptions: string | SsoLoginOptions = "/") {
+      const loginOptions = typeof returnToOrOptions === "string"
+        ? { returnTo: returnToOrOptions }
+        : returnToOrOptions;
       const target = resolveUrl(loginPath, baseUrl);
-      target.searchParams.set("returnTo", returnTo);
+      target.searchParams.set("returnTo", loginOptions.returnTo ?? "/");
+      if (loginOptions.forceLogin) target.searchParams.set("forceLogin", "true");
       const navigate = options.navigate ?? defaultNavigate;
       navigate(baseUrl ? target.toString() : `${target.pathname}${target.search}`);
     },
@@ -40,7 +54,15 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
       if (!response.ok) throw await responseError(response, "session request");
       return response.json() as Promise<SsoSession<TUser>>;
     },
-    async logout() {
+    async logout(logoutOptions = {}) {
+      if (logoutOptions.global) {
+        const target = resolveUrl(logoutPath, baseUrl);
+        target.searchParams.set("global", "true");
+        target.searchParams.set("returnTo", logoutOptions.returnTo ?? "/");
+        const navigate = options.navigate ?? defaultNavigate;
+        navigate(baseUrl ? target.toString() : `${target.pathname}${target.search}`);
+        return;
+      }
       const response = await getFetch(options.fetch)(resolveRequestUrl(logoutPath, baseUrl), {
         method: "POST",
         credentials: "include",
