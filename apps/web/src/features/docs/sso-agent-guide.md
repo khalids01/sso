@@ -14,6 +14,22 @@ Before editing:
 
 Framework-specific code should be only the thin route adapter required to forward a standard Web `Request`. Do not change the OAuth flow based on Next.js, TanStack Start, Express, Elysia, or another framework.
 
+## Callback URL decision
+
+Choose the callback by the component that owns the local session:
+
+| Session owner | Exact callback pattern |
+| --- | --- |
+| Better Auth with `createSsoBetterAuthProvider` | `${BETTER_AUTH_URL}/api/auth/oauth2/callback/skycanvas` |
+| Package server with `createSsoServer` | `${APP_URL}/auth/callback` |
+| Another OAuth/OIDC library | That library's generated callback URL |
+
+Never infer the integration from an environment-variable name. An application
+using `createSsoServer` may call its origin `BETTER_AUTH_URL`, but its callback is
+still `/auth/callback`. Never register the Better Auth callback for the package
+server path. When using `createSsoServer`, report `sso.callbackUrl` as the exact
+dashboard value.
+
 ## Path A: Existing Better Auth
 
 Install:
