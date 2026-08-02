@@ -15,11 +15,15 @@ export interface DemoUser extends SsoUser {
 }
 
 function getConfig() {
-  const appUrl = new URL(process.env.SSO_DEMO_ORIGIN ?? "http://localhost:5003").origin;
-  const baseUrl = new URL(process.env.SSO_API_ORIGIN ?? "http://localhost:5001").origin;
-  const sessionSecret = process.env.SSO_DEMO_SESSION_SECRET;
+  const appUrl = new URL(
+    process.env.BETTER_AUTH_URL ?? process.env.SSO_DEMO_ORIGIN ?? "http://localhost:5003",
+  ).origin;
+  const baseUrl = new URL(
+    process.env.SSO_URL ?? process.env.SSO_API_ORIGIN ?? "http://localhost:5001",
+  ).origin;
+  const sessionSecret = process.env.BETTER_AUTH_SECRET ?? process.env.SSO_DEMO_SESSION_SECRET;
   if (!sessionSecret || sessionSecret.length < 32) {
-    throw new Error("SSO_DEMO_SESSION_SECRET must contain at least 32 characters");
+    throw new Error("BETTER_AUTH_SECRET must contain at least 32 characters");
   }
   return { appUrl, baseUrl, sessionSecret };
 }
@@ -33,8 +37,11 @@ function readCookie(request: Request, name: string): string | undefined {
 
 function clientIdFor(request: Request): string {
   const requested = new URL(request.url).searchParams.get("client_id");
-  const clientId = requested ?? readCookie(request, CLIENT_COOKIE) ?? process.env.SSO_DEMO_CLIENT_ID;
-  if (!clientId) throw new Error("SSO_DEMO_CLIENT_ID is not configured");
+  const clientId = requested
+    ?? readCookie(request, CLIENT_COOKIE)
+    ?? process.env.SSO_CLIENT_ID
+    ?? process.env.SSO_DEMO_CLIENT_ID;
+  if (!clientId) throw new Error("SSO_CLIENT_ID is not configured");
   return clientId;
 }
 
@@ -87,7 +94,10 @@ export async function handleSsoRequest(request: Request): Promise<Response> {
     );
     return response;
   } catch (error) {
-    const url = new URL("/", getConfig().appUrl);
+    const appUrl = process.env.BETTER_AUTH_URL
+      ?? process.env.SSO_DEMO_ORIGIN
+      ?? new URL(request.url).origin;
+    const url = new URL("/", appUrl);
     url.searchParams.set("error", "client_not_configured");
     console.error("[sso-demo] SSO request failed", error);
     return Response.redirect(url, 303);

@@ -34,7 +34,9 @@ Create an active public application client in the SSO admin with:
 - Token endpoint authentication: `none`
 - PKCE method: `S256`
 
-Set its generated client ID as `SSO_DEMO_CLIENT_ID`. The API must have
+Set its generated client ID as `SSO_CLIENT_ID`. `BETTER_AUTH_URL` is the demo
+origin, `BETTER_AUTH_SECRET` encrypts its local application session, and
+`SSO_URL` points to the SSO API. The API must have
 `ENABLE_OAUTH_TOKEN_ISSUANCE=true`, and its stable `SSO_ISSUER` must match the
 issuer returned by client metadata.
 
