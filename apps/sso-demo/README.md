@@ -70,7 +70,7 @@ new client at runtime. Normal applications configure one `clientId` once.
 - OAuth tokens are never rendered, placed in URLs, or written to browser storage.
 - The library session is encrypted, HttpOnly, `SameSite=Lax`, and cannot outlive
   the SSO token.
-- Local logout, global logout, and forced account switching are library features.
+- Global logout and explicit local-only logout are library features.
 
 ## Browser test
 

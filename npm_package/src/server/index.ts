@@ -128,6 +128,8 @@ const DEFAULT_PATHS: SsoServerPaths = {
   logout: "/auth/logout",
 };
 
+const pendingCallbacks = new Map<string, Promise<Response>>();
+
 export async function createSsoAuthorization(
   options: CreateSsoAuthorizationOptions,
 ): Promise<{ url: URL; flow: SsoAuthorizationFlow }> {
@@ -276,25 +278,49 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       const state = url.searchParams.get("state");
       if (!code || !state) throw new Error("SSO callback is missing code or state");
       const flow = await unseal<SsoAuthorizationFlow>(readCookie(request, cookieConfig.flowName), key);
-      const authorization = await finishSsoAuthorization({
-        clientId: options.clientId,
-        code,
-        state,
-        flow,
-        maxFlowAgeSeconds: flowTtl,
-        ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
-        ...(options.fetch ? { fetch: options.fetch } : {}),
-      });
-      const user = options.onSignIn
-        ? await options.onSignIn({ user: authorization.user, authorization, request })
-        : authorization.user as TUser;
-      const seconds = Math.min(authorization.tokens.expires_in, sessionTtl);
-      const session: SsoSession<TUser> = { user, expiresAt: Date.now() + seconds * 1000 };
-      return redirectResponse(
-        new URL(authorization.returnTo, redirectOrigin),
-        serializeCookie(cookieConfig.sessionName, await seal(session, seconds, key), seconds, cookieConfig),
-        serializeCookie(cookieConfig.flowName, "", 0, cookieConfig),
-      );
+      if (flow.state !== state) throw new Error("SSO state mismatch");
+
+      const callbackKey = `${options.clientId}:${state}`;
+      const existing = pendingCallbacks.get(callbackKey);
+      if (existing) return (await existing).clone();
+
+      const pending = (async () => {
+        const authorization = await finishSsoAuthorization({
+          clientId: options.clientId,
+          code,
+          state,
+          flow,
+          maxFlowAgeSeconds: flowTtl,
+          ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+          ...(options.fetch ? { fetch: options.fetch } : {}),
+        });
+        const user = options.onSignIn
+          ? await options.onSignIn({ user: authorization.user, authorization, request })
+          : authorization.user as TUser;
+        const seconds = Math.min(authorization.tokens.expires_in, sessionTtl);
+        const session: SsoSession<TUser> = { user, expiresAt: Date.now() + seconds * 1000 };
+        return redirectResponse(
+          new URL(authorization.returnTo, redirectOrigin),
+          serializeCookie(cookieConfig.sessionName, await seal(session, seconds, key), seconds, cookieConfig),
+          serializeCookie(cookieConfig.flowName, "", 0, cookieConfig),
+        );
+      })();
+      pendingCallbacks.set(callbackKey, pending);
+      try {
+        const response = await pending;
+        const cleanup = setTimeout(() => {
+          if (pendingCallbacks.get(callbackKey) === pending) {
+            pendingCallbacks.delete(callbackKey);
+          }
+        }, 10_000);
+        if (typeof cleanup === "object" && "unref" in cleanup) cleanup.unref();
+        return response.clone();
+      } catch (error) {
+        if (pendingCallbacks.get(callbackKey) === pending) {
+          pendingCallbacks.delete(callbackKey);
+        }
+        throw error;
+      }
     } catch (error) {
       options.onError?.(error, request);
       return Response.json(

@@ -28,7 +28,6 @@ export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
   error: Error | null;
   login: (returnToOrOptions?: string | SsoLoginOptions) => void;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
-  switchAccount: (returnTo?: string) => Promise<void>;
   refresh: () => Promise<SsoSession<TUser> | null>;
 }
 
@@ -71,22 +70,14 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     setError(null);
   }, [props.client]);
 
-  const switchAccount = useCallback(async (returnTo = "/") => {
-    await props.client.logout();
-    setSession(null);
-    setError(null);
-    props.client.login({ returnTo, forceLogin: true });
-  }, [props.client]);
-
   const value = useMemo<SsoContextValue<TUser>>(() => ({
     session,
     status: loading ? "loading" : error ? "error" : session ? "authenticated" : "unauthenticated",
     error,
     login: props.client.login,
     logout,
-    switchAccount,
     refresh,
-  }), [error, loading, logout, props.client.login, refresh, session, switchAccount]);
+  }), [error, loading, logout, props.client.login, refresh, session]);
 
   return createElement(
     SsoContext.Provider,

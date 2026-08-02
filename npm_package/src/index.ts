@@ -57,7 +57,6 @@ export interface BetterAuthSsoClientOptions {
 
 export interface BetterAuthSsoClient {
   signIn: (callbackURL?: string) => Promise<BetterAuthResult>;
-  switchAccount: (callbackURL?: string) => Promise<BetterAuthResult>;
   signOut: (options?: { global?: boolean; returnTo?: string }) => Promise<BetterAuthResult>;
 }
 
@@ -128,7 +127,7 @@ export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProvider
     tokenUrl: provider.tokenUrl,
     scopes: provider.scopes,
     pkce: provider.pkce,
-    ...(options.forceLogin === false ? {} : { prompt: "login" as const }),
+    ...(options.forceLogin === true ? { prompt: "login" as const } : {}),
     getUserInfo: async (tokens: BetterAuthTokenSet) => {
       if (!tokens.idToken) return null;
       try {
@@ -159,13 +158,9 @@ export function createSsoBetterAuthClient(
 
   return {
     signIn,
-    async switchAccount(callbackURL = "/") {
-      const result = await options.authClient.signOut();
-      return result.error ? result : signIn(callbackURL);
-    },
     async signOut(signOutOptions = {}) {
       const result = await options.authClient.signOut();
-      if (result.error || !signOutOptions.global) return result;
+      if (result.error || signOutOptions.global === false) return result;
 
       const appOrigin = getBrowserOrigin(options.appUrl);
       const returnTo = new URL(

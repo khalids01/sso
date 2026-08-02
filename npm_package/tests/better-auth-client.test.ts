@@ -34,18 +34,19 @@ describe("Better Auth SSO client", () => {
     expect(calls).toEqual(["login:/dashboard"]);
   });
 
-  test("clears the local session before switching accounts", async () => {
-    const { calls, sso } = setup();
-    await sso.switchAccount("/dashboard");
-    expect(calls).toEqual(["logout", "login:/dashboard"]);
-  });
-
-  test("clears local and central sessions for global logout", async () => {
+  test("clears local and central sessions by default", async () => {
     const { calls, getDestination, sso } = setup();
-    await sso.signOut({ global: true, returnTo: "/signed-out" });
+    await sso.signOut({ returnTo: "/signed-out" });
     expect(calls).toEqual(["logout"]);
     expect(getDestination()).toBe(
       "https://sso.example.com/api/auth/global-sign-out?client_id=client_123&return_to=https%3A%2F%2Fapp.example.com%2Fsigned-out",
     );
+  });
+
+  test("can explicitly keep logout local", async () => {
+    const { calls, getDestination, sso } = setup();
+    await sso.signOut({ global: false });
+    expect(calls).toEqual(["logout"]);
+    expect(getDestination()).toBe("");
   });
 });

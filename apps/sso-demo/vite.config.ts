@@ -9,7 +9,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [tailwindcss(), tanstackStart(), viteReact()],
-    resolve: { tsconfigPaths: true },
+    resolve: {
+      tsconfigPaths: true,
+      dedupe: ["react", "react-dom"],
+    },
     server: { port },
   };
 });

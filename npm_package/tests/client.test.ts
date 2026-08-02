@@ -31,7 +31,7 @@ test("browser client redirects through the local login route", () => {
   expect(destination).toBe("https://app.example.com/auth/login?returnTo=%2Fdashboard");
 });
 
-test("browser client can request authentication with another account", () => {
+test("browser client can request fresh authentication", () => {
   let destination = "";
   const client = createSsoClient({
     baseUrl: "https://app.example.com",
@@ -52,7 +52,7 @@ test("browser client maps unauthorized profile responses to no session", async (
   expect(await client.getSession()).toBeNull();
 });
 
-test("browser client sends logout as a credentialed POST", async () => {
+test("browser client can explicitly keep logout local", async () => {
   let requestInit: RequestInit | undefined;
   const client = createSsoClient({
     fetch: (async (_input: string | URL | Request, init?: RequestInit) => {
@@ -61,19 +61,19 @@ test("browser client sends logout as a credentialed POST", async () => {
     }) as typeof fetch,
   });
 
-  await client.logout();
+  await client.logout({ global: false });
   expect(requestInit?.method).toBe("POST");
   expect(requestInit?.credentials).toBe("include");
 });
 
-test("browser client uses top-level navigation for global logout", async () => {
+test("browser client uses top-level navigation for global logout by default", async () => {
   let destination = "";
   const client = createSsoClient({
     baseUrl: "https://app.example.com",
     navigate: (url) => { destination = url; },
   });
 
-  await client.logout({ global: true, returnTo: "/signed-out" });
+  await client.logout({ returnTo: "/signed-out" });
   expect(destination).toBe(
     "https://app.example.com/auth/logout?global=true&returnTo=%2Fsigned-out",
   );

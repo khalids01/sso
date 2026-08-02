@@ -44,7 +44,7 @@ import { genericOAuth } from "better-auth/plugins";
 const skycanvas = createSsoBetterAuthProvider({
   clientId: process.env.SSO_CLIENT_ID!,
   baseUrl: process.env.SSO_URL, // optional
-  forceLogin: true, // default; set false only when silent SSO is intentional
+  // forceLogin: true, // optional explicit reauthentication
 });
 
 export const auth = betterAuth({
@@ -56,7 +56,7 @@ export const auth = betterAuth({
 
 `SSO_URL` is optional and defaults to `https://api-sso.skycanvasstudio.com`. The package does not read environment variables itself; the application passes `SSO_URL` as `baseUrl` when it needs an override.
 
-Mount `auth.handler` using Better Auth's normal server instructions. On the client, wrap the existing Better Auth client once so sign-in, account switching, local logout, and global logout remain package-owned:
+Mount `auth.handler` using Better Auth's normal server instructions. On the client, wrap the existing Better Auth client once so sign-in and logout remain package-owned:
 
 ```ts
 import { createSsoBetterAuthClient } from "@skycanvasstudio/sso/better-auth";
@@ -163,13 +163,13 @@ export const ssoClient = createSsoClient();
 
 ssoClient.login("/dashboard");
 const session = await ssoClient.getSession();
-await ssoClient.logout();
+await ssoClient.logout({ returnTo: "/" }); // local + central SSO logout
 
-// Always show the SSO login methods so the user can choose another account.
+// Require fresh authentication for a sensitive action.
 ssoClient.login({ returnTo: "/dashboard", forceLogin: true });
 
-// Clear this application's session and the central SSO session.
-await ssoClient.logout({ global: true, returnTo: "/" });
+// Rare escape hatch: clear only this application's session.
+await ssoClient.logout({ global: false });
 ```
 
 For a separate frontend, give the client a backend `baseUrl`, allow only the frontend origin in credentialed CORS, and pass that origin through `redirectOrigin` and `trustedOrigins` on `createSsoServer`.
@@ -198,14 +198,13 @@ status === "authenticated" ? (
       { label: "Dashboard", href: "/dashboard" },
       { label: "Settings", href: "/settings" },
     ]}
-    showSwitchAccount
   />
 ) : (
   <SsoSignInButton callbackURL="/dashboard">Sign in</SsoSignInButton>
 );
 ```
 
-`SsoUserMenu` always renders Profile first, supplied `items` next, optional account switching after them, and Logout last. Its profile dialog is read-only. Import the packaged stylesheet once; it uses shadcn color variables when available and supports `.dark` and `[data-theme="dark"]` automatically.
+`SsoUserMenu` always renders Profile first, supplied `items` next, and global Logout last. Its profile dialog is read-only. Import the packaged stylesheet once; it uses shadcn color variables when available and supports `.dark` and `[data-theme="dark"]` automatically.
 
 For Better Auth, pass controlled data and package-owned actions:
 
@@ -220,9 +219,7 @@ return data?.user ? (
   <SsoUserMenu
     user={data.user}
     items={[{ label: "Dashboard", href: "/dashboard" }]}
-    showSwitchAccount
-    onSwitchAccount={() => sso.switchAccount("/dashboard")}
-    onLogout={() => sso.signOut({ global: true, returnTo: "/" })}
+    onLogout={() => sso.signOut({ returnTo: "/" })}
   />
 ) : (
   <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />

@@ -31,10 +31,8 @@ describe("shared helpers", () => {
     expect(provider.prompt).toBe("login");
   });
 
-  test("requires fresh Better Auth login by default", () => {
-    expect(createSsoBetterAuthProvider({ clientId: "client_123" }).prompt).toBe(
-      "login",
-    );
+  test("allows the central SSO session by default", () => {
+    expect(createSsoBetterAuthProvider({ clientId: "client_123" }).prompt).toBeUndefined();
   });
 });
 

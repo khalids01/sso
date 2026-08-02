@@ -40,7 +40,7 @@ import { genericOAuth } from "better-auth/plugins"
 const skycanvas = createSsoBetterAuthProvider({
   clientId: process.env.SSO_CLIENT_ID!,
   baseUrl: process.env.SSO_URL, // optional
-  forceLogin: true, // default; set false only for intentional silent SSO
+  // forceLogin: true, // optional explicit reauthentication
 })
 
 export const auth = betterAuth({
@@ -61,7 +61,7 @@ export const POST = (request: Request) => auth.handler(request)`,
       },
       {
         filename: "Create the browser client",
-        description: "Wrap Better Auth once. The package then owns sign-in, account switching, and local/global logout navigation.",
+        description: "Wrap Better Auth once. The package then owns sign-in and global logout navigation.",
         code: `import { createAuthClient } from "better-auth/react"
 import { genericOAuthClient } from "better-auth/client/plugins"
 import { createSsoBetterAuthClient } from "@skycanvasstudio/sso/better-auth"
@@ -91,9 +91,7 @@ return data?.user ? (
   <SsoUserMenu
     user={data.user}
     items={[{ label: "Dashboard", href: "/dashboard" }]}
-    showSwitchAccount
-    onSwitchAccount={() => sso.switchAccount("/dashboard")}
-    onLogout={() => sso.signOut({ global: true, returnTo: "/" })}
+    onLogout={() => sso.signOut({ returnTo: "/" })}
   />
 ) : (
   <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />

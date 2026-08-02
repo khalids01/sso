@@ -23,8 +23,8 @@ export function AppShell() {
       <Outlet />
 
       <footer className="mx-auto mt-16 max-w-6xl border-t px-5 py-8 text-xs text-muted-foreground md:px-8">
-        Authentication, verified sessions, profile UI, account switching, and
-        logout come from the SSO library.
+        Authentication, verified sessions, profile UI, and global logout come
+        from the SSO library.
       </footer>
     </>
   );

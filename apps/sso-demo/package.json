@@ -9,7 +9,7 @@
     "check-types": "../../node_modules/@typescript/native/bin/tsc --noEmit"
   },
   "dependencies": {
-    "@skycanvasstudio/sso": "^0.3.0",
+    "@skycanvasstudio/sso": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/react-start": "^1.168.28",

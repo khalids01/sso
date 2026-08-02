@@ -9,7 +9,7 @@ const dashboardItem = {
 } as const;
 
 export function AccountMenu() {
-  const { session, logout } = useSso<DemoUser>();
+  const { session } = useSso<DemoUser>();
 
   if (!session) {
     return (
@@ -23,11 +23,7 @@ export function AccountMenu() {
     <SsoUserMenu
       user={session.user}
       items={[dashboardItem]}
-      showSwitchAccount
-      onLogout={async () => {
-        await logout();
-        window.location.assign("/");
-      }}
+      logoutReturnTo="/"
     />
   );
 }

@@ -47,7 +47,7 @@ import { genericOAuth } from "better-auth/plugins"
 const skycanvas = createSsoBetterAuthProvider({
   clientId: env.SSO_CLIENT_ID,
   baseUrl: env.SSO_URL, // optional
-  forceLogin: true, // default; set false only for intentional silent SSO
+  // forceLogin: true, // optional explicit reauthentication
 })
 
 export const auth = betterAuth({
@@ -65,7 +65,7 @@ Requirements:
 - Mount the existing `auth.handler` for GET and POST using Better Auth's normal server adapter.
 - Do not create separate SkyCanvas login, callback, profile, session, or logout routes.
 - Use Better Auth's `genericOAuthClient()` and wrap that client with `createSsoBetterAuthClient()`.
-- Use the wrapper for `signIn`, `switchAccount`, and local/global `signOut`; do not recreate SSO URLs or logout routes in the application.
+- Use the wrapper for `signIn` and `signOut`; logout clears both the application and central SSO sessions by default.
 - Keep using Better Auth's existing `auth.api.getSession` and `useSession` APIs.
 - Do not import `@skycanvasstudio/sso/client` on this path. The optional controlled `/react` UI is safe to use.
 - Preserve the existing account-linking policy. Do not enable forced linking without an explicit owner decision.
@@ -205,7 +205,7 @@ import { SsoProvider, SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/
 <SsoProvider client={ssoClient}>{children}</SsoProvider>
 ```
 
-`SsoSignInButton` and `SsoUserMenu` work directly with this provider. `SsoUserMenu` renders its read-only Profile action first, caller-supplied items next, optional account switching after those items, and Logout last.
+`SsoSignInButton` and `SsoUserMenu` work directly with this provider. `SsoUserMenu` renders its read-only Profile action first, caller-supplied items next, and global Logout last.
 
 ## Optional React UI for Better Auth
 
@@ -222,9 +222,7 @@ return data?.user ? (
   <SsoUserMenu
     user={data.user}
     items={[{ label: "Dashboard", href: "/dashboard" }]}
-    showSwitchAccount
-    onSwitchAccount={() => sso.switchAccount("/dashboard")}
-    onLogout={() => sso.signOut({ global: true, returnTo: "/" })}
+    onLogout={() => sso.signOut({ returnTo: "/" })}
   />
 ) : (
   <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />

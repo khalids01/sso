@@ -14,14 +14,13 @@ export function DemoSignInButton({ clientId }: DemoSignInButtonProps) {
 
   const signIn = () => {
     if (!clientId) {
-      sso.login({ returnTo: DASHBOARD_RETURN_TO, forceLogin: true });
+      sso.login({ returnTo: DASHBOARD_RETURN_TO });
       return;
     }
 
     // The query override is only used by E2E, which provisions a client at runtime.
     const params = new URLSearchParams({
       returnTo: DASHBOARD_RETURN_TO,
-      forceLogin: "true",
       client_id: clientId,
     });
     window.location.assign(`/auth/login?${params}`);

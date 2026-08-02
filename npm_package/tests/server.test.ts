@@ -15,6 +15,7 @@ const jwk = { ...(await exportJWK(publicKey)), alg: "RS256", use: "sig", kid: "t
 let expectedNonce = "";
 let identityNonce = "";
 let tokenRequestBody = "";
+let tokenRequestCount = 0;
 let issuer = "";
 
 const issuerServer = Bun.serve({
@@ -31,6 +32,7 @@ const issuerServer = Bun.serve({
     }
     if (url.pathname === "/api/auth/jwks") return Response.json({ keys: [jwk] });
     if (url.pathname === "/api/auth/oauth2/token") {
+      tokenRequestCount += 1;
       tokenRequestBody = await request.text();
       const accessToken = await sign({ scope: "openid" }, audience);
       const idToken = await sign({
@@ -59,7 +61,7 @@ beforeAll(() => {
 afterAll(() => issuerServer.stop(true));
 
 describe("authorization callback verification", () => {
-  test("requests fresh authentication when account switching is required", async () => {
+  test("requests fresh authentication when reauthentication is required", async () => {
     const { url } = await createSsoAuthorization({
       clientId,
       redirectUri: "https://app.example.com/auth/callback",
@@ -135,6 +137,33 @@ describe("authorization callback verification", () => {
 });
 
 describe("framework-independent SSO server", () => {
+  test("coalesces concurrent retries of the same callback", async () => {
+    const sso = createSsoServer({
+      clientId,
+      appUrl: "https://app.example.com",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const login = await sso.login(new Request(
+      "https://app.example.com/auth/login?returnTo=/dashboard",
+    ));
+    const authorizationUrl = new URL(requiredHeader(login, "location"));
+    const state = requiredParam(authorizationUrl, "state");
+    const flowCookie = cookiePair(requiredHeader(login, "set-cookie"));
+    identityNonce = requiredParam(authorizationUrl, "nonce");
+    const requestsBefore = tokenRequestCount;
+    const callbackUrl = `https://app.example.com/auth/callback?code=authorization_code&state=${state}`;
+
+    const [first, second] = await Promise.all([
+      sso.callback(new Request(callbackUrl, { headers: { cookie: flowCookie } })),
+      sso.callback(new Request(callbackUrl, { headers: { cookie: flowCookie } })),
+    ]);
+
+    expect(first.status).toBe(303);
+    expect(second.status).toBe(303);
+    expect(tokenRequestCount - requestsBefore).toBe(1);
+  });
+
   test("owns login, callback, session, profile, and logout routes", async () => {
     const sso = createSsoServer({
       clientId,
@@ -192,10 +221,10 @@ describe("framework-independent SSO server", () => {
       "https://app.example.com/signed-out",
     );
 
-    const switchAccount = await sso.handle(new Request(
+    const freshLogin = await sso.handle(new Request(
       "https://app.example.com/auth/login?returnTo=/dashboard&forceLogin=true",
     ));
-    expect(new URL(requiredHeader(switchAccount, "location")).searchParams.get("prompt"))
+    expect(new URL(requiredHeader(freshLogin, "location")).searchParams.get("prompt"))
       .toBe("login");
   });
 

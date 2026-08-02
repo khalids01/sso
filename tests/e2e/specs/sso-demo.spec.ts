@@ -8,7 +8,7 @@ function buildSignupEmail() {
   return `${mailbox.split("+")[0]}+${e2eEnv.runPrefix}signup@${domain}`;
 }
 
-test("SSO demo creates and clears a verified local session", async ({ browser }) => {
+test("SSO demo creates a verified session and signs out locally and centrally", async ({ browser }) => {
   const fixture = readRunState().oauthFixture;
   if (!fixture) throw new Error("OAuth E2E fixture was not provisioned");
 
@@ -46,10 +46,25 @@ test("SSO demo creates and clears a verified local session", async ({ browser })
 
     await page.reload();
     await expect(page.getByText("Verified session", { exact: true })).toBeVisible();
+
+    const centralSessionBeforeLogout = await page.request.get(
+      `${e2eEnv.E2E_API_ORIGIN}/api/auth/get-session`,
+    );
+    expect(centralSessionBeforeLogout.ok()).toBe(true);
+    expect(await centralSessionBeforeLogout.json()).toMatchObject({
+      user: { email: e2eEnv.E2E_ACTOR_EMAIL },
+    });
+
     await page.getByRole("button", { name: "Open account menu" }).click();
-    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await page.getByRole("menuitem", { name: "Sign out everywhere" }).click();
     await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/`);
     await expect(page.getByRole("button", { name: "Continue with SSO" })).toBeVisible();
+
+    const centralSessionAfterLogout = await page.request.get(
+      `${e2eEnv.E2E_API_ORIGIN}/api/auth/get-session`,
+    );
+    expect(centralSessionAfterLogout.ok()).toBe(true);
+    expect(await centralSessionAfterLogout.json()).toBeNull();
   } finally {
     await context.close();
   }

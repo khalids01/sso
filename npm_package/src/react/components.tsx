@@ -32,15 +32,11 @@ export interface SsoUserMenuProps {
   user?: SsoDisplayUser | null;
   items?: readonly SsoMenuItem[];
   onLogout?: AsyncAction;
-  onSwitchAccount?: AsyncAction;
-  globalLogout?: boolean;
   logoutReturnTo?: string;
-  showSwitchAccount?: boolean;
   className?: string;
   align?: "start" | "center" | "end";
   profileLabel?: string;
   logoutLabel?: string;
-  switchAccountLabel?: string;
 }
 
 export function SsoSignInButton({
@@ -83,15 +79,11 @@ export function SsoUserMenu({
   user: suppliedUser,
   items = [],
   onLogout,
-  onSwitchAccount,
-  globalLogout = false,
   logoutReturnTo = "/",
-  showSwitchAccount = false,
   className,
   align = "end",
   profileLabel = "Profile",
-  logoutLabel = globalLogout ? "Sign out everywhere" : "Sign out",
-  switchAccountLabel = "Use another account",
+  logoutLabel = "Sign out everywhere",
 }: SsoUserMenuProps) {
   const sso = useOptionalSso();
   const user = suppliedUser === undefined ? sso?.session?.user : suppliedUser;
@@ -111,11 +103,8 @@ export function SsoUserMenu({
   };
 
   const logout = onLogout ?? (() => sso?.logout({
-    global: globalLogout,
     returnTo: logoutReturnTo,
   }));
-  const switchAccount = onSwitchAccount ?? (() => sso?.switchAccount("/"));
-
   return (
     <Dialog.Root open={profileOpen} onOpenChange={setProfileOpen}>
       <Menu.Root>
@@ -168,16 +157,6 @@ export function SsoUserMenu({
                 )}
               </Fragment>
             ))}
-            {showSwitchAccount ? (
-              <Menu.Item
-                className="sso-menu-item"
-                disabled={busy}
-                onClick={() => void run(switchAccount)}
-              >
-                <SwitchAccountIcon />
-                {switchAccountLabel}
-              </Menu.Item>
-            ) : null}
             <Menu.Separator className="sso-menu-separator" />
             <Menu.Item
               className="sso-menu-item sso-menu-item-danger"
@@ -249,10 +228,6 @@ function SpinnerIcon() {
 
 function ProfileIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>;
-}
-
-function SwitchAccountIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M21 3l-6 6" /><circle cx="9" cy="9" r="4" /><path d="M2 21a7 7 0 0 1 12-4.9" /></svg>;
 }
 
 function LogoutIcon() {

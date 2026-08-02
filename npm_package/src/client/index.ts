@@ -55,7 +55,7 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
       return response.json() as Promise<SsoSession<TUser>>;
     },
     async logout(logoutOptions = {}) {
-      if (logoutOptions.global) {
+      if (logoutOptions.global !== false) {
         const target = resolveUrl(logoutPath, baseUrl);
         target.searchParams.set("global", "true");
         target.searchParams.set("returnTo", logoutOptions.returnTo ?? "/");
