@@ -33,7 +33,7 @@ const errorMessages: Record<string, string> = {
 function HomePage() {
   const { client_id: clientId, error } = Route.useSearch();
   const { session } = rootRoute.useLoaderData();
-  const loginHref = `/auth/login?returnTo=${encodeURIComponent("/dashboard?connected=true")}${clientId ? `&client_id=${encodeURIComponent(clientId)}` : ""}`;
+  const loginHref = `/auth/login?returnTo=${encodeURIComponent("/dashboard?connected=true")}&forceLogin=true${clientId ? `&client_id=${encodeURIComponent(clientId)}` : ""}`;
 
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-10 md:grid-cols-[1.15fr_0.85fr] md:px-8 md:pt-20">
