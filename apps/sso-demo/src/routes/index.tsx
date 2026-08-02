@@ -2,6 +2,7 @@ import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
+import { SsoSignInButton } from "@skycanvasstudio/sso/react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,7 @@ const errorMessages: Record<string, string> = {
 function HomePage() {
   const { client_id: clientId, error } = Route.useSearch();
   const { session } = rootRoute.useLoaderData();
-  const loginHref = `/auth/start${clientId ? `?client_id=${encodeURIComponent(clientId)}` : ""}`;
+  const loginHref = `/auth/login?returnTo=${encodeURIComponent("/dashboard?connected=true")}${clientId ? `&client_id=${encodeURIComponent(clientId)}` : ""}`;
 
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-10 md:grid-cols-[1.15fr_0.85fr] md:px-8 md:pt-20">
@@ -46,9 +47,12 @@ function HomePage() {
         </p>
         {error && <div role="alert" className="mt-6 max-w-xl rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{errorMessages[error] ?? "Login could not be completed."}</div>}
         <div className="mt-8 flex flex-wrap gap-3">
-          <a href={loginHref} className={cn(buttonVariants({ size: "lg" }), "shadow-lg shadow-primary/20")}>
+          <SsoSignInButton
+            onSignIn={() => window.location.assign(loginHref)}
+            className={cn(buttonVariants({ size: "lg" }), "shadow-lg shadow-primary/20")}
+          >
             Continue with SSO <ArrowRight className="size-4" />
-          </a>
+          </SsoSignInButton>
           {session ? <Link to="/dashboard" className={buttonVariants({ variant: "outline", size: "lg" })}>Open dashboard</Link> : null}
         </div>
       </section>

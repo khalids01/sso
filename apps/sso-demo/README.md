@@ -1,8 +1,19 @@
 # SSO Demo
 
-`sso-demo` is a TanStack Start reference application for the SSO public-client
-authorization-code flow. It uses shadcn-style UI primitives and is intentionally
-small enough to serve as an integration example.
+`sso-demo` is a dark-mode TanStack Start reference application powered by
+`@skycanvasstudio/sso`. It demonstrates the full server integration and the
+optional React UI without reimplementing OAuth or session management in the app.
+
+The integration uses:
+
+- `createSsoServer` for login, callback handling, token verification, encrypted
+  application sessions, profile responses, and local/global logout.
+- `createSsoClient` and `SsoProvider` for browser session state.
+- `SsoSignInButton` for login.
+- `SsoUserMenu` for the read-only profile modal, custom menu items, account
+  switching, and logout.
+- `@skycanvasstudio/sso/styles.css`, which consumes the demo's shadcn color
+  variables and stays compatible with its forced dark theme.
 
 ## Local configuration
 
@@ -35,19 +46,19 @@ bun run dev
 
 The demo is available at [http://localhost:5003](http://localhost:5003). For an
 E2E-created client, the client ID can instead be supplied temporarily as
-`/?client_id=...`; it is used only to begin the server-side authorization flow.
+`/?client_id=...`; this small bridge exists only because the test provisions a
+new client at runtime. Normal applications configure one `clientId` once.
 
 ## Security boundaries
 
-- PKCE verifier, state, and nonce live in a short-lived encrypted HttpOnly cookie.
-- The callback exchanges the code from the demo server, with the registered demo origin.
-- Access and ID tokens are verified against SSO JWKS for signature, issuer,
-  audience, subject, and nonce binding.
-- OAuth tokens are not rendered, placed in URLs, or written to browser storage.
-- The resulting application session is encrypted, HttpOnly, `SameSite=Lax`, and
-  cannot outlive the ten-minute SSO token.
-- Local sign-out clears only the demo session. Global SSO logout remains outside
-  the current public-client protocol.
+- The library keeps PKCE verifier, state, and nonce in a short-lived encrypted
+  HttpOnly cookie.
+- The library exchanges the callback code and verifies access and ID tokens
+  against SSO JWKS, including issuer, audience, subject, and nonce binding.
+- OAuth tokens are never rendered, placed in URLs, or written to browser storage.
+- The library session is encrypted, HttpOnly, `SameSite=Lax`, and cannot outlive
+  the SSO token.
+- Local logout, global logout, and forced account switching are library features.
 
 ## Browser test
 

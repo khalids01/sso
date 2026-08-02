@@ -1,20 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeader } from "@tanstack/react-start/server";
+import { getRequest } from "@tanstack/react-start/server";
+import type { SsoSession } from "@skycanvasstudio/sso";
+import type { DemoUser } from "./auth.server";
 
-export type DemoSession = {
-  subject: string;
-  clientId: string;
-  applicationId: string;
-  membershipId: string;
-  audience: string;
-  issuer: string;
-  scope: "openid";
-  authorizationVersion: number;
-  issuedAt: number;
-  expiresAt: number;
-};
+export type DemoSession = SsoSession<DemoUser>;
 
 export const getDemoSession = createServerFn({ method: "GET" }).handler(async (): Promise<DemoSession | null> => {
-  const { readSession } = await import("./auth.server");
-  return readSession(getRequestHeader("cookie") ?? null);
+  const request = getRequest();
+  const { getSsoServer } = await import("./auth.server");
+  try {
+    return await getSsoServer(request).getSession(request);
+  } catch {
+    return null;
+  }
 });

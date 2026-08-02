@@ -17,7 +17,7 @@ test("SSO demo creates and clears a verified local session", async ({ browser })
   try {
     await page.goto(`${e2eEnv.E2E_DEMO_ORIGIN}/?client_id=${encodeURIComponent(fixture.clientId)}`);
     await expect(page.getByRole("heading", { name: /whole SSO contract/i })).toBeVisible();
-    await page.getByRole("link", { name: "Continue with SSO" }).click();
+    await page.getByRole("button", { name: "Continue with SSO" }).click();
 
     await expect(page).toHaveURL(/\/application\/login\?/);
     await expect(page.getByRole("heading", { name: `Continue to E2E OAuth Client ${e2eEnv.runId}` })).toBeVisible();
@@ -46,9 +46,10 @@ test("SSO demo creates and clears a verified local session", async ({ browser })
 
     await page.reload();
     await expect(page.getByText("Verified session", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Sign out locally" }).click();
+    await page.getByRole("button", { name: "Open account menu" }).click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
     await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/`);
-    await expect(page.getByRole("link", { name: "Continue with SSO" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue with SSO" })).toBeVisible();
   } finally {
     await context.close();
   }
@@ -66,7 +67,7 @@ test("SSO demo signs up with a password without email verification", async ({ br
   const page = await context.newPage();
   try {
     await page.goto(`${e2eEnv.E2E_DEMO_ORIGIN}/?client_id=${encodeURIComponent(fixture.clientId)}`);
-    await page.getByRole("link", { name: "Continue with SSO" }).click();
+    await page.getByRole("button", { name: "Continue with SSO" }).click();
     await page.getByRole("link", { name: "Need an account? Sign Up" }).click();
 
     await expect(page).toHaveURL(/\/application\/signup\?/);
