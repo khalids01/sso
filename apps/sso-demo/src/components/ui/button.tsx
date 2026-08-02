@@ -1,6 +1,4 @@
-import { Button as ButtonPrimitive } from "@base-ui/react/button";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+import { cva } from "class-variance-authority";
 
 const buttonVariants = cva(
   "inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
@@ -21,8 +19,4 @@ const buttonVariants = cva(
   },
 );
 
-function Button({ className, variant, size, ...props }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return <ButtonPrimitive className={cn(buttonVariants({ variant, size, className }))} {...props} />;
-}
-
-export { Button, buttonVariants };
+export { buttonVariants };

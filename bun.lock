@@ -53,7 +53,6 @@
     "apps/sso-demo": {
       "name": "sso-demo",
       "dependencies": {
-        "@base-ui/react": "^1.2.0",
         "@skycanvasstudio/sso": "^0.3.0",
         "@tailwindcss/vite": "^4.3.3",
         "@tanstack/react-router": "^1.170.18",

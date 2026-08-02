@@ -32,9 +32,9 @@ const localWebServers = [
   },
   {
     command:
-      `PORT=${localDemoPort} SSO_DEMO_ORIGIN=${e2eEnv.E2E_DEMO_ORIGIN} ` +
-      `SSO_API_ORIGIN=${e2eEnv.E2E_API_ORIGIN} ` +
-      "SSO_DEMO_SESSION_SECRET=e2e-only-sso-demo-session-secret-32 bun run tests/e2e/scripts/start-local-demo.ts",
+      `PORT=${localDemoPort} APP_URL=${e2eEnv.E2E_DEMO_ORIGIN} ` +
+      `SSO_URL=${e2eEnv.E2E_API_ORIGIN} ` +
+      "SESSION_SECRET=e2e-only-sso-demo-session-secret-32 bun run tests/e2e/scripts/start-local-demo.ts",
     cwd: e2eEnv.repoRoot,
     url: e2eEnv.E2E_DEMO_ORIGIN,
     reuseExistingServer: false,

@@ -1,6 +1,10 @@
-import { createStartHandler, defaultStreamHandler, type RequestHandler } from "@tanstack/react-start/server";
+import {
+  createStartHandler,
+  defaultStreamHandler,
+  type RequestHandler,
+} from "@tanstack/react-start/server";
 import type { Register } from "@tanstack/react-router";
-import { handleSsoRequest } from "./lib/auth.server";
+import { handleSsoRequest } from "./lib/sso.server";
 
 const fetch = createStartHandler(async (context) => {
   if (new URL(context.request.url).pathname.startsWith("/auth/")) {
