@@ -135,6 +135,13 @@ import type {
 flow. It is not a replacement for the application-specific Better Auth user
 type. `SsoDisplayUser` is only the minimum shape accepted by `SsoUserMenu`.
 
+For SSR React applications, load `auth.api.getSession({ headers })` on the
+server and pass the inferred session into an application-level
+`AuthSessionProvider`. That provider should use `authClient.useSession()` after
+hydration. This wrapper provides initial SSR data without mounting the
+standalone SkyCanvas `SsoProvider` or creating a second session system. The
+website guide includes complete TanStack Start and Next.js implementations.
+
 Register the exact callback:
 
 ```text

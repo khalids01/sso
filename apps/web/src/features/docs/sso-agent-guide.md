@@ -83,6 +83,7 @@ Requirements:
 - Preserve the existing account-linking policy. Do not enable forced linking without an explicit owner decision.
 - Infer the exact application types from Better Auth: `type AuthSession = typeof authClient.$Infer.Session` and `type AuthUser = AuthSession["user"]`. Do not replace them with the package's standalone `SsoUser` type.
 - Import SkyCanvas-owned contract types from `@skycanvasstudio/sso/types` when protocol, server, client, or UI types are needed.
+- For SSR React applications, create an application `AuthSessionProvider` that accepts Better Auth's inferred `AuthSession | null` as `initialSession`, calls `authClient.useSession()` for reactive client updates, and exposes that value through React context. Load the initial value with `auth.api.getSession({ headers })` in a TanStack server function or Next.js server layout. This is an application wrapper around Better Auth, not the standalone package `SsoProvider`.
 
 Server environment:
 
@@ -229,10 +230,24 @@ React integration (`src/components/app-sso-provider.tsx`):
 import "@skycanvasstudio/sso/styles.css"
 import { SsoProvider, SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
 
-export function AppSsoProvider({ children }: { children: React.ReactNode }) {
-  return <SsoProvider client={ssoClient}>{children}</SsoProvider>
+export function AppSsoProvider({ initialSession, children }: {
+  initialSession: SsoSession | null
+  children: React.ReactNode
+}) {
+  return (
+    <SsoProvider client={ssoClient} initialSession={initialSession}>
+      {children}
+    </SsoProvider>
+  )
 }
 ```
+
+For TanStack Start SSR, create a server function that calls
+`sso.getSession(getRequest())`, return only the plain `SsoSession | null`, load
+it from the root route, and pass it as `initialSession`. This avoids an
+unauthenticated hydration flash and an additional `/auth/profile` request. If
+`initialSession` is omitted, `SsoProvider` remains functional and refreshes the
+profile after mounting.
 
 `SsoSignInButton` and `SsoUserMenu` work directly with this provider. `SsoUserMenu` renders its read-only Profile action first, caller-supplied items next, and global Logout last.
 

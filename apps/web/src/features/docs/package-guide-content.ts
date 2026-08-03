@@ -182,31 +182,165 @@ export const sso = createSsoBetterAuthClient({
         ],
       },
       {
-        title: "Use the Better Auth session provider",
-        filename: "src/routes/dashboard.tsx (example)",
-        description: "Better Auth already provides the session context on this path. Do not add SsoProvider and do not call useSso or useSsoSession from @skycanvasstudio/sso/react.",
-        code: `import { createFileRoute } from "@tanstack/react-router"
-import { authClient, sso } from "@/lib/auth-client"
+        title: "Create getInitialAuthSession",
+        tabLabel: "TanStack Start",
+        filename: "src/lib/auth-session.ts",
+        description: "Copy the complete file for your framework. It exports getInitialAuthSession, reads Better Auth with the incoming request headers, and returns only serializable session data.",
+        code: `import { createServerFn } from "@tanstack/react-start"
+import { getRequestHeaders } from "@tanstack/react-start/server"
+import { auth } from "@/lib/auth"
 
-export const Route = createFileRoute("/dashboard")({
-  component: Dashboard,
-})
+export const getInitialAuthSession = createServerFn({ method: "GET" }).handler(
+  async () => auth.api.getSession({ headers: getRequestHeaders() }),
+)`,
+        alternatives: [
+          {
+            tabLabel: "Next.js",
+            filename: "src/lib/auth-session.server.ts",
+            code: `import "server-only"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth"
 
-function Dashboard() {
-  const { data, isPending } = authClient.useSession()
+export async function getInitialAuthSession() {
+  return auth.api.getSession({ headers: await headers() })
+}`,
+          },
+        ],
+      },
+      {
+        title: "Add the React session provider",
+        tabLabel: "TanStack Start",
+        filename: "src/components/auth-session-provider.tsx",
+        description: "Mount this provider once on the Better Auth path. It starts from the SSR session and then follows Better Auth's reactive browser session. This is not the standalone SkyCanvas SsoProvider.",
+        code: `import { createContext, useContext, type ReactNode } from "react"
+import { authClient } from "@/lib/auth-client"
 
-  if (isPending) return <p>Loading…</p>
-  if (!data?.user) return <p>You are not signed in.</p>
+type AuthSession = typeof authClient.$Infer.Session
+
+type AuthSessionContextValue = {
+  session: AuthSession | null
+  isPending: boolean
+  error: unknown
+}
+
+const AuthSessionContext = createContext<AuthSessionContextValue | null>(null)
+
+export function AuthSessionProvider({
+  initialSession,
+  children,
+}: {
+  initialSession: AuthSession | null
+  children: ReactNode
+}) {
+  const current = authClient.useSession()
+  const session = current.isPending ? initialSession : (current.data ?? null)
 
   return (
-    <main>
-      <h1>Welcome, {data.user.name}</h1>
-      <button onClick={() => sso.signOut({ returnTo: "/" })}>
-        Sign out
-      </button>
-    </main>
+    <AuthSessionContext.Provider
+      value={{
+        session,
+        isPending: current.isPending && initialSession === null,
+        error: current.error,
+      }}
+    >
+      {children}
+    </AuthSessionContext.Provider>
+  )
+}
+
+export function useAuthSession() {
+  const value = useContext(AuthSessionContext)
+  if (!value) throw new Error("useAuthSession requires AuthSessionProvider")
+  return value
+}`,
+        alternatives: [
+          {
+            tabLabel: "Next.js",
+            filename: "src/components/auth-session-provider.tsx",
+            code: `"use client"
+
+import { createContext, useContext, type ReactNode } from "react"
+import { authClient } from "@/lib/auth-client"
+
+type AuthSession = typeof authClient.$Infer.Session
+type AuthSessionContextValue = {
+  session: AuthSession | null
+  isPending: boolean
+  error: unknown
+}
+
+const AuthSessionContext = createContext<AuthSessionContextValue | null>(null)
+
+export function AuthSessionProvider({ initialSession, children }: {
+  initialSession: AuthSession | null
+  children: ReactNode
+}) {
+  const current = authClient.useSession()
+  const session = current.isPending ? initialSession : (current.data ?? null)
+
+  return (
+    <AuthSessionContext.Provider value={{
+      session,
+      isPending: current.isPending && initialSession === null,
+      error: current.error,
+    }}>
+      {children}
+    </AuthSessionContext.Provider>
+  )
+}
+
+export function useAuthSession() {
+  const value = useContext(AuthSessionContext)
+  if (!value) throw new Error("useAuthSession requires AuthSessionProvider")
+  return value
+}`,
+          },
+        ],
+      },
+      {
+        title: "Wrap the app with the initial session",
+        tabLabel: "TanStack Start",
+        filename: "src/routes/__root.tsx (relevant part)",
+        description: "Load the session during SSR and pass it into AuthSessionProvider above the complete React application.",
+        code: `import { Outlet, createRootRoute } from "@tanstack/react-router"
+import { AuthSessionProvider } from "@/components/auth-session-provider"
+import { getInitialAuthSession } from "@/lib/auth-session"
+
+export const Route = createRootRoute({
+  loader: async () => ({ session: await getInitialAuthSession() }),
+  component: Root,
+})
+
+function Root() {
+  const { session } = Route.useLoaderData()
+  return (
+    <AuthSessionProvider initialSession={session}>
+      <Outlet />
+    </AuthSessionProvider>
   )
 }`,
+        alternatives: [
+          {
+            tabLabel: "Next.js",
+            filename: "app/layout.tsx",
+            code: `import { AuthSessionProvider } from "@/components/auth-session-provider"
+import { getInitialAuthSession } from "@/lib/auth-session.server"
+import type { ReactNode } from "react"
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const session = await getInitialAuthSession()
+  return (
+    <html lang="en">
+      <body>
+        <AuthSessionProvider initialSession={session}>
+          {children}
+        </AuthSessionProvider>
+      </body>
+    </html>
+  )
+}`,
+          },
+        ],
       },
       {
         title: "Use the correct user and session types",
@@ -237,14 +371,17 @@ export type {
         description: "Import the stylesheet once. The menu shows read-only Profile first, custom items next, and Logout last. It follows shadcn theme variables and dark mode.",
         code: `import "@skycanvasstudio/sso/styles.css"
 import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
-import { authClient, sso } from "./auth-client"
+import { useAuthSession } from "./auth-session-provider"
+import { sso } from "../lib/auth-client"
 
 export function AccountMenu() {
-  const { data } = authClient.useSession()
+  const { session, isPending } = useAuthSession()
 
-  return data?.user ? (
+  if (isPending) return <span>Loading…</span>
+
+  return session?.user ? (
     <SsoUserMenu
-      user={data.user}
+      user={session.user}
       items={[{ label: "Dashboard", href: "/dashboard" }]}
       onLogout={() => sso.signOut({ returnTo: "/" })}
     />
@@ -391,9 +528,10 @@ export const sso = createSsoServer({
 console.log(sso.callbackUrl) // register this exact URL`,
       },
       {
-        title: "Mount the SSO routes in TanStack Start",
+        title: "Mount the SSO routes",
+        tabLabel: "TanStack Start",
         filename: "src/server.ts",
-        description: "The standalone helper owns four /auth routes. Forward them before TanStack renders the application; all other requests continue to the default Start handler.",
+        description: "Choose your framework. The standalone helper must receive GET /auth/login, GET /auth/callback, GET /auth/profile, and POST /auth/logout.",
         code: `import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server"
 import { sso } from "./lib/sso.server"
 
@@ -414,6 +552,16 @@ export default { fetch }
 // GET  /auth/callback
 // GET  /auth/profile
 // POST /auth/logout`,
+        alternatives: [
+          {
+            tabLabel: "Next.js",
+            filename: "app/auth/[...sso]/route.ts",
+            code: `import { sso } from "@/lib/sso.server"
+
+export const GET = (request: Request) => sso.handle(request)
+export const POST = (request: Request) => sso.handle(request)`,
+          },
+        ],
       },
       {
         title: "Create the browser client",
@@ -424,34 +572,142 @@ export default { fetch }
 export const ssoClient = createSsoClient()`,
       },
       {
+        title: "Load the initial session for SSR",
+        tabLabel: "TanStack Start",
+        filename: "src/lib/sso-session.ts",
+        description: "Read the encrypted cookie on the server and return only plain SsoSession data. Passing it to SsoProvider avoids an unauthenticated flash and an extra profile request.",
+        code: `import { createServerFn } from "@tanstack/react-start"
+import { getRequest } from "@tanstack/react-start/server"
+import type { SsoSession } from "@skycanvasstudio/sso/types"
+
+export const getSsoSession = createServerFn({ method: "GET" }).handler(
+  async (): Promise<SsoSession | null> => {
+    const request = getRequest()
+    const { sso } = await import("./sso.server")
+    return sso.getSession(request)
+  },
+)`,
+        alternatives: [
+          {
+            tabLabel: "Next.js",
+            filename: "src/lib/sso-session.server.ts",
+            code: `import "server-only"
+import { headers } from "next/headers"
+import type { SsoSession } from "@skycanvasstudio/sso/types"
+import { sso } from "./sso.server"
+
+export async function getSsoSession(): Promise<SsoSession | null> {
+  const request = new Request(new URL("/", process.env.APP_URL!), {
+    headers: await headers(),
+  })
+  return sso.getSession(request)
+}`,
+          },
+        ],
+      },
+      {
         title: "Add SsoProvider for React",
+        tabLabel: "TanStack Start",
         filename: "src/components/app-sso-provider.tsx",
         description: "This provider is required only on the no-auth-library path. Create it once around the application; do not add it to a Better Auth integration.",
         code: `import "@skycanvasstudio/sso/styles.css"
 import { SsoProvider } from "@skycanvasstudio/sso/react"
 import { ssoClient } from "@/lib/sso-client"
+import type { SsoSession } from "@skycanvasstudio/sso/types"
 import type { ReactNode } from "react"
 
-export function AppSsoProvider({ children }: { children: ReactNode }) {
-  return <SsoProvider client={ssoClient}>{children}</SsoProvider>
+export function AppSsoProvider({
+  initialSession,
+  children,
+}: {
+  initialSession: SsoSession | null
+  children: ReactNode
+}) {
+  return (
+    <SsoProvider client={ssoClient} initialSession={initialSession}>
+      {children}
+    </SsoProvider>
+  )
 }`,
+        alternatives: [
+          {
+            tabLabel: "Next.js",
+            filename: "src/components/app-sso-provider.tsx",
+            code: `"use client"
+
+import "@skycanvasstudio/sso/styles.css"
+import { SsoProvider } from "@skycanvasstudio/sso/react"
+import { ssoClient } from "@/lib/sso-client"
+import type { SsoSession } from "@skycanvasstudio/sso/types"
+import type { ReactNode } from "react"
+
+export function AppSsoProvider({
+  initialSession,
+  children,
+}: {
+  initialSession: SsoSession | null
+  children: ReactNode
+}) {
+  return (
+    <SsoProvider client={ssoClient} initialSession={initialSession}>
+      {children}
+    </SsoProvider>
+  )
+}`,
+          },
+        ],
       },
       {
-        title: "Wrap the TanStack application",
+        title: "Wrap the application with initial session data",
+        tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
-        description: "Render AppSsoProvider once above every component that calls useSso or useSsoSession.",
-        code: `import { AppSsoProvider } from "@/components/app-sso-provider"
+        description: "Load the plain session during SSR and pass it into AppSsoProvider once above every component that calls useSso or useSsoSession.",
+        code: `import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router"
+import { AppSsoProvider } from "@/components/app-sso-provider"
+import { getSsoSession } from "@/lib/sso-session"
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+export const Route = createRootRoute({
+  loader: async () => ({ session: await getSsoSession() }),
+  component: RootDocument,
+})
+
+function RootDocument() {
+  const { session } = Route.useLoaderData()
+
   return (
     <html lang="en">
       <body>
-        <AppSsoProvider>{children}</AppSsoProvider>
+        <AppSsoProvider initialSession={session}>
+          <Outlet />
+        </AppSsoProvider>
         <Scripts />
       </body>
     </html>
   )
 }`,
+        alternatives: [
+          {
+            tabLabel: "Next.js",
+            filename: "app/layout.tsx",
+            code: `import { AppSsoProvider } from "@/components/app-sso-provider"
+import { getSsoSession } from "@/lib/sso-session.server"
+import type { ReactNode } from "react"
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const session = await getSsoSession()
+
+  return (
+    <html lang="en">
+      <body>
+        <AppSsoProvider initialSession={session}>
+          {children}
+        </AppSsoProvider>
+      </body>
+    </html>
+  )
+}`,
+          },
+        ],
       },
       {
         title: "Use session, sign-in, and logout",
