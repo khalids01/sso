@@ -32,7 +32,17 @@ describe("shared helpers", () => {
   });
 
   test("allows the central SSO session by default", () => {
-    expect(createSsoBetterAuthProvider({ clientId: "client_123" }).prompt).toBeUndefined();
+    expect(createSsoBetterAuthProvider({
+      clientId: "client_123",
+      baseUrl: "https://sso.example.com",
+    }).prompt).toBeUndefined();
+  });
+
+  test("requires an explicit Better Auth SSO base URL", () => {
+    expect(() => createSsoBetterAuthProvider({
+      clientId: "client_123",
+      baseUrl: "",
+    })).toThrow("baseUrl is required");
   });
 });
 

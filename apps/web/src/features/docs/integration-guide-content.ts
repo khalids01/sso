@@ -1,4 +1,5 @@
 export type CodeSample = {
+  title?: string;
   filename: string;
   code: string;
   description?: string;

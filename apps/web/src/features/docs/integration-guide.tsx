@@ -33,7 +33,7 @@ export function IntegrationGuide() {
       items: [
         { label: "Overview", href: "#overview" },
         ...activeRecipe.samples.map((sample, index) => ({
-          label: sample.filename,
+          label: sample.title ?? sample.filename,
           href: `#guide-file-${index + 1}`,
         })),
       ],
@@ -143,10 +143,10 @@ export function IntegrationGuide() {
               <ol className="mt-9 space-y-10">
                 {activeRecipe.samples.map((sample, index) => (
                   <GuideStep
-                    key={sample.filename}
+                    key={`${sample.title ?? sample.filename}-${sample.filename}`}
                     id={`guide-file-${index + 1}`}
                     number={String(index + 1)}
-                    title={sample.filename}
+                    title={sample.title ?? sample.filename}
                   >
                     {sample.description ? <p>{sample.description}</p> : null}
                     <CodeBlock sample={sample} />

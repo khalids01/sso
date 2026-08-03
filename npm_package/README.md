@@ -57,7 +57,7 @@ import { genericOAuth } from "better-auth/plugins";
 
 const skycanvas = createSsoBetterAuthProvider({
   clientId: process.env.SSO_CLIENT_ID!,
-  baseUrl: process.env.SSO_URL, // optional
+  baseUrl: process.env.SSO_URL!,
   // forceLogin: true, // optional explicit reauthentication
 });
 
@@ -68,7 +68,7 @@ export const auth = betterAuth({
 });
 ```
 
-`SSO_URL` is optional and defaults to `https://api-sso.skycanvasstudio.com`. The package does not read environment variables itself; the application passes `SSO_URL` as `baseUrl` when it needs an override.
+`baseUrl` is required for the Better Auth provider. Set `SSO_URL=https://api-sso.skycanvasstudio.com` for production, or set it to the origin of the SSO environment you are testing. The package does not read environment variables itself; the application must pass `SSO_URL` explicitly.
 
 Mount `auth.handler` using Better Auth's normal server instructions. On the client, wrap the existing Better Auth client once so sign-in and logout remain package-owned:
 

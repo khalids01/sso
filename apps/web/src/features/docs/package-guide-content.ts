@@ -19,19 +19,23 @@ export const packageRecipes: Record<GuideMode, PackageRecipe> = {
     callbackPath: "/api/auth/oauth2/callback/skycanvas",
     samples: [
       {
-        filename: "Install",
+        title: "Install",
+        filename: "Terminal",
         description: "Install both packages in the project that contains your Better Auth server configuration.",
         code: `bun add @skycanvasstudio/sso better-auth`,
       },
       {
-        filename: "Server environment",
+        title: "Configure the server environment",
+        filename: ".env",
         description: "Keep these values on the server. Use the public URL of the server that mounts Better Auth.",
         code: `BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace_with_at_least_32_random_characters
-SSO_CLIENT_ID=your_skycanvas_client_id`,
+SSO_CLIENT_ID=your_skycanvas_client_id
+SSO_URL=https://api-sso.skycanvasstudio.com`,
       },
       {
-        filename: "Add the provider to Better Auth",
+        title: "Add the provider to Better Auth",
+        filename: "src/lib/auth.ts",
         description: "Merge this plugin into your existing Better Auth instance. Preserve its database, plugins, and other sign-in methods.",
         code: `import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso"
 import { betterAuth } from "better-auth"
@@ -39,7 +43,7 @@ import { genericOAuth } from "better-auth/plugins"
 
 const skycanvas = createSsoBetterAuthProvider({
   clientId: process.env.SSO_CLIENT_ID!,
-  baseUrl: process.env.SSO_URL, // optional
+  baseUrl: process.env.SSO_URL!,
   // forceLogin: true, // optional explicit reauthentication
 })
 
@@ -53,14 +57,24 @@ export const auth = betterAuth({
 })`,
       },
       {
-        filename: "Keep your normal Better Auth route",
+        title: "Keep your normal Better Auth route",
+        filename: "src/routes/api/auth/$.ts (TanStack Start example)",
         description: "Mount auth.handler using Better Auth's normal instructions for your server. Do not add a second SkyCanvas callback handler.",
-        code: `// Your existing catch-all auth route must forward both GET and POST.
-export const GET = (request: Request) => auth.handler(request)
-export const POST = (request: Request) => auth.handler(request)`,
+        code: `import { auth } from "@/lib/auth"
+import { createFileRoute } from "@tanstack/react-router"
+
+export const Route = createFileRoute("/api/auth/\$")({
+  server: {
+    handlers: {
+      GET: ({ request }) => auth.handler(request),
+      POST: ({ request }) => auth.handler(request),
+    },
+  },
+})`,
       },
       {
-        filename: "Create the browser client",
+        title: "Create the browser client",
+        filename: "src/lib/auth-client.ts",
         description: "Wrap Better Auth once. The package then owns sign-in and global logout navigation.",
         code: `import { createAuthClient } from "better-auth/react"
 import { genericOAuthClient } from "better-auth/client/plugins"
@@ -79,7 +93,8 @@ export const sso = createSsoBetterAuthClient({
 // On the server, keep using auth.api.getSession({ headers }).`,
       },
       {
-        filename: "Optional ready-made UI",
+        title: "Add the optional ready-made UI",
+        filename: "src/components/account-menu.tsx (example)",
         description: "Import the stylesheet once. The menu shows read-only Profile first, custom items next, and Logout last. It follows shadcn theme variables and dark mode.",
         code: `import "@skycanvasstudio/sso/styles.css"
 import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
@@ -98,7 +113,8 @@ return data?.user ? (
 )`,
       },
       {
-        filename: "Register the callback URL",
+        title: "Register the callback URL",
+        filename: "SkyCanvas dashboard (not a project file)",
         description: "Register the exact Better Auth callback for every environment. Better Auth derives it from BETTER_AUTH_URL; do not add SSO_CALLBACK_URL.",
         code: `http://localhost:3000/api/auth/oauth2/callback/skycanvas
 https://your-domain.example/api/auth/oauth2/callback/skycanvas`,

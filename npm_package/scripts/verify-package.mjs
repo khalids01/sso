@@ -54,7 +54,10 @@ const session: SsoSession = {
   expiresAt: Date.now() + 60_000,
 };
 createSsoClient().login("/dashboard");
-createSsoBetterAuthProvider({ clientId: "client_123" });
+createSsoBetterAuthProvider({
+  clientId: "client_123",
+  baseUrl: "https://api-sso.skycanvasstudio.com",
+});
 void session;
 `);
   writeFileSync(join(temporaryRoot, "tsconfig.json"), JSON.stringify({

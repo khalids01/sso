@@ -31,6 +31,7 @@ export interface BetterAuthTokenSet {
 }
 
 export interface CreateSsoBetterAuthProviderOptions extends CreateSsoProviderOptions {
+  baseUrl: string;
   fetch?: typeof fetch;
   forceLogin?: boolean;
 }
@@ -119,6 +120,7 @@ export function createSsoProvider(options: CreateSsoProviderOptions): SsoProvide
 }
 
 export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProviderOptions) {
+  requireValue(options.baseUrl, "baseUrl");
   const provider = createSsoProvider(options);
   return {
     providerId: provider.providerId,
@@ -135,7 +137,7 @@ export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProvider
         const identity = await verifySsoIdToken({
           clientId: options.clientId,
           idToken: tokens.idToken,
-          ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+          baseUrl: options.baseUrl,
           ...(options.fetch ? { fetch: options.fetch } : {}),
         });
         return { ...identity.user, image: identity.user.image ?? undefined };
