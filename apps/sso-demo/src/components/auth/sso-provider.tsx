@@ -1,18 +1,17 @@
 import { createSsoClient } from "@skycanvasstudio/sso/client";
 import { SsoProvider } from "@skycanvasstudio/sso/react";
 import { useState, type ReactNode } from "react";
-import type { DemoSession, DemoUser } from "@/lib/sso-types";
+import type { DemoUser } from "@/lib/sso-types";
 
 interface DemoSsoProviderProps {
-  initialSession: DemoSession | null;
   children: ReactNode;
 }
 
-export function DemoSsoProvider({ initialSession, children }: DemoSsoProviderProps) {
+export function DemoSsoProvider({ children }: DemoSsoProviderProps) {
   const [client] = useState(() => createSsoClient<DemoUser>());
 
   return (
-    <SsoProvider client={client} initialSession={initialSession}>
+    <SsoProvider client={client}>
       {children}
     </SsoProvider>
   );

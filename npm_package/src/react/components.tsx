@@ -83,7 +83,7 @@ export function SsoUserMenu({
   className,
   align = "end",
   profileLabel = "Profile",
-  logoutLabel = "Sign out everywhere",
+  logoutLabel = "Signout",
 }: SsoUserMenuProps) {
   const sso = useOptionalSso();
   const user = suppliedUser === undefined ? sso?.session?.user : suppliedUser;

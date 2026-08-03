@@ -169,17 +169,20 @@ Server environment:
 
 ```text
 SSO_CLIENT_ID=the_real_client_id
+SSO_URL=https://api-sso.skycanvasstudio.com
 APP_URL=http://localhost:3000
 SESSION_SECRET=at_least_32_random_characters
 ```
 
-Create one SSO server:
+Create a server-only configuration module that validates all four values, then
+create one SSO server in `src/lib/sso.server.ts`:
 
 ```ts
 import { createSsoServer } from "@skycanvasstudio/sso/server"
 
 export const sso = createSsoServer({
   clientId: env.SSO_CLIENT_ID,
+  baseUrl: env.SSO_URL,
   appUrl: env.APP_URL,
   sessionSecret: env.SESSION_SECRET,
 })
@@ -195,6 +198,11 @@ POST /auth/logout
 ```
 
 Forward a Web `Request` to `sso.handle(request)`. If the target router has separate files, forward to `sso.login`, `sso.callback`, `sso.profile`, or `sso.logout`. Use `sso.getSession(request)` in protected server code. Adapt non-Web framework requests without moving OAuth or cookie logic into the adapter.
+
+For TanStack Start, add `src/server.ts` and intercept `/auth/*` before calling
+`defaultStreamHandler`. Do not try to invoke these standalone routes through
+Better Auth, and do not create `SsoProvider` unless this no-auth-library path was
+selected.
 
 The package handles PKCE, state, nonce, flow age, token exchange and verification, encrypted HttpOnly cookies, safe relative return paths, the local session, and logout origin checks. Use `onSignIn` only when the target app needs to map or persist the verified `user` before the session is created.
 
@@ -215,13 +223,15 @@ export const ssoClient = createSsoClient()
 
 For a separate frontend/backend, set `baseUrl` on `createSsoClient`, configure exact-origin credentialed CORS, and set the frontend origin as `redirectOrigin` and in `trustedOrigins` on `createSsoServer`. Never combine wildcard CORS with credentials.
 
-Optional React integration:
+React integration (`src/components/app-sso-provider.tsx`):
 
 ```tsx
 import "@skycanvasstudio/sso/styles.css"
 import { SsoProvider, SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
 
-<SsoProvider client={ssoClient}>{children}</SsoProvider>
+export function AppSsoProvider({ children }: { children: React.ReactNode }) {
+  return <SsoProvider client={ssoClient}>{children}</SsoProvider>
+}
 ```
 
 `SsoSignInButton` and `SsoUserMenu` work directly with this provider. `SsoUserMenu` renders its read-only Profile action first, caller-supplied items next, and global Logout last.

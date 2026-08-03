@@ -339,83 +339,146 @@ https://your-domain.example/your-auth-library/callback/skycanvas`,
     callbackPath: "/auth/callback",
     samples: [
       {
-        filename: "Install",
-        description: "React is needed only when you use the optional /react entry point.",
-        code: `bun add @skycanvasstudio/sso
-
-# Optional, for React hooks:
-bun add react`,
+        title: "Install the published package",
+        filename: "Terminal",
+        description: "Install the npm package normally. React is required for the provider and ready-made controls shown below.",
+        code: `bun add @skycanvasstudio/sso react`,
       },
       {
-        filename: "Server environment",
-        description: "APP_URL is the public origin that receives the callback. SESSION_SECRET must contain at least 32 characters.",
+        title: "Configure the server environment",
+        filename: ".env",
+        description: "All four values are required. APP_URL is the public origin receiving the callback; generate SESSION_SECRET with openssl rand -base64 32.",
         code: `SSO_CLIENT_ID=your_skycanvas_client_id
+SSO_URL=https://api-sso.skycanvasstudio.com
 APP_URL=http://localhost:3000
 SESSION_SECRET=replace_with_at_least_32_random_characters`,
       },
       {
-        filename: "Create the server",
-        description: "This uses standard Web Request and Response objects, so it can be mounted in any JavaScript server or full-stack framework.",
+        title: "Validate server-only configuration",
+        filename: "src/lib/sso-config.server.ts",
+        description: "Keep environment access and validation in a server-only module so missing values fail with actionable messages and secrets never enter the browser bundle.",
+        code: `function required(name: "SSO_CLIENT_ID" | "SSO_URL" | "APP_URL" | "SESSION_SECRET") {
+  const value = process.env[name]
+  if (!value?.trim()) throw new Error(\`\${name} is required\`)
+  return value
+}
+
+export const ssoConfig = {
+  clientId: required("SSO_CLIENT_ID"),
+  ssoUrl: new URL(required("SSO_URL")).origin,
+  appUrl: new URL(required("APP_URL")).origin,
+  sessionSecret: required("SESSION_SECRET"),
+}
+
+if (ssoConfig.sessionSecret.length < 32) {
+  throw new Error("SESSION_SECRET must contain at least 32 characters")
+}`,
+      },
+      {
+        title: "Create one SSO server",
+        filename: "src/lib/sso.server.ts",
+        description: "Create the server once from validated configuration. This module must remain server-only.",
         code: `import { createSsoServer } from "@skycanvasstudio/sso/server"
+import { ssoConfig } from "./sso-config.server"
 
 export const sso = createSsoServer({
-  clientId: process.env.SSO_CLIENT_ID!,
-  appUrl: process.env.APP_URL!,
-  sessionSecret: process.env.SESSION_SECRET!,
-  // redirectOrigin: "https://frontend.example", // separate frontend only
-  // trustedOrigins: ["https://frontend.example"],
+  clientId: ssoConfig.clientId,
+  baseUrl: ssoConfig.ssoUrl,
+  appUrl: ssoConfig.appUrl,
+  sessionSecret: ssoConfig.sessionSecret,
 })
 
 console.log(sso.callbackUrl) // register this exact URL`,
       },
       {
-        filename: "Mount the four routes",
-        description: "Forward the incoming Web Request to sso.handle. Adapt your framework's request only if it does not use the Web standard.",
-        code: `GET  /auth/login
-GET  /auth/callback
-GET  /auth/profile
-POST /auth/logout
+        title: "Mount the SSO routes in TanStack Start",
+        filename: "src/server.ts",
+        description: "The standalone helper owns four /auth routes. Forward them before TanStack renders the application; all other requests continue to the default Start handler.",
+        code: `import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server"
+import { sso } from "./lib/sso.server"
 
-// In a catch-all route, or in each route:
-return sso.handle(request)
+const fetch = createStartHandler(async (context) => {
+  const pathname = new URL(context.request.url).pathname
 
-// Individual handlers are also available:
-// sso.login(request), sso.callback(request),
-// sso.profile(request), sso.logout(request), sso.getSession(request)`,
+  if (pathname.startsWith("/auth/")) {
+    return sso.handle(context.request)
+  }
+
+  return defaultStreamHandler(context)
+})
+
+export default { fetch }
+
+// sso.handle owns:
+// GET  /auth/login
+// GET  /auth/callback
+// GET  /auth/profile
+// POST /auth/logout`,
       },
       {
-        filename: "Browser client",
+        title: "Create the browser client",
+        filename: "src/lib/sso-client.ts",
         description: "Browser code talks only to your local routes. For a separate frontend, set baseUrl to the backend origin and configure credentialed CORS.",
         code: `import { createSsoClient } from "@skycanvasstudio/sso/client"
 
-export const ssoClient = createSsoClient({
-  // baseUrl: "https://api.example.com",
-})
-
-ssoClient.login("/dashboard")
-const session = await ssoClient.getSession()
-await ssoClient.logout()`,
+export const ssoClient = createSsoClient()`,
       },
       {
         title: "Add SsoProvider for React",
         filename: "src/components/app-sso-provider.tsx",
-        description: "Wrap the application once, import the packaged styles, and use the ready-made controls or the hooks for custom UI.",
+        description: "This provider is required only on the no-auth-library path. Create it once around the application; do not add it to a Better Auth integration.",
         code: `import "@skycanvasstudio/sso/styles.css"
-import { SsoProvider, SsoSignInButton, SsoUserMenu, useSsoSession } from "@skycanvasstudio/sso/react"
-import { ssoClient } from "./sso-client"
+import { SsoProvider } from "@skycanvasstudio/sso/react"
+import { ssoClient } from "@/lib/sso-client"
 import type { ReactNode } from "react"
 
 export function AppSsoProvider({ children }: { children: ReactNode }) {
   return <SsoProvider client={ssoClient}>{children}</SsoProvider>
-}
-
-const { status } = useSsoSession()
-return status === "authenticated"
-  ? <SsoUserMenu items={[{ label: "Dashboard", href: "/dashboard" }]} />
-  : <SsoSignInButton callbackURL="/dashboard" />`,
+}`,
       },
       {
-        filename: "Register the callback URL",
+        title: "Wrap the TanStack application",
+        filename: "src/routes/__root.tsx (relevant part)",
+        description: "Render AppSsoProvider once above every component that calls useSso or useSsoSession.",
+        code: `import { AppSsoProvider } from "@/components/app-sso-provider"
+
+function RootDocument({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <AppSsoProvider>{children}</AppSsoProvider>
+        <Scripts />
+      </body>
+    </html>
+  )
+}`,
+      },
+      {
+        title: "Use session, sign-in, and logout",
+        filename: "src/components/account-menu.tsx",
+        description: "Components below the provider can use the standalone hooks and controls. OAuth tokens remain on the server.",
+        code: `import { SsoSignInButton, SsoUserMenu, useSso, useSsoSession } from "@skycanvasstudio/sso/react"
+
+export function AccountMenu() {
+  const { logout } = useSso()
+  const { user, status } = useSsoSession()
+
+  if (status === "loading") return <span>Loading…</span>
+
+  return user ? (
+    <SsoUserMenu
+      user={user}
+      items={[{ label: "Dashboard", href: "/dashboard" }]}
+      onLogout={() => logout({ returnTo: "/" })}
+    />
+  ) : (
+    <SsoSignInButton callbackURL="/dashboard" />
+  )
+}`,
+      },
+      {
+        title: "Register the callback URL",
+        filename: "SkyCanvas dashboard (not a project file)",
         description: "Register the callback on the server origin, then test login, session restoration, protected routes, and logout.",
         code: `http://localhost:3000/auth/callback
 https://your-domain.example/auth/callback`,

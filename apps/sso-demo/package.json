@@ -3,13 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "bun run update:sso && bun run verify:published-package",
     "build": "vite build",
+    "predev": "bun run update:sso && bun run verify:published-package",
     "dev": "vite dev",
     "serve": "vite preview",
-    "check-types": "../../node_modules/@typescript/native/bin/tsc --noEmit"
+    "check-types": "../../node_modules/@typescript/native/bin/tsc --noEmit",
+    "update:sso": "bun update @skycanvasstudio/sso --latest",
+    "verify:published-package": "bun run scripts/verify-published-package.ts"
   },
   "dependencies": {
-    "@skycanvasstudio/sso": "workspace:*",
+    "@skycanvasstudio/sso": "npm:@skycanvasstudio/sso@^0.4.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/react-start": "^1.168.28",

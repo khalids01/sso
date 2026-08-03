@@ -4,6 +4,18 @@
 `@skycanvasstudio/sso`. It demonstrates the full server integration and the
 optional React UI without reimplementing OAuth or session management in the app.
 
+This application intentionally installs `@skycanvasstudio/sso` from npm's
+`latest` tag. It must never use the monorepo's `workspace:*` package or import
+from `npm_package` source files. This keeps the demo representative of what an
+external developer receives from the registry. The `predev` and `prebuild`
+scripts update the dependency from npm and verify both its origin and version.
+You can also run the checks explicitly:
+
+```bash
+bun run --cwd apps/sso-demo update:sso
+bun run --cwd apps/sso-demo verify:published-package
+```
+
 The integration uses:
 
 - `createSsoServer` for login, callback handling, token verification, encrypted
@@ -41,8 +53,8 @@ only to applications where Better Auth owns the callback and session.
 
 Set its generated client ID as `SSO_CLIENT_ID`. `APP_URL` is the demo origin,
 `SESSION_SECRET` encrypts its local application session, and `SSO_URL` points
-to the SSO API. `BETTER_AUTH_URL` and `BETTER_AUTH_SECRET` are accepted as
-compatibility aliases, but this demo does not use Better Auth. The API must have
+to the SSO API. All four values are required; this demo does not accept Better
+Auth compatibility aliases because it uses the standalone package server. The API must have
 `ENABLE_OAUTH_TOKEN_ISSUANCE=true`, and its stable `SSO_ISSUER` must match the
 issuer returned by client metadata.
 
@@ -56,10 +68,9 @@ Run the SSO API, SSO web application, and demo from the repository root:
 bun run dev
 ```
 
-The demo is available at [http://localhost:5003](http://localhost:5003). For an
-E2E-created client, the client ID can instead be supplied temporarily as
-`/?client_id=...`; this small bridge exists only because the test provisions a
-new client at runtime. Normal applications configure one `clientId` once.
+The demo is available at [http://localhost:5003](http://localhost:5003). It uses
+the single client configured by `SSO_CLIENT_ID`, exactly like a normal external
+application.
 
 ## Security boundaries
 
@@ -71,18 +82,3 @@ new client at runtime. Normal applications configure one `clientId` once.
 - The library session is encrypted, HttpOnly, `SameSite=Lax`, and cannot outlive
   the SSO token.
 - Global logout and explicit local-only logout are library features.
-
-## Browser test
-
-The guarded Playwright suite provisions a run-owned application, client, and
-membership. It registers `http://localhost:5003/auth/callback`, performs visible
-password login and password signup without email verification, checks verified
-claims and session persistence, and signs out. Signup identities are unique to
-the run and removed during guarded cleanup.
-
-```bash
-bun e2e -- specs/sso-demo.spec.ts
-```
-
-Use the existing `tests/e2e/.env` safety configuration. No OAuth provider
-credentials or provider access tokens are needed for this password-auth journey.
