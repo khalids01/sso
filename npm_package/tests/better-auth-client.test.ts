@@ -28,6 +28,17 @@ function setup() {
 }
 
 describe("Better Auth SSO client", () => {
+  test("reports a clear error when the public client ID is missing", () => {
+    const authClient = {
+      signIn: { oauth2: async () => ({}) },
+      signOut: async () => ({}),
+    };
+    expect(() => createSsoBetterAuthClient({
+      authClient,
+      clientId: undefined as unknown as string,
+    })).toThrow("SSO clientId is required");
+  });
+
   test("starts SSO sign-in", async () => {
     const { calls, sso } = setup();
     await sso.signIn("/dashboard");

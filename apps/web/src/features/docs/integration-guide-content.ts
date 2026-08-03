@@ -1,8 +1,10 @@
 export type CodeSample = {
   title?: string;
+  tabLabel?: string;
   filename: string;
   code: string;
   description?: string;
+  alternatives?: CodeSample[];
 };
 
 export const securityChecklist = [

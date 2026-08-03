@@ -456,31 +456,55 @@ function InlineCode({ children }: { children: string }) {
 
 function CodeBlock({ sample }: { sample: CodeSample | undefined }) {
   const [copied, setCopied] = useState(false);
-  const highlighted = useMemo(() => highlight(sample?.code ?? ""), [sample?.code]);
+  const [activeTab, setActiveTab] = useState(0);
+  const choices = useMemo(() => sample ? [sample, ...(sample.alternatives ?? [])] : [], [sample]);
+  const activeSample = choices[activeTab] ?? sample;
+  const highlighted = useMemo(() => highlight(activeSample?.code ?? ""), [activeSample?.code]);
 
   if (!sample) return null;
 
   async function copyCode() {
     if (!sample) return;
-    await navigator.clipboard.writeText(sample.code);
+    if (!activeSample) return;
+    await navigator.clipboard.writeText(activeSample.code);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
     <div className="overflow-hidden rounded-xl border border-[#292e42] bg-[#1a1b26] shadow-2xl shadow-black/10">
+      {choices.length > 1 ? (
+        <div className="flex gap-1 overflow-x-auto border-b border-[#292e42] bg-[#0f1320] p-2" role="tablist">
+          {choices.map((choice, index) => (
+            <button
+              key={`${choice.tabLabel ?? choice.filename}-${index}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === index}
+              onClick={() => { setActiveTab(index); setCopied(false); }}
+              className={`shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition ${
+                activeTab === index
+                  ? "bg-[#7aa2f7] text-[#0b0f19]"
+                  : "text-[#7f849c] hover:bg-[#1a1b26] hover:text-[#c0caf5]"
+              }`}
+            >
+              {choice.tabLabel ?? choice.filename}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="flex h-10 items-center border-b border-[#292e42] bg-[#161822] px-3">
         <div aria-hidden="true" className="mr-3 flex gap-1.5">
           <span className="size-2.5 rounded-full bg-[#f7768e]/80" />
           <span className="size-2.5 rounded-full bg-[#e0af68]/80" />
           <span className="size-2.5 rounded-full bg-[#9ece6a]/80" />
         </div>
-        <span className="truncate font-mono text-[11px] text-[#7f849c]">{sample.filename}</span>
+        <span className="truncate font-mono text-[11px] text-[#7f849c]">{activeSample?.filename}</span>
         <button
           type="button"
           onClick={copyCode}
           className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-[#7f849c] transition hover:bg-[#292e42] hover:text-[#c0caf5]"
-          aria-label={`Copy ${sample.filename}`}
+          aria-label={`Copy ${activeSample?.filename}`}
         >
           {copied ? <Check className="size-3 text-[#9ece6a]" /> : <Clipboard className="size-3" />}
           {copied ? "Copied" : "Copy"}

@@ -88,6 +88,15 @@ export const sso = createSsoBetterAuthClient({
 });
 ```
 
+The example above uses Next.js public environment variables. In TanStack Start
+or another Vite application, expose the non-secret client configuration with
+`VITE_SSO_CLIENT_ID` and `VITE_SSO_URL`, then use:
+
+```ts
+clientId: import.meta.env.VITE_SSO_CLIENT_ID,
+baseUrl: import.meta.env.VITE_SSO_URL,
+```
+
 The public client ID and SSO URL are not secrets. Do not use the headless `/client` session implementation on the Better Auth path.
 
 Register the exact callback:
@@ -227,17 +236,19 @@ import "@skycanvasstudio/sso/styles.css";
 import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react";
 import { authClient, sso } from "./auth-client";
 
-const { data } = authClient.useSession();
+export function AccountMenu() {
+  const { data } = authClient.useSession();
 
-return data?.user ? (
-  <SsoUserMenu
-    user={data.user}
-    items={[{ label: "Dashboard", href: "/dashboard" }]}
-    onLogout={() => sso.signOut({ returnTo: "/" })}
-  />
-) : (
-  <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />
-);
+  return data?.user ? (
+    <SsoUserMenu
+      user={data.user}
+      items={[{ label: "Dashboard", href: "/dashboard" }]}
+      onLogout={() => sso.signOut({ returnTo: "/" })}
+    />
+  ) : (
+    <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />
+  );
+}
 ```
 
 React is an optional peer dependency and required only for `/react`.

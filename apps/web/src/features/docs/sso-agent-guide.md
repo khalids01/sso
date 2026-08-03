@@ -101,6 +101,12 @@ Better Auth derives this URL from `BETTER_AUTH_URL`. Do not add `SSO_CALLBACK_UR
 
 Browser client:
 
+Use the frontend framework's public environment convention. For TanStack Start
+and other Vite applications, define `VITE_SSO_CLIENT_ID` and `VITE_SSO_URL` and
+read them through `import.meta.env`. For Next.js, define `NEXT_PUBLIC_SSO_CLIENT_ID`
+and `NEXT_PUBLIC_SSO_URL` and read them through `process.env`. Client IDs and SSO
+URLs are public configuration; secrets must never use either public prefix.
+
 ```ts
 import { createAuthClient } from "better-auth/react"
 import { genericOAuthClient } from "better-auth/client/plugins"
@@ -109,8 +115,8 @@ import { createSsoBetterAuthClient } from "@skycanvasstudio/sso/better-auth"
 export const authClient = createAuthClient({ plugins: [genericOAuthClient()] })
 export const sso = createSsoBetterAuthClient({
   authClient,
-  clientId: env.NEXT_PUBLIC_SSO_CLIENT_ID,
-  baseUrl: env.NEXT_PUBLIC_SSO_URL,
+  clientId: import.meta.env.VITE_SSO_CLIENT_ID,
+  baseUrl: import.meta.env.VITE_SSO_URL,
 })
 ```
 
@@ -226,17 +232,19 @@ import "@skycanvasstudio/sso/styles.css"
 import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
 import { authClient, sso } from "./auth-client"
 
-const { data } = authClient.useSession()
+export function AccountMenu() {
+  const { data } = authClient.useSession()
 
-return data?.user ? (
-  <SsoUserMenu
-    user={data.user}
-    items={[{ label: "Dashboard", href: "/dashboard" }]}
-    onLogout={() => sso.signOut({ returnTo: "/" })}
-  />
-) : (
-  <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />
-)
+  return data?.user ? (
+    <SsoUserMenu
+      user={data.user}
+      items={[{ label: "Dashboard", href: "/dashboard" }]}
+      onLogout={() => sso.signOut({ returnTo: "/" })}
+    />
+  ) : (
+    <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />
+  )
+}
 ```
 
 The UI uses the same Base UI primitives as the SSO web application's shadcn components. Import `@skycanvasstudio/sso/styles.css` once. It consumes shadcn CSS variables when present and supports both `.dark` and `[data-theme="dark"]`. Prefer `className` and component props for small adaptations; build custom UI with the hooks only when the requested design materially differs.

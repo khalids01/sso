@@ -182,8 +182,10 @@ export function safeReturnTo(value: string | null | undefined, fallback = "/"): 
   return value?.startsWith("/") && !value.startsWith("//") ? value : fallback;
 }
 
-function requireValue(value: string, name: string): void {
-  if (!value.trim()) throw new Error(`SSO ${name} is required`);
+function requireValue(value: unknown, name: string): asserts value is string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`SSO ${name} is required`);
+  }
 }
 
 function getBrowserOrigin(appUrl?: string) {
