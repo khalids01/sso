@@ -32,6 +32,20 @@ the SkyCanvas client form.
 
 ## Existing Better Auth
 
+### Prerequisites
+
+This path assumes Better Auth already works in your application. Before adding
+SkyCanvas SSO, finish the following setup using the official documentation:
+
+- [Install and configure Better Auth](https://www.better-auth.com/docs/installation), including its server handler and browser client.
+- [Configure a Better Auth database adapter](https://www.better-auth.com/docs/concepts/database), generate the required auth schema, and apply it to your database.
+- If you use Prisma, complete the [Prisma setup](https://www.prisma.io/docs/orm/getting-started) and [Better Auth Prisma adapter setup](https://www.better-auth.com/docs/adapters/prisma).
+- Follow Better Auth's framework integration guide, such as [TanStack Start](https://www.better-auth.com/docs/integrations/tanstack), for framework-specific routing and cookie handling.
+
+SkyCanvas SSO does not create or manage Better Auth's user, session, account,
+verification, or database schema. Once Better Auth works independently, continue
+below to add SkyCanvas as an OAuth provider.
+
 ```bash
 bun add @skycanvasstudio/sso better-auth
 ```

@@ -138,6 +138,8 @@ export function IntegrationGuide() {
               <h2 className={headingClass}>{activeRecipe.label}</h2>
               <p className={leadClass}>Complete these steps in order and keep all OAuth tokens on the server.</p>
 
+              {authMode === "better" ? <BetterAuthPrerequisites /> : null}
+
               <ol className="mt-9 space-y-10">
                 {activeRecipe.samples.map((sample, index) => (
                   <GuideStep
@@ -200,6 +202,44 @@ export function IntegrationGuide() {
           </div>
         </aside>
       </div>
+    </div>
+  );
+}
+
+function BetterAuthPrerequisites() {
+  const prerequisites = [
+    ["Better Auth installation", "https://www.better-auth.com/docs/installation"],
+    ["Better Auth database setup", "https://www.better-auth.com/docs/concepts/database"],
+    ["Prisma setup (when using Prisma)", "https://www.prisma.io/docs/orm/getting-started"],
+    ["Better Auth Prisma adapter (when using Prisma)", "https://www.better-auth.com/docs/adapters/prisma"],
+    ["Better Auth TanStack Start integration (when using TanStack Start)", "https://www.better-auth.com/docs/integrations/tanstack"],
+  ] as const;
+
+  return (
+    <div className="mt-8 rounded-xl border border-[#3b4261] bg-[#111522] p-5">
+      <h3 className="text-sm font-semibold text-[#f4f6ff]">Prerequisites</h3>
+      <p className="mt-2 text-sm leading-6 text-[#a9b1d6]">
+        This guide assumes Better Auth already works with its database, server handler, and browser client. SkyCanvas
+        SSO does not create or manage Better Auth's users, sessions, accounts, verification records, or database
+        schema. Complete the relevant official setup first:
+      </p>
+      <ul className="mt-4 space-y-2">
+        {prerequisites.map(([label, href]) => (
+          <li key={href}>
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-[#7aa2f7] hover:text-[#8db0ff]"
+            >
+              {label} <ExternalLink className="size-3.5" />
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 text-sm leading-6 text-[#a9b1d6]">
+        Once Better Auth works independently, continue below to add SkyCanvas as an OAuth provider.
+      </p>
     </div>
   );
 }

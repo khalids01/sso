@@ -15,7 +15,7 @@ export const packageRecipes: Record<GuideMode, PackageRecipe> = {
     label: "Use SSO with Better Auth",
     shortLabel: "Existing Better Auth",
     description:
-      "Choose this only when Better Auth owns your users and sessions. Register {BETTER_AUTH_URL}/api/auth/oauth2/callback/skycanvas. The adapter supplies the SkyCanvas OAuth configuration; Better Auth keeps owning callbacks, cookies, accounts, client hooks, and logout.",
+      "Choose this only after Better Auth and its database already work in your application. Register {BETTER_AUTH_URL}/api/auth/oauth2/callback/skycanvas. The adapter supplies the SkyCanvas OAuth configuration; Better Auth keeps owning callbacks, cookies, accounts, client hooks, and logout.",
     callbackPath: "/api/auth/oauth2/callback/skycanvas",
     samples: [
       {

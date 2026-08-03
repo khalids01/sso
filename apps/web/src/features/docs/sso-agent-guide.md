@@ -32,6 +32,17 @@ dashboard value.
 
 ## Path A: Existing Better Auth
 
+Prerequisite: Better Auth must already work independently with its database,
+generated schema, server handler, and browser client. SkyCanvas SSO does not
+create or manage Better Auth's users, sessions, accounts, verification records,
+or database schema. If that setup is incomplete, stop and follow the official
+[Better Auth installation](https://www.better-auth.com/docs/installation),
+[database](https://www.better-auth.com/docs/concepts/database), and relevant
+[framework integration](https://www.better-auth.com/docs/integrations/tanstack)
+documentation. Prisma projects must also complete the official
+[Prisma setup](https://www.prisma.io/docs/orm/getting-started) and
+[Better Auth Prisma adapter setup](https://www.better-auth.com/docs/adapters/prisma).
+
 Install:
 
 ```bash
