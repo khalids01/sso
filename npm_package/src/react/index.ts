@@ -88,7 +88,12 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
 
 export function useSso<TUser extends SsoUser = SsoUser>(): SsoContextValue<TUser> {
   const value = useContext(SsoContext);
-  if (!value) throw new Error("useSso must be used inside SsoProvider");
+  if (!value) {
+    throw new Error(
+      "useSso requires SsoProvider on the no-auth-library path. " +
+      "Better Auth integrations must use authClient.useSession() and the Better Auth SSO client instead.",
+    );
+  }
   return value as SsoContextValue<TUser>;
 }
 

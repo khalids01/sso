@@ -99,6 +99,42 @@ baseUrl: import.meta.env.VITE_SSO_URL,
 
 The public client ID and SSO URL are not secrets. Do not use the headless `/client` session implementation on the Better Auth path.
 
+Better Auth is the session provider on this path. Do not add `SsoProvider` and
+do not call `useSso()` or `useSsoSession()` from `@skycanvasstudio/sso/react`.
+Keep using `authClient.useSession()` for browser session state and the wrapped
+Better Auth SSO client for sign-in and logout. `SsoProvider` is required only
+for the separate **No auth library** path below.
+
+### User and session types
+
+On the Better Auth path, Better Auth owns the exact user and session types. Infer
+them from the configured client so custom fields and plugin extensions are not
+lost:
+
+```ts
+import { authClient } from "./auth-client";
+
+export type AuthSession = typeof authClient.$Infer.Session;
+export type AuthUser = AuthSession["user"];
+```
+
+SkyCanvas-owned protocol, server, client, and UI contract types are exported
+from the dedicated type-only entry point:
+
+```ts
+import type {
+  SsoUser,
+  SsoSession,
+  SsoClientMetadata,
+  VerifiedSsoIdentity,
+  BetterAuthSsoClientOptions,
+} from "@skycanvasstudio/sso/types";
+```
+
+`SsoUser` is the verified minimum identity returned by the standalone SkyCanvas
+flow. It is not a replacement for the application-specific Better Auth user
+type. `SsoDisplayUser` is only the minimum shape accepted by `SsoUserMenu`.
+
 Register the exact callback:
 
 ```text

@@ -78,8 +78,11 @@ Requirements:
 - Use Better Auth's `genericOAuthClient()` and wrap that client with `createSsoBetterAuthClient()`.
 - Use the wrapper for `signIn` and `signOut`; logout clears both the application and central SSO sessions by default.
 - Keep using Better Auth's existing `auth.api.getSession` and `useSession` APIs.
+- Do not add `SsoProvider` and do not call `useSso()` or `useSsoSession()` from `@skycanvasstudio/sso/react` on this path. Those APIs belong only to the no-auth-library path.
 - Do not import `@skycanvasstudio/sso/client` on this path. The optional controlled `/react` UI is safe to use.
 - Preserve the existing account-linking policy. Do not enable forced linking without an explicit owner decision.
+- Infer the exact application types from Better Auth: `type AuthSession = typeof authClient.$Infer.Session` and `type AuthUser = AuthSession["user"]`. Do not replace them with the package's standalone `SsoUser` type.
+- Import SkyCanvas-owned contract types from `@skycanvasstudio/sso/types` when protocol, server, client, or UI types are needed.
 
 Server environment:
 

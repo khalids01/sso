@@ -1,6 +1,6 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "SkyCanvas SSO helpers and optional React UI for servers and web applications",
   "homepage": "https://sso.skycanvasstudio.com",
   "type": "module",
@@ -25,7 +25,8 @@
       "server": ["dist/server/index.d.ts"],
       "client": ["dist/client/index.d.ts"],
       "react": ["dist/react/index.d.ts"],
-      "better-auth": ["dist/better-auth/index.d.ts"]
+      "better-auth": ["dist/better-auth/index.d.ts"],
+      "types": ["dist/types/index.d.ts"]
     }
   },
   "exports": {
@@ -54,6 +55,11 @@
       "types": "./dist/better-auth/index.d.ts",
       "import": "./dist/better-auth/index.js",
       "default": "./dist/better-auth/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
     }
   },
   "scripts": {

@@ -182,6 +182,56 @@ export const sso = createSsoBetterAuthClient({
         ],
       },
       {
+        title: "Use the Better Auth session provider",
+        filename: "src/routes/dashboard.tsx (example)",
+        description: "Better Auth already provides the session context on this path. Do not add SsoProvider and do not call useSso or useSsoSession from @skycanvasstudio/sso/react.",
+        code: `import { createFileRoute } from "@tanstack/react-router"
+import { authClient, sso } from "@/lib/auth-client"
+
+export const Route = createFileRoute("/dashboard")({
+  component: Dashboard,
+})
+
+function Dashboard() {
+  const { data, isPending } = authClient.useSession()
+
+  if (isPending) return <p>Loading…</p>
+  if (!data?.user) return <p>You are not signed in.</p>
+
+  return (
+    <main>
+      <h1>Welcome, {data.user.name}</h1>
+      <button onClick={() => sso.signOut({ returnTo: "/" })}>
+        Sign out
+      </button>
+    </main>
+  )
+}`,
+      },
+      {
+        title: "Use the correct user and session types",
+        filename: "src/lib/auth-types.ts",
+        description: "Better Auth owns the user and session shape on this path. Infer the exact types from your configured client so database fields and plugin extensions stay included. SkyCanvas types describe only SkyCanvas-owned contracts.",
+        code: `import { authClient } from "@/lib/auth-client"
+
+// Exact Better Auth types, including fields added by your config/plugins.
+export type AuthSession = typeof authClient.$Infer.Session
+export type AuthUser = AuthSession["user"]
+
+// Example component props:
+export type AccountMenuProps = {
+  user: AuthUser
+}
+
+// SkyCanvas-owned types are available separately when needed:
+export type {
+  SsoUser,
+  SsoSession,
+  SsoClientMetadata,
+  VerifiedSsoIdentity,
+} from "@skycanvasstudio/sso/types"`,
+      },
+      {
         title: "Add the optional ready-made UI",
         filename: "src/components/account-menu.tsx (example)",
         description: "Import the stylesheet once. The menu shows read-only Profile first, custom items next, and Logout last. It follows shadcn theme variables and dark mode.",
@@ -347,13 +397,17 @@ const session = await ssoClient.getSession()
 await ssoClient.logout()`,
       },
       {
-        filename: "Optional React hooks and UI",
+        title: "Add SsoProvider for React",
+        filename: "src/components/app-sso-provider.tsx",
         description: "Wrap the application once, import the packaged styles, and use the ready-made controls or the hooks for custom UI.",
         code: `import "@skycanvasstudio/sso/styles.css"
 import { SsoProvider, SsoSignInButton, SsoUserMenu, useSsoSession } from "@skycanvasstudio/sso/react"
 import { ssoClient } from "./sso-client"
+import type { ReactNode } from "react"
 
-<SsoProvider client={ssoClient}>{children}</SsoProvider>
+export function AppSsoProvider({ children }: { children: ReactNode }) {
+  return <SsoProvider client={ssoClient}>{children}</SsoProvider>
+}
 
 const { status } = useSsoSession()
 return status === "authenticated"

@@ -46,19 +46,22 @@ console.log("Packed runtime imports passed");
   exec("node", ["index.mjs"], temporaryRoot, true);
 
   writeFileSync(join(temporaryRoot, "consumer.ts"), `
-import { createSsoBetterAuthProvider, type SsoSession } from "@skycanvasstudio/sso";
+import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
+import type { SsoSession, SsoUser } from "@skycanvasstudio/sso/types";
 
 const session: SsoSession = {
   user: { id: "1", name: "User", email: "user@example.com", emailVerified: true, image: null },
   expiresAt: Date.now() + 60_000,
 };
+const user: SsoUser = session.user;
 createSsoClient().login("/dashboard");
 createSsoBetterAuthProvider({
   clientId: "client_123",
   baseUrl: "https://api-sso.skycanvasstudio.com",
 });
 void session;
+void user;
 `);
   writeFileSync(join(temporaryRoot, "tsconfig.json"), JSON.stringify({
     compilerOptions: {
