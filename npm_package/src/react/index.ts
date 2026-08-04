@@ -11,12 +11,12 @@ import {
   type ReactNode,
 } from "react";
 import {
-  createSsoBetterAuthClient,
   type BetterAuthClientLike,
-  type BetterAuthSsoClient,
+  type BetterAuthSsoActions,
   type SsoBetterAuthBootstrap,
   type SsoSession,
   type SsoUser,
+  safeReturnTo,
 } from "../index.js";
 import {
   createSsoClient,
@@ -46,45 +46,26 @@ export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
   refresh: () => Promise<SsoSession<TUser> | null>;
 }
 
-export interface LegacySsoProviderProps<TUser extends SsoUser = SsoUser> {
-  /** @deprecated Pass the server-generated bootstrap instead. */
-  client: SsoClient<TUser>;
-  /** @deprecated Pass the server-generated bootstrap instead. */
-  initialSession?: SsoSession<TUser> | null;
-  bootstrap?: never;
-  children?: ReactNode;
-}
-
-export interface BootstrapSsoProviderProps<TUser extends SsoUser = SsoUser> {
+export interface SsoProviderProps<TUser extends SsoUser = SsoUser> {
   bootstrap: StandaloneSsoBootstrap<TUser>;
-  client?: never;
-  initialSession?: never;
   children?: ReactNode;
 }
-
-export type SsoProviderProps<TUser extends SsoUser = SsoUser> =
-  | LegacySsoProviderProps<TUser>
-  | BootstrapSsoProviderProps<TUser>;
 
 const SsoContext = createContext<SsoContextValue<SsoUser> | null>(null);
 
 export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderProps<TUser>) {
-  const bootstrap = "bootstrap" in props ? requireStandaloneBootstrap(props.bootstrap) : undefined;
-  const legacyClient = "client" in props ? props.client : undefined;
+  const bootstrap = requireStandaloneBootstrap(props.bootstrap);
   const client = useMemo(
-    () => bootstrap ? createSsoClient<TUser>(bootstrap.client) : requireLegacyClient(legacyClient),
+    () => createSsoClient<TUser>(bootstrap.client),
     [
-      bootstrap?.client.baseUrl,
-      bootstrap?.client.loginPath,
-      bootstrap?.client.logoutPath,
-      bootstrap?.client.profilePath,
-      legacyClient,
+      bootstrap.client.baseUrl,
+      bootstrap.client.loginPath,
+      bootstrap.client.logoutPath,
+      bootstrap.client.profilePath,
     ],
   );
-  const initialSession = bootstrap ? bootstrap.session : props.initialSession;
-  const hasInitialSession = bootstrap !== undefined || props.initialSession !== undefined;
-  const [session, setSession] = useState<SsoSession<TUser> | null>(initialSession ?? null);
-  const [loading, setLoading] = useState(!hasInitialSession);
+  const [session, setSession] = useState<SsoSession<TUser> | null>(bootstrap.session ?? null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const refresh = useCallback(async () => {
@@ -102,10 +83,6 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
       setLoading(false);
     }
   }, [client]);
-
-  useEffect(() => {
-    if (!hasInitialSession) void refresh().catch(() => undefined);
-  }, [hasInitialSession, refresh]);
 
   const logout = useCallback(async (options?: SsoLogoutOptions) => {
     await client.logout(options);
@@ -174,8 +151,8 @@ export interface BetterAuthSsoContextValue<TSession extends BetterAuthSessionLik
   status: SsoStatus;
   isPending: boolean;
   error: unknown;
-  signIn: BetterAuthSsoClient["signIn"];
-  signOut: BetterAuthSsoClient["signOut"];
+  signIn: BetterAuthSsoActions["signIn"];
+  signOut: BetterAuthSsoActions["signOut"];
 }
 
 export interface BetterAuthSsoReact<TSession extends BetterAuthSessionLike> {
@@ -199,11 +176,23 @@ export function createSsoBetterAuthReact<TSession extends BetterAuthSessionLike>
   function BetterAuthProvider({ bootstrap, children }: BetterAuthSsoProviderProps<TSession>) {
     const initialData = requireBetterAuthBootstrap(bootstrap);
     const current = authClient.useSession();
-    const sso = useMemo(() => createSsoBetterAuthClient({
-      authClient,
-      clientId: initialData.config.clientId,
-      baseUrl: initialData.config.baseUrl,
-    }), [initialData.config.baseUrl, initialData.config.clientId]);
+    const signIn = useCallback(
+      (callbackURL = "/") => authClient.signIn.oauth2({ providerId: "skycanvas", callbackURL }),
+      [],
+    );
+    const signOut = useCallback(async (options: { global?: boolean; returnTo?: string } = {}) => {
+      const result = await authClient.signOut();
+      if (result.error || options.global === false) return result;
+      if (typeof window === "undefined") {
+        throw new Error("SSO global logout requires a browser");
+      }
+      const returnTo = new URL(safeReturnTo(options.returnTo), window.location.origin);
+      const logoutUrl = new URL("/api/auth/global-sign-out", initialData.config.baseUrl);
+      logoutUrl.searchParams.set("client_id", initialData.config.clientId);
+      logoutUrl.searchParams.set("return_to", returnTo.toString());
+      window.location.assign(logoutUrl.toString());
+      return result;
+    }, [initialData.config.baseUrl, initialData.config.clientId]);
     const session = current.isPending ? initialData.session : (current.data ?? null);
     const isPending = current.isPending && initialData.session === null;
     const status: SsoStatus = isPending
@@ -219,9 +208,9 @@ export function createSsoBetterAuthReact<TSession extends BetterAuthSessionLike>
       status,
       isPending,
       error: current.error,
-      signIn: sso.signIn,
-      signOut: sso.signOut,
-    }), [current.error, isPending, session, sso.signIn, sso.signOut, status]);
+      signIn,
+      signOut,
+    }), [current.error, isPending, session, signIn, signOut, status]);
 
     return createElement(Context.Provider, { value }, children);
   }
@@ -261,15 +250,6 @@ function requireStandaloneBootstrap<TUser extends SsoUser>(
     !isPath(value.client.profilePath) ||
     !isPath(value.client.logoutPath)
   ) {
-    throw new Error("SsoProvider requires bootstrap data returned by sso.getBootstrap(request)");
-  }
-  return value;
-}
-
-function requireLegacyClient<TUser extends SsoUser>(
-  value: SsoClient<TUser> | undefined,
-): SsoClient<TUser> {
-  if (!value) {
     throw new Error("SsoProvider requires bootstrap data returned by sso.getBootstrap(request)");
   }
   return value;

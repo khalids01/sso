@@ -197,28 +197,6 @@ export async function getInitialAuthSession() {
         ],
       },
       {
-        title: "Add the React session provider",
-        tabLabel: "TanStack Start",
-        filename: "src/routes/__root.tsx (provider requirement)",
-        description: "The factory creates the required provider and typed hooks for this exact Better Auth client. Mount SsoProvider once with the server bootstrap; do not write an application context wrapper.",
-        code: `import { SsoProvider } from "@/lib/auth-client"
-
-// Required above every component that uses useSso or useSsoSession.
-<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>`,
-        alternatives: [
-          {
-            tabLabel: "Next.js",
-            filename: "app/layout.tsx (provider requirement)",
-            code: `"use client"
-
-import { SsoProvider } from "@/lib/auth-client"
-
-// Required in a client boundary below the server layout.
-<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>`,
-          },
-        ],
-      },
-      {
         title: "Wrap the app with the initial session",
         tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
@@ -561,30 +539,6 @@ export class SsoController {
     return sso.getBootstrap(nodeRequestHeaders(request))
   }
 }`,
-          },
-        ],
-      },
-      {
-        title: "Add SsoProvider for React",
-        tabLabel: "TanStack Start",
-        filename: "src/routes/__root.tsx (provider requirement)",
-        description: "SsoProvider is required on the standalone React path. Pass the complete server bootstrap; the package creates its browser client internally.",
-        code: `import "@skycanvasstudio/sso/styles.css"
-import { SsoProvider } from "@skycanvasstudio/sso/react"
-
-// Mount once above every component that uses useSso or useSsoSession.
-<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>`,
-        alternatives: [
-          {
-            tabLabel: "Next.js",
-            filename: "app/layout.tsx (provider requirement)",
-            code: `"use client"
-
-import "@skycanvasstudio/sso/styles.css"
-import { SsoProvider } from "@skycanvasstudio/sso/react"
-
-// Mount once in a client boundary below the server layout.
-<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>`,
           },
         ],
       },

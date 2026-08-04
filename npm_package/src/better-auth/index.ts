@@ -1,11 +1,7 @@
 export {
-  createSsoBetterAuthClient,
   createSsoBetterAuthIntegration,
-  createSsoBetterAuthProvider,
-  type BetterAuthSsoClient,
-  type BetterAuthSsoClientOptions,
-  type BetterAuthTokenSet,
-  type CreateSsoBetterAuthProviderOptions,
+  type BetterAuthSsoActions,
+  type SsoBetterAuthIntegrationOptions,
   type SsoBetterAuthBootstrap,
   type SsoBetterAuthIntegration,
   type SsoPublicConfig,

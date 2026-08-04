@@ -26,11 +26,11 @@ export interface CreateSsoProviderOptions {
   baseUrl?: string;
 }
 
-export interface BetterAuthTokenSet {
+interface BetterAuthTokenSet {
   idToken?: string | undefined;
 }
 
-export interface CreateSsoBetterAuthProviderOptions extends CreateSsoProviderOptions {
+export interface SsoBetterAuthIntegrationOptions extends CreateSsoProviderOptions {
   baseUrl: string;
   fetch?: typeof fetch;
   forceLogin?: boolean;
@@ -49,7 +49,7 @@ export interface SsoBetterAuthBootstrap<TSession> {
 }
 
 export interface SsoBetterAuthIntegration {
-  provider: ReturnType<typeof createSsoBetterAuthProvider>;
+  provider: ReturnType<typeof createBetterAuthProvider>;
   config: SsoPublicConfig;
   createBootstrap: <TSession>(session: TSession | null) => SsoBetterAuthBootstrap<TSession>;
 }
@@ -66,15 +66,7 @@ export interface BetterAuthClientLike {
   signOut: () => Promise<BetterAuthResult>;
 }
 
-export interface BetterAuthSsoClientOptions {
-  authClient: BetterAuthClientLike;
-  clientId: string;
-  baseUrl?: string;
-  appUrl?: string;
-  navigate?: (url: string) => void;
-}
-
-export interface BetterAuthSsoClient {
+export interface BetterAuthSsoActions {
   signIn: (callbackURL?: string) => Promise<BetterAuthResult>;
   signOut: (options?: { global?: boolean; returnTo?: string }) => Promise<BetterAuthResult>;
 }
@@ -137,11 +129,7 @@ export function createSsoProvider(options: CreateSsoProviderOptions): SsoProvide
   };
 }
 
-/**
- * @deprecated Prefer createSsoBetterAuthIntegration so the browser receives
- * public SSO configuration through the server-rendered bootstrap.
- */
-export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProviderOptions) {
+function createBetterAuthProvider(options: SsoBetterAuthIntegrationOptions) {
   requireValue(options.baseUrl, "baseUrl");
   const provider = createSsoProvider(options);
   return {
@@ -171,11 +159,11 @@ export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProvider
 }
 
 export function createSsoBetterAuthIntegration(
-  options: CreateSsoBetterAuthProviderOptions,
+  options: SsoBetterAuthIntegrationOptions,
 ): SsoBetterAuthIntegration {
   requireValue(options.clientId, "clientId");
   const baseUrl = requireOrigin(options.baseUrl, "baseUrl");
-  const provider = createSsoBetterAuthProvider({ ...options, baseUrl });
+  const provider = createBetterAuthProvider({ ...options, baseUrl });
   const config: SsoPublicConfig = {
     providerId: SSO_PROVIDER_ID,
     clientId: options.clientId,
@@ -191,42 +179,6 @@ export function createSsoBetterAuthIntegration(
         config: { ...config },
         session: session ?? null,
       };
-    },
-  };
-}
-
-/**
- * @deprecated Prefer createSsoBetterAuthReact and pass it the bootstrap made
- * by createSsoBetterAuthIntegration.
- */
-export function createSsoBetterAuthClient(
-  options: BetterAuthSsoClientOptions,
-): BetterAuthSsoClient {
-  requireValue(options.clientId, "clientId");
-  const baseUrl = options.baseUrl === undefined ? undefined : requireOrigin(options.baseUrl, "baseUrl");
-  const appUrl = options.appUrl === undefined ? undefined : requireOrigin(options.appUrl, "appUrl");
-
-  const signIn = (callbackURL = "/") => options.authClient.signIn.oauth2({
-    providerId: SSO_PROVIDER_ID,
-    callbackURL,
-  });
-
-  return {
-    signIn,
-    async signOut(signOutOptions = {}) {
-      const result = await options.authClient.signOut();
-      if (result.error || signOutOptions.global === false) return result;
-
-      const appOrigin = getBrowserOrigin(appUrl);
-      const returnTo = new URL(
-        safeReturnTo(signOutOptions.returnTo),
-        appOrigin,
-      );
-      const logoutUrl = new URL(getSsoEndpoints(baseUrl).globalLogout);
-      logoutUrl.searchParams.set("client_id", options.clientId);
-      logoutUrl.searchParams.set("return_to", returnTo.toString());
-      (options.navigate ?? defaultBrowserNavigate)(logoutUrl.toString());
-      return result;
     },
   };
 }
@@ -248,17 +200,4 @@ function requireOrigin(value: unknown, name: string): string {
   } catch {
     throw new Error(`SSO ${name} must be a valid absolute URL`);
   }
-}
-
-function getBrowserOrigin(appUrl?: string) {
-  if (appUrl) return new URL(appUrl).origin;
-  if (typeof window !== "undefined") return window.location.origin;
-  throw new Error("SSO global logout requires appUrl outside a browser");
-}
-
-function defaultBrowserNavigate(url: string) {
-  if (typeof window === "undefined") {
-    throw new Error("SSO navigation requires a browser or custom navigate function");
-  }
-  window.location.assign(url);
 }

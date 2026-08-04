@@ -10,7 +10,9 @@ describe("SSO integration guide", () => {
     expect(guide).not.toContain("process.env");
     expect(guide).not.toContain("VITE_SSO_CLIENT_ID");
     expect(guide).not.toContain("NEXT_PUBLIC_SSO_CLIENT_ID");
+    expect(guide).not.toContain("createSsoBetterAuthProvider");
     expect(guide).not.toContain("createSsoBetterAuthClient");
+    expect(guide).not.toContain("initialSession");
     expect(guide).toContain("createSsoBetterAuthIntegration");
     expect(guide).toContain("createSsoBetterAuthReact");
   });
@@ -20,6 +22,8 @@ describe("SSO integration guide", () => {
     const standalone = JSON.stringify(packageRecipes.manual);
     expect(better).toContain("<SsoProvider bootstrap={bootstrap}>");
     expect(standalone).toContain("<SsoProvider bootstrap={bootstrap}>");
+    expect(better).not.toContain("Add the React session provider");
+    expect(standalone).not.toContain("Add SsoProvider for React");
     for (const framework of frameworkTabs) {
       expect(standalone).toContain(`\"tabLabel\":\"${framework}\"`);
     }

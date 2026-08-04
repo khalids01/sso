@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   createSsoBetterAuthIntegration,
-  createSsoBetterAuthProvider,
   getSsoEndpoints,
   safeReturnTo,
 } from "../src/index.js";
@@ -23,24 +22,24 @@ describe("shared helpers", () => {
   });
 
   test("can configure Better Auth to require fresh SSO authentication", () => {
-    const provider = createSsoBetterAuthProvider({
+    const provider = createSsoBetterAuthIntegration({
       clientId: "client_123",
       baseUrl: "https://sso.example.com",
       forceLogin: true,
     });
 
-    expect(provider.prompt).toBe("login");
+    expect(provider.provider.prompt).toBe("login");
   });
 
   test("allows the central SSO session by default", () => {
-    expect(createSsoBetterAuthProvider({
+    expect(createSsoBetterAuthIntegration({
       clientId: "client_123",
       baseUrl: "https://sso.example.com",
-    }).prompt).toBeUndefined();
+    }).provider.prompt).toBeUndefined();
   });
 
   test("requires an explicit Better Auth SSO base URL", () => {
-    expect(() => createSsoBetterAuthProvider({
+    expect(() => createSsoBetterAuthIntegration({
       clientId: "client_123",
       baseUrl: "",
     })).toThrow("baseUrl is required");

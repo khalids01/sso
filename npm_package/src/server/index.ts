@@ -18,9 +18,7 @@ import {
 
 export {
   createSsoBetterAuthIntegration,
-  createSsoBetterAuthProvider,
-  type BetterAuthTokenSet,
-  type CreateSsoBetterAuthProviderOptions,
+  type SsoBetterAuthIntegrationOptions,
   type SsoBetterAuthBootstrap,
   type SsoBetterAuthIntegration,
   type SsoPublicConfig,

@@ -212,6 +212,3 @@ import type {
 
 Available entry points: package root, `/better-auth`, `/server`, `/client`,
 `/react`, `/tanstack-start`, `/next`, `/node`, `/types`, and `/styles.css`.
-
-The pre-0.5 `createSsoBetterAuthProvider`, `createSsoBetterAuthClient`, and
-`<SsoProvider client initialSession>` APIs remain compatible but are deprecated.

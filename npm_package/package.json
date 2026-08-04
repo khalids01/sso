@@ -1,6 +1,6 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "SkyCanvas SSO helpers and optional React UI for servers and web applications",
   "homepage": "https://sso.skycanvasstudio.com/docs",
   "repository": {

@@ -4,7 +4,6 @@ import { genericOAuthClient } from "better-auth/client/plugins";
 import { createSsoBetterAuthIntegration } from "../src/index.js";
 import { createSsoBetterAuthReact } from "../src/react/index.js";
 import type {
-  BetterAuthSsoClientOptions,
   SsoSession,
   SsoUser,
   VerifiedSsoIdentity,
@@ -32,7 +31,7 @@ const user: SsoUser = {
   image: null,
 };
 const session: SsoSession = { user, expiresAt: Date.now() + 60_000 };
-const typeExports: [BetterAuthSsoClientOptions?, VerifiedSsoIdentity?] = [];
+const typeExports: [VerifiedSsoIdentity?] = [];
 void session;
 void providerProps;
 void typeExports;

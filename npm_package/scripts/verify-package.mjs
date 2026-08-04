@@ -33,14 +33,13 @@ try {
   exec("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"], temporaryRoot);
 
   writeFileSync(join(temporaryRoot, "index.mjs"), `
-import { createSsoBetterAuthIntegration, createSsoBetterAuthProvider as createRootBetterAuthProvider, getSsoEndpoints } from "@skycanvasstudio/sso";
+import { createSsoBetterAuthIntegration, getSsoEndpoints } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
 import { createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu, useSso } from "@skycanvasstudio/sso/react";
-import { createSsoAuthorization, createSsoBetterAuthProvider as createServerBetterAuthProvider, createSsoServer } from "@skycanvasstudio/sso/server";
-import { createSsoBetterAuthProvider as createSubpathBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
+import { createSsoAuthorization, createSsoServer } from "@skycanvasstudio/sso/server";
 import { createNodeSsoHandler } from "@skycanvasstudio/sso/node";
 
-const values = [getSsoEndpoints, createSsoClient, createSsoBetterAuthIntegration, createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu, useSso, createSsoAuthorization, createSsoServer, createRootBetterAuthProvider, createServerBetterAuthProvider, createSubpathBetterAuthProvider, createNodeSsoHandler];
+const values = [getSsoEndpoints, createSsoClient, createSsoBetterAuthIntegration, createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu, useSso, createSsoAuthorization, createSsoServer, createNodeSsoHandler];
 if (values.some((value) => typeof value !== "function")) throw new Error("A package export is missing");
 console.log("Packed runtime imports passed");
 `);
