@@ -1,5 +1,4 @@
 import { Navigate, createFileRoute } from "@tanstack/react-router";
-import { useSso } from "@skycanvasstudio/sso/react";
 import { Check, Fingerprint, KeyRound, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
@@ -12,14 +11,16 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { DemoUser } from "@/lib/sso-types";
+import { getSsoBootstrap } from "@/lib/sso-session";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: z.object({ connected: z.coerce.boolean().optional() }),
+  loader: async () => ({ session: (await getSsoBootstrap()).session }),
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const { session } = useSso<DemoUser>();
+  const { session } = Route.useLoaderData() as { session: { user: DemoUser; expiresAt: number } | null };
 
   if (!session) {
     return (

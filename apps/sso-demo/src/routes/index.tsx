@@ -1,5 +1,4 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useSso } from "@skycanvasstudio/sso/react";
 import { CheckCircle2, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 import { DemoSignInButton } from "@/components/auth/sign-in-button";
@@ -12,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { DemoUser } from "@/lib/sso-types";
 
 const searchSchema = z.object({
   client_id: z.string().min(1).optional(),
@@ -31,7 +29,6 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const { client_id: clientId, error } = Route.useSearch();
-  const { session } = useSso<DemoUser>();
 
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-10 md:grid-cols-[1.15fr_0.85fr] md:px-8 md:pt-20">
@@ -62,14 +59,12 @@ function HomePage() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <DemoSignInButton clientId={clientId} />
-          {session ? (
-            <Link
-              to="/dashboard"
-              className={buttonVariants({ variant: "outline", size: "lg" })}
-            >
-              Open dashboard
-            </Link>
-          ) : null}
+          <Link
+            to="/dashboard"
+            className={buttonVariants({ variant: "outline", size: "lg" })}
+          >
+            Open dashboard
+          </Link>
         </div>
       </section>
 

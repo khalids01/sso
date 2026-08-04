@@ -1,4 +1,4 @@
-import { SsoSignInButton, useSso } from "@skycanvasstudio/sso/react";
+import { SsoSignInButton } from "@skycanvasstudio/sso/react";
 import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,11 +10,8 @@ interface DemoSignInButtonProps {
 }
 
 export function DemoSignInButton({ clientId }: DemoSignInButtonProps) {
-  const sso = useSso();
-
   const signIn = () => {
     if (!clientId) {
-      sso.login({ returnTo: DASHBOARD_RETURN_TO });
       return;
     }
 
@@ -28,7 +25,7 @@ export function DemoSignInButton({ clientId }: DemoSignInButtonProps) {
 
   return (
     <SsoSignInButton
-      onSignIn={signIn}
+      {...(clientId ? { onSignIn: signIn } : { callbackURL: DASHBOARD_RETURN_TO })}
       className={cn(
         buttonVariants({ size: "lg" }),
         "shadow-lg shadow-primary/20",

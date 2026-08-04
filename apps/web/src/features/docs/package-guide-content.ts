@@ -546,7 +546,7 @@ export class SsoController {
         title: "Wrap the application with initial session data",
         tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
-        description: "Load the bootstrap during SSR and pass it into SsoProvider once above every component that calls useSso or useSsoSession.",
+        description: "Load the bootstrap during SSR and pass it into SsoProvider once above the application. The package controls read the session internally; do not import standalone session hooks.",
         code: `import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router"
 import { SsoProvider } from "@skycanvasstudio/sso/react"
 import { getSsoBootstrap } from "@/lib/sso-session"
@@ -598,23 +598,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         title: "Use session, sign-in, and logout",
         filename: "src/components/account-menu.tsx",
         description: "Components below the provider can use the standalone hooks and controls. OAuth tokens remain on the server.",
-        code: `import { SsoSignInButton, SsoUserMenu, useSso, useSsoSession } from "@skycanvasstudio/sso/react"
+        code: `import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
 
 export function AccountMenu() {
-  const { logout } = useSso()
-  const { user, status } = useSsoSession()
+  return <SsoUserMenu items={[{ label: "Dashboard", href: "/dashboard" }]} />
+}
 
-  if (status === "loading") return <span>Loading…</span>
-
-  return user ? (
-    <SsoUserMenu
-      user={user}
-      items={[{ label: "Dashboard", href: "/dashboard" }]}
-      onLogout={() => logout({ returnTo: "/" })}
-    />
-  ) : (
-    <SsoSignInButton callbackURL="/dashboard" />
-  )
+export function SignIn() {
+  return <SsoSignInButton callbackURL="/dashboard" />
 }`,
       },
       {

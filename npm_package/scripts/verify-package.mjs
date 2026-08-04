@@ -35,12 +35,14 @@ try {
   writeFileSync(join(temporaryRoot, "index.mjs"), `
 import { createSsoBetterAuthIntegration, getSsoEndpoints } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
-import { createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu, useSso } from "@skycanvasstudio/sso/react";
+import * as react from "@skycanvasstudio/sso/react";
+const { createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu } = react;
 import { createSsoAuthorization, createSsoServer } from "@skycanvasstudio/sso/server";
 import { createNodeSsoHandler } from "@skycanvasstudio/sso/node";
 
-const values = [getSsoEndpoints, createSsoClient, createSsoBetterAuthIntegration, createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu, useSso, createSsoAuthorization, createSsoServer, createNodeSsoHandler];
+const values = [getSsoEndpoints, createSsoClient, createSsoBetterAuthIntegration, createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu, createSsoAuthorization, createSsoServer, createNodeSsoHandler];
 if (values.some((value) => typeof value !== "function")) throw new Error("A package export is missing");
+if ("useSso" in react || "useSsoSession" in react) throw new Error("Standalone SSO hooks must not be exported");
 console.log("Packed runtime imports passed");
 `);
   exec("node", ["index.mjs"], temporaryRoot, true);

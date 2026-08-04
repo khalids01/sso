@@ -135,7 +135,9 @@ Next.js SSR uses `getNextStandaloneSsoBootstrap({ sso })`. Elysia can call
 `sso.getBootstrap(request)`. Express and NestJS can call
 `sso.getBootstrap(nodeRequestHeaders(request))`.
 
-Mount the package React provider directly:
+Mount the package React provider directly. `SsoSignInButton` and `SsoUserMenu`
+read its session internally; do not import standalone `useSso()` or
+`useSsoSession()` hooks from `/react`.
 
 ```tsx
 import { SsoProvider } from "@skycanvasstudio/sso/react"
@@ -143,9 +145,8 @@ import { SsoProvider } from "@skycanvasstudio/sso/react"
 <SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>
 ```
 
-Do not create `sso-client.ts` or an application session-provider wrapper. Use
-the package `useSso()` and `useSsoSession()` hooks. Register `sso.callbackUrl`,
-normally `{APP_URL}/auth/callback`.
+Do not create `sso-client.ts` or an application session-provider wrapper.
+Register `sso.callbackUrl`, normally `{APP_URL}/auth/callback`.
 
 ## Required verification
 

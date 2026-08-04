@@ -39,7 +39,6 @@ export type {
 } from "../server/index.js";
 
 export type {
-  SsoContextValue,
   BetterAuthReactClient,
   BetterAuthSessionHook,
   BetterAuthSessionLike,

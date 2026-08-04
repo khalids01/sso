@@ -49,6 +49,9 @@
 .sso-menu-item[data-disabled] { pointer-events: none; opacity: .5; }
 .sso-menu-item svg, .sso-button svg, .sso-icon-button svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .sso-menu-item-danger { color: var(--sso-destructive); }
+.sso-menu-item-danger[data-highlighted], .sso-menu-item-danger:focus { background: var(--sso-destructive); color: var(--sso-primary-foreground); }
+:where(.dark, [data-theme="dark"]) .sso-menu-item-danger { color: color-mix(in srgb, var(--sso-destructive) 65%, white); }
+:where(.dark, [data-theme="dark"]) .sso-menu-item-danger[data-highlighted], :where(.dark, [data-theme="dark"]) .sso-menu-item-danger:focus { color: var(--sso-primary-foreground); }
 .sso-menu-separator { height: 1px; margin: .375rem -.375rem; background: var(--sso-border); }
 .sso-dialog-overlay { position: fixed; z-index: 60; inset: 0; background: rgb(0 0 0 / .55); backdrop-filter: blur(2px); animation: sso-fade 150ms ease-out; }
 .sso-dialog-content { position: fixed; z-index: 61; top: 50%; left: 50%; width: min(calc(100vw - 2rem), 28rem); box-sizing: border-box; transform: translate(-50%, -50%); border: 1px solid var(--sso-border); border-radius: calc(var(--sso-radius) + .25rem); padding: 1.5rem; background: var(--sso-card); color: var(--sso-card-foreground); box-shadow: 0 24px 80px rgb(0 0 0 / .28); animation: sso-dialog-enter 150ms ease-out; }

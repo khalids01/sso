@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 
 import { createSsoBetterAuthIntegration } from "../src/index.js";
-import { createSsoBetterAuthReact, SsoProvider, useSsoSession } from "../src/react/index.js";
+import { createSsoBetterAuthReact, SsoProvider, SsoUserMenu } from "../src/react/index.js";
 import type { StandaloneSsoBootstrap } from "../src/server/index.js";
 
 describe("SSR React providers", () => {
@@ -60,16 +60,11 @@ describe("SSR React providers", () => {
       },
     };
 
-    function User() {
-      const { user, status } = useSsoSession();
-      return createElement("span", null, `${status}:${user?.email}`);
-    }
-
     const html = renderToString(createElement(
       SsoProvider,
       { bootstrap },
-      createElement(User),
+      createElement(SsoUserMenu),
     ));
-    expect(html).toContain("authenticated:test@example.com");
+    expect(html).toContain('aria-label="Open account menu"');
   });
 });

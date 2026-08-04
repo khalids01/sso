@@ -5,7 +5,6 @@ import {
   createElement,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -20,7 +19,6 @@ import {
 } from "../index.js";
 import {
   createSsoClient,
-  type SsoClient,
   type SsoLoginOptions,
   type SsoLogoutOptions,
 } from "../client/index.js";
@@ -106,24 +104,8 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
   );
 }
 
-export function useSso<TUser extends SsoUser = SsoUser>(): SsoContextValue<TUser> {
-  const value = useContext(SsoContext);
-  if (!value) {
-    throw new Error(
-      "useSso requires SsoProvider on the no-auth-library path. " +
-      "Better Auth integrations must use the provider and hooks returned by createSsoBetterAuthReact.",
-    );
-  }
-  return value as SsoContextValue<TUser>;
-}
-
 export function useOptionalSso<TUser extends SsoUser = SsoUser>() {
   return useContext(SsoContext) as SsoContextValue<TUser> | null;
-}
-
-export function useSsoSession<TUser extends SsoUser = SsoUser>() {
-  const { session, status, error, refresh } = useSso<TUser>();
-  return { session, user: session?.user ?? null, status, error, refresh };
 }
 
 export interface BetterAuthSessionLike<TUser = unknown> {
