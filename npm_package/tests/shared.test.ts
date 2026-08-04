@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  createSsoBetterAuthIntegration,
   createSsoBetterAuthProvider,
   getSsoEndpoints,
   safeReturnTo,
@@ -43,6 +44,36 @@ describe("shared helpers", () => {
       clientId: "client_123",
       baseUrl: "",
     })).toThrow("baseUrl is required");
+  });
+
+  test("creates a serializable Better Auth bootstrap without server functions", () => {
+    const integration = createSsoBetterAuthIntegration({
+      clientId: "client_123",
+      baseUrl: "https://sso.example.com/path",
+    });
+    const bootstrap = integration.createBootstrap({
+      user: { id: "user_123", role: "admin" },
+      session: { id: "session_123" },
+    });
+
+    expect(integration.provider.providerId).toBe("skycanvas");
+    expect(bootstrap).toEqual({
+      kind: "better-auth",
+      config: {
+        providerId: "skycanvas",
+        clientId: "client_123",
+        baseUrl: "https://sso.example.com",
+      },
+      session: {
+        user: { id: "user_123", role: "admin" },
+        session: { id: "session_123" },
+      },
+    });
+    expect(JSON.stringify(bootstrap)).not.toContain("fetch");
+    expect(() => createSsoBetterAuthIntegration({
+      clientId: "client_123",
+      baseUrl: "not-a-url",
+    })).toThrow("SSO baseUrl must be a valid absolute URL");
   });
 });
 

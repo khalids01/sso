@@ -45,7 +45,6 @@ export function IntegrationGuide() {
     {
       label: "Reference",
       items: [
-        { label: "Standalone SSR session", href: "#standalone-session-provider" },
         { label: "Security checklist", href: "#security" },
       ],
     },
@@ -120,15 +119,15 @@ export function IntegrationGuide() {
                   <span>
                     Better Auth generates <InlineCode>/api/auth/oauth2/callback/skycanvas</InlineCode>. Register that
                     exact path in SkyCanvas. <InlineCode>/api/auth/callback</InlineCode> is wrong for this setup, and
-                    you should not add <InlineCode>SSO_CALLBACK_URL</InlineCode>. This guide includes an actual
-                    React <InlineCode>AuthSessionProvider</InlineCode> with SSR <InlineCode>initialSession</InlineCode>
-                    wiring for TanStack Start and Next.js.
+                    you should not add <InlineCode>SSO_CALLBACK_URL</InlineCode>. This guide mounts the package
+                    <InlineCode>SsoProvider</InlineCode> with serializable SSR bootstrap data for TanStack Start and
+                    Next.js, without duplicate browser environment variables.
                   </span>
                 ) : authMode === "manual" ? (
                   <span>
                     React applications on this standalone path must mount one <InlineCode>SsoProvider</InlineCode>.
-                    TanStack Start and Next.js should read the session on the server and pass it as
-                    <InlineCode>initialSession</InlineCode>. Choose the matching framework tabs below.
+                    Pass it the bootstrap returned by the server helper so it receives the initial session and creates
+                    its browser client without another configuration file.
                   </span>
                 ) : activeRecipe.callbackPath ? (
                   <span>
@@ -164,60 +163,6 @@ export function IntegrationGuide() {
                   </GuideStep>
                 ))}
               </ol>
-            </section>
-
-            <section id="standalone-session-provider" className="scroll-mt-24 border-b border-[#292e42] py-14">
-              <SectionEyebrow>Standalone React SSR</SectionEyebrow>
-              <h2 className={headingClass}>Create the server session function</h2>
-              <p className={leadClass}>
-                Copy the version for your framework. This is required when the standalone React SSO provider needs
-                initial server-rendered session data. It calls <InlineCode>sso.getSession(request)</InlineCode> and
-                returns plain session data for <InlineCode>initialSession</InlineCode>.
-              </p>
-              <div className="mt-8">
-                <CodeBlock
-                  sample={{
-                    tabLabel: "TanStack Start",
-                    filename: "src/lib/sso-session.ts",
-                    code: `import { createServerFn } from "@tanstack/react-start"
-import { getRequest } from "@tanstack/react-start/server"
-import type { SsoSession } from "@skycanvasstudio/sso/types"
-
-export const getSsoSession = createServerFn({ method: "GET" }).handler(
-  async (): Promise<SsoSession | null> => {
-    const request = getRequest()
-    const { sso } = await import("./sso.server")
-    return sso.getSession(request)
-  },
-)`,
-                    alternatives: [
-                      {
-                        tabLabel: "Next.js",
-                        filename: "src/lib/sso-session.server.ts",
-                        code: `import "server-only"
-import { headers } from "next/headers"
-import type { SsoSession } from "@skycanvasstudio/sso/types"
-import { sso } from "./sso.server"
-
-export async function getSsoSession(): Promise<SsoSession | null> {
-  const request = new Request(new URL("/", process.env.APP_URL!), {
-    headers: await headers(),
-  })
-
-  return sso.getSession(request)
-}`,
-                      },
-                    ],
-                  }}
-                />
-              </div>
-              <Callout>
-                <span>
-                  Pass the result to <InlineCode>SsoProvider</InlineCode> as
-                  <InlineCode>initialSession</InlineCode>. Better Auth integrations use
-                  <InlineCode>auth.api.getSession({`{ headers }`})</InlineCode> instead.
-                </span>
-              </Callout>
             </section>
 
             <section id="agent-guide" className="scroll-mt-24 border-b border-[#292e42] py-14">

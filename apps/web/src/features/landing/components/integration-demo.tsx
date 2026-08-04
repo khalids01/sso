@@ -7,42 +7,37 @@ export const IntegrationDemo = () => {
   const [copied, setCopied] = useState(false);
 
   const snippets = {
-    ts: `import { createSsoClient } from "@sso/auth-client";
+    ts: `import { createSsoBetterAuthIntegration } from "@skycanvasstudio/sso/better-auth"
+import { betterAuth } from "better-auth"
+import { genericOAuth } from "better-auth/plugins"
+import { env } from "./env.server"
 
-export const sso = createSsoClient({
-  baseUrl: "https://auth.yourdomain.com",
-  clientId: process.env.SSO_CLIENT_ID,
-  redirectUri: "https://yourapp.com/api/auth/callback",
-});
+export const skycanvas = createSsoBetterAuthIntegration({
+  clientId: env.SSO_CLIENT_ID,
+  baseUrl: env.SSO_URL,
+})
 
-// Protect application routes with standard OIDC session verification
-export async function getSession(req: Request) {
-  const session = await sso.verifySession(req);
-  if (!session) throw new Error("Unauthorized");
-  return session;
-}`,
-    node: `const { SsoClient } = require("@sso/node-sdk");
+export const auth = betterAuth({
+  database,
+  plugins: [genericOAuth({ config: [skycanvas.provider] })],
+})`,
+    node: `import { createSsoServer } from "@skycanvasstudio/sso/server"
+import { createNodeSsoHandler } from "@skycanvasstudio/sso/node"
+import { env } from "./env.server"
 
-const sso = new SsoClient({
-  issuer: "https://auth.yourdomain.com",
-  clientId: process.env.SSO_CLIENT_ID,
-  clientSecret: process.env.SSO_CLIENT_SECRET,
-});
+const sso = createSsoServer({
+  clientId: env.SSO_CLIENT_ID,
+  baseUrl: env.SSO_URL,
+  appUrl: env.APP_URL,
+  sessionSecret: env.SESSION_SECRET,
+})
 
-// Express.js session middleware
-app.use(async (req, res, next) => {
-  try {
-    req.user = await sso.authenticateRequest(req);
-    next();
-  } catch (err) {
-    res.status(401).json({ error: "Invalid SSO Bearer Token" });
-  }
-});`,
+app.all("/auth/*splat", createNodeSsoHandler(sso))`,
     python: `from sso_auth import SsoVerifier
 
 verifier = SsoVerifier(
     issuer="https://auth.yourdomain.com",
-    jwks_url="https://auth.yourdomain.com/.well-known/jwks.json"
+    jwks_url="https://api-sso.skycanvasstudio.com/api/auth/jwks"
 )
 
 # FastAPI / Starlette auth dependency
@@ -50,10 +45,10 @@ async function get_current_user(token: str = Depends(oauth2_scheme)):
     payload = await verifier.verify_token(token)
     return payload["sub"] # Pairwise isolated user ID`,
     curl: `# Fetch public JWKS keys for local token signature verification
-curl -X GET https://auth.yourdomain.com/.well-known/jwks.json
+curl -X GET https://api-sso.skycanvasstudio.com/api/auth/jwks
 
 # Exchange PKCE authorization code for 10-minute RS256 token
-curl -X POST https://auth.yourdomain.com/oauth2/token \\
+curl -X POST https://api-sso.skycanvasstudio.com/api/auth/oauth2/token \\
   -d "grant_type=authorization_code" \\
   -d "client_id=YOUR_CLIENT_ID" \\
   -d "code_verifier=YOUR_PKCE_VERIFIER" \\

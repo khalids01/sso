@@ -1,8 +1,13 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "SkyCanvas SSO helpers and optional React UI for servers and web applications",
-  "homepage": "https://sso.skycanvasstudio.com",
+  "homepage": "https://sso.skycanvasstudio.com/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/khalids01/sso.git",
+    "directory": "npm_package"
+  },
   "type": "module",
   "license": "MIT",
   "author": {
@@ -26,6 +31,9 @@
       "client": ["dist/client/index.d.ts"],
       "react": ["dist/react/index.d.ts"],
       "better-auth": ["dist/better-auth/index.d.ts"],
+      "tanstack-start": ["dist/tanstack-start/index.d.ts"],
+      "next": ["dist/next/index.d.ts"],
+      "node": ["dist/node/index.d.ts"],
       "types": ["dist/types/index.d.ts"]
     }
   },
@@ -56,6 +64,21 @@
       "import": "./dist/better-auth/index.js",
       "default": "./dist/better-auth/index.js"
     },
+    "./tanstack-start": {
+      "types": "./dist/tanstack-start/index.d.ts",
+      "import": "./dist/tanstack-start/index.js",
+      "default": "./dist/tanstack-start/index.js"
+    },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "import": "./dist/next/index.js",
+      "default": "./dist/next/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js",
+      "default": "./dist/node/index.js"
+    },
     "./types": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js",
@@ -77,9 +100,17 @@
     "jose": "^6.1.0"
   },
   "peerDependencies": {
+    "@tanstack/react-start": ">=1.160.0",
+    "next": ">=14",
     "react": ">=18"
   },
   "peerDependenciesMeta": {
+    "@tanstack/react-start": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
     "react": {
       "optional": true
     }
@@ -88,10 +119,13 @@
     "@types/bun": "^1.3.9",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "better-auth": "1.6.23",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@tanstack/react-start": "^1.168.28",
+    "next": "^16.2.3",
+    "react": "19.2.5",
+    "react-dom": "19.2.5"
   },
   "engines": {
     "node": ">=20"

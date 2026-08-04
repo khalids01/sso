@@ -8,6 +8,9 @@ export type {
   SsoClientMetadata,
   SsoEndpoints,
   SsoProvider,
+  SsoBetterAuthBootstrap,
+  SsoBetterAuthIntegration,
+  SsoPublicConfig,
   SsoSession,
   SsoTokenResponse,
   SsoUser,
@@ -28,7 +31,10 @@ export type {
   SsoCookieOptions,
   SsoServer,
   SsoServerPaths,
+  SsoSessionRequest,
   SsoSignInContext,
+  StandaloneSsoBootstrap,
+  StandaloneSsoClientConfig,
   VerifiedSsoAuthorization,
   VerifiedSsoIdentity,
   VerifySsoIdTokenOptions,
@@ -36,6 +42,14 @@ export type {
 
 export type {
   SsoContextValue,
+  BetterAuthReactClient,
+  BetterAuthSessionHook,
+  BetterAuthSessionLike,
+  BetterAuthSsoContextValue,
+  BetterAuthSsoProviderProps,
+  BetterAuthSsoReact,
+  BootstrapSsoProviderProps,
+  LegacySsoProviderProps,
   SsoDisplayUser,
   SsoMenuItem,
   SsoProviderProps,
@@ -43,3 +57,16 @@ export type {
   SsoStatus,
   SsoUserMenuProps,
 } from "../react/index.js";
+
+export type {
+  BetterAuthServerIntegration,
+  BetterAuthServerLike,
+} from "../tanstack-start/index.js";
+
+export type { NextBetterAuthServerLike } from "../next/index.js";
+
+export type {
+  NodeHeaderValue,
+  NodeRequestLike,
+  NodeResponseLike,
+} from "../node/index.js";

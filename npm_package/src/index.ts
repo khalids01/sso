@@ -36,6 +36,24 @@ export interface CreateSsoBetterAuthProviderOptions extends CreateSsoProviderOpt
   forceLogin?: boolean;
 }
 
+export interface SsoPublicConfig {
+  providerId: typeof SSO_PROVIDER_ID;
+  clientId: string;
+  baseUrl: string;
+}
+
+export interface SsoBetterAuthBootstrap<TSession> {
+  kind: "better-auth";
+  config: SsoPublicConfig;
+  session: TSession | null;
+}
+
+export interface SsoBetterAuthIntegration {
+  provider: ReturnType<typeof createSsoBetterAuthProvider>;
+  config: SsoPublicConfig;
+  createBootstrap: <TSession>(session: TSession | null) => SsoBetterAuthBootstrap<TSession>;
+}
+
 type BetterAuthResult = { error?: unknown };
 
 export interface BetterAuthClientLike {
@@ -90,7 +108,7 @@ export interface SsoTokenResponse {
 }
 
 export function getSsoEndpoints(baseUrl = SSO_DEFAULT_URL): SsoEndpoints {
-  const origin = new URL(baseUrl).origin;
+  const origin = requireOrigin(baseUrl, "baseUrl");
   return {
     authorization: new URL("/api/auth/oauth2/authorize", origin).toString(),
     token: new URL("/api/auth/oauth2/token", origin).toString(),
@@ -119,6 +137,10 @@ export function createSsoProvider(options: CreateSsoProviderOptions): SsoProvide
   };
 }
 
+/**
+ * @deprecated Prefer createSsoBetterAuthIntegration so the browser receives
+ * public SSO configuration through the server-rendered bootstrap.
+ */
 export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProviderOptions) {
   requireValue(options.baseUrl, "baseUrl");
   const provider = createSsoProvider(options);
@@ -148,10 +170,41 @@ export function createSsoBetterAuthProvider(options: CreateSsoBetterAuthProvider
   };
 }
 
+export function createSsoBetterAuthIntegration(
+  options: CreateSsoBetterAuthProviderOptions,
+): SsoBetterAuthIntegration {
+  requireValue(options.clientId, "clientId");
+  const baseUrl = requireOrigin(options.baseUrl, "baseUrl");
+  const provider = createSsoBetterAuthProvider({ ...options, baseUrl });
+  const config: SsoPublicConfig = {
+    providerId: SSO_PROVIDER_ID,
+    clientId: options.clientId,
+    baseUrl,
+  };
+
+  return {
+    provider,
+    config,
+    createBootstrap<TSession>(session: TSession | null): SsoBetterAuthBootstrap<TSession> {
+      return {
+        kind: "better-auth",
+        config: { ...config },
+        session: session ?? null,
+      };
+    },
+  };
+}
+
+/**
+ * @deprecated Prefer createSsoBetterAuthReact and pass it the bootstrap made
+ * by createSsoBetterAuthIntegration.
+ */
 export function createSsoBetterAuthClient(
   options: BetterAuthSsoClientOptions,
 ): BetterAuthSsoClient {
   requireValue(options.clientId, "clientId");
+  const baseUrl = options.baseUrl === undefined ? undefined : requireOrigin(options.baseUrl, "baseUrl");
+  const appUrl = options.appUrl === undefined ? undefined : requireOrigin(options.appUrl, "appUrl");
 
   const signIn = (callbackURL = "/") => options.authClient.signIn.oauth2({
     providerId: SSO_PROVIDER_ID,
@@ -164,12 +217,12 @@ export function createSsoBetterAuthClient(
       const result = await options.authClient.signOut();
       if (result.error || signOutOptions.global === false) return result;
 
-      const appOrigin = getBrowserOrigin(options.appUrl);
+      const appOrigin = getBrowserOrigin(appUrl);
       const returnTo = new URL(
         safeReturnTo(signOutOptions.returnTo),
         appOrigin,
       );
-      const logoutUrl = new URL(getSsoEndpoints(options.baseUrl).globalLogout);
+      const logoutUrl = new URL(getSsoEndpoints(baseUrl).globalLogout);
       logoutUrl.searchParams.set("client_id", options.clientId);
       logoutUrl.searchParams.set("return_to", returnTo.toString());
       (options.navigate ?? defaultBrowserNavigate)(logoutUrl.toString());
@@ -185,6 +238,15 @@ export function safeReturnTo(value: string | null | undefined, fallback = "/"): 
 function requireValue(value: unknown, name: string): asserts value is string {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`SSO ${name} is required`);
+  }
+}
+
+function requireOrigin(value: unknown, name: string): string {
+  requireValue(value, name);
+  try {
+    return new URL(value).origin;
+  } catch {
+    throw new Error(`SSO ${name} must be a valid absolute URL`);
   }
 }
 

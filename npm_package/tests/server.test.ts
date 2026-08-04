@@ -197,6 +197,17 @@ describe("framework-independent SSO server", () => {
     expect(profile.status).toBe(200);
     expect((await profile.json()).user.email).toBe("test@example.com");
 
+    const bootstrap = await sso.getBootstrap(new Headers({ cookie: sessionCookie ?? "" }));
+    expect(bootstrap.kind).toBe("standalone");
+    expect(bootstrap.session?.user.email).toBe("test@example.com");
+    expect(bootstrap.client).toEqual({
+      baseUrl: "https://app.example.com",
+      loginPath: "/auth/login",
+      profilePath: "/auth/profile",
+      logoutPath: "/auth/logout",
+    });
+    expect(JSON.stringify(bootstrap)).not.toContain("test-session-secret");
+
     const rejectedLogout = await sso.handle(new Request("https://app.example.com/auth/logout", {
       method: "POST",
       headers: { origin: "https://evil.example.com" },
@@ -235,6 +246,19 @@ describe("framework-independent SSO server", () => {
       sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
       cookies: { sameSite: "none" },
     })).toThrow("must be Secure");
+  });
+
+  test("reports actionable server configuration errors", () => {
+    expect(() => createSsoServer({
+      clientId,
+      appUrl: "not-a-url",
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    })).toThrow("SSO appUrl must be a valid absolute URL");
+    expect(() => createSsoServer({
+      clientId,
+      appUrl: "https://app.example.com",
+      sessionSecret: undefined as unknown as string,
+    })).toThrow("SSO sessionSecret is required");
   });
 });
 

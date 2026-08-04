@@ -33,22 +33,24 @@ try {
   exec("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"], temporaryRoot);
 
   writeFileSync(join(temporaryRoot, "index.mjs"), `
-import { createSsoBetterAuthProvider as createRootBetterAuthProvider, getSsoEndpoints } from "@skycanvasstudio/sso";
+import { createSsoBetterAuthIntegration, createSsoBetterAuthProvider as createRootBetterAuthProvider, getSsoEndpoints } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
-import { SsoProvider, SsoSignInButton, SsoUserMenu, useSso } from "@skycanvasstudio/sso/react";
+import { createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu, useSso } from "@skycanvasstudio/sso/react";
 import { createSsoAuthorization, createSsoBetterAuthProvider as createServerBetterAuthProvider, createSsoServer } from "@skycanvasstudio/sso/server";
 import { createSsoBetterAuthProvider as createSubpathBetterAuthProvider } from "@skycanvasstudio/sso/better-auth";
+import { createNodeSsoHandler } from "@skycanvasstudio/sso/node";
 
-const values = [getSsoEndpoints, createSsoClient, SsoProvider, SsoSignInButton, SsoUserMenu, useSso, createSsoAuthorization, createSsoServer, createRootBetterAuthProvider, createServerBetterAuthProvider, createSubpathBetterAuthProvider];
+const values = [getSsoEndpoints, createSsoClient, createSsoBetterAuthIntegration, createSsoBetterAuthReact, SsoProvider, SsoSignInButton, SsoUserMenu, useSso, createSsoAuthorization, createSsoServer, createRootBetterAuthProvider, createServerBetterAuthProvider, createSubpathBetterAuthProvider, createNodeSsoHandler];
 if (values.some((value) => typeof value !== "function")) throw new Error("A package export is missing");
 console.log("Packed runtime imports passed");
 `);
   exec("node", ["index.mjs"], temporaryRoot, true);
 
   writeFileSync(join(temporaryRoot, "consumer.ts"), `
-import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso";
+import { createSsoBetterAuthIntegration } from "@skycanvasstudio/sso";
 import { createSsoClient } from "@skycanvasstudio/sso/client";
-import type { SsoSession, SsoUser } from "@skycanvasstudio/sso/types";
+import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react";
+import type { SsoBetterAuthBootstrap, SsoSession, SsoUser } from "@skycanvasstudio/sso/types";
 
 const session: SsoSession = {
   user: { id: "1", name: "User", email: "user@example.com", emailVerified: true, image: null },
@@ -56,12 +58,33 @@ const session: SsoSession = {
 };
 const user: SsoUser = session.user;
 createSsoClient().login("/dashboard");
-createSsoBetterAuthProvider({
+const integration = createSsoBetterAuthIntegration({
   clientId: "client_123",
   baseUrl: "https://api-sso.skycanvasstudio.com",
 });
+const bootstrap: SsoBetterAuthBootstrap<{ user: { id: string } }> = integration.createBootstrap({ user: { id: "1" } });
+const authClient = {
+  useSession: () => ({ data: bootstrap.session, isPending: false, error: null }),
+  signIn: { oauth2: async () => ({}) },
+  signOut: async () => ({}),
+};
+createSsoBetterAuthReact(authClient);
 void session;
 void user;
+`);
+  writeFileSync(join(temporaryRoot, "demo.tsx"), `
+import { createElement } from "react";
+import { SsoProvider } from "@skycanvasstudio/sso/react";
+import { createSsoServer } from "@skycanvasstudio/sso/server";
+
+const sso = createSsoServer({
+  clientId: "client_123",
+  baseUrl: "https://api-sso.skycanvasstudio.com",
+  appUrl: "https://app.example.com",
+  sessionSecret: "a-test-session-secret-that-is-at-least-32-bytes",
+});
+const bootstrap = await sso.getBootstrap(new Headers());
+createElement(SsoProvider, { bootstrap }, "Demo application");
 `);
   writeFileSync(join(temporaryRoot, "tsconfig.json"), JSON.stringify({
     compilerOptions: {
@@ -71,8 +94,9 @@ void user;
       strict: true,
       skipLibCheck: false,
       noEmit: true,
+      jsx: "react-jsx",
     },
-    include: ["consumer.ts"],
+    include: ["consumer.ts", "demo.tsx"],
   }, null, 2));
   exec("node", ["node_modules/@typescript/native/bin/tsc", "-p", "tsconfig.json"], temporaryRoot);
   console.log("Packed TypeScript 7 consumer passed");
@@ -85,14 +109,18 @@ void user;
       strict: true,
       skipLibCheck: false,
       noEmit: true,
+      jsx: "react-jsx",
     },
-    include: ["consumer.ts"],
+    include: ["consumer.ts", "demo.tsx"],
   }, null, 2));
   exec("node", ["node_modules/typescript/bin/tsc", "-p", "tsconfig.legacy.json"], temporaryRoot);
   console.log("Packed legacy TypeScript module resolution passed");
 
   const manifest = JSON.parse(readFileSync(join(temporaryRoot, "node_modules/@skycanvasstudio/sso/package.json"), "utf8"));
   if (manifest.version !== sourceManifest.version) throw new Error("Installed package version is incorrect");
+  for (const subpath of ["./tanstack-start", "./next", "./node", "./types"]) {
+    if (!manifest.exports?.[subpath]) throw new Error(`Missing package export: ${subpath}`);
+  }
   if (!readFileSync(join(temporaryRoot, "node_modules/@skycanvasstudio/sso/dist/react/styles.css"), "utf8").includes(".sso-user-trigger")) {
     throw new Error("Packaged React styles are missing");
   }

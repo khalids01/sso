@@ -1,5 +1,8 @@
 import { genericOAuth } from "better-auth/plugins";
-import { createSsoBetterAuthProvider } from "../src/index.js";
+import { createAuthClient } from "better-auth/react";
+import { genericOAuthClient } from "better-auth/client/plugins";
+import { createSsoBetterAuthIntegration } from "../src/index.js";
+import { createSsoBetterAuthReact } from "../src/react/index.js";
 import type {
   BetterAuthSsoClientOptions,
   SsoSession,
@@ -7,12 +10,19 @@ import type {
   VerifiedSsoIdentity,
 } from "../src/types/index.js";
 
-const provider = createSsoBetterAuthProvider({
+const skycanvas = createSsoBetterAuthIntegration({
   clientId: "client_123",
   baseUrl: "https://api-sso.skycanvasstudio.com",
 });
 
-genericOAuth({ config: [provider] });
+genericOAuth({ config: [skycanvas.provider] });
+
+const authClient = createAuthClient({ plugins: [genericOAuthClient()] });
+const reactIntegration = createSsoBetterAuthReact(authClient);
+const bootstrap = skycanvas.createBootstrap<typeof authClient.$Infer.Session>(null);
+const providerProps: Parameters<typeof reactIntegration.SsoProvider>[0] = {
+  bootstrap,
+};
 
 const user: SsoUser = {
   id: "user_123",
@@ -24,4 +34,5 @@ const user: SsoUser = {
 const session: SsoSession = { user, expiresAt: Date.now() + 60_000 };
 const typeExports: [BetterAuthSsoClientOptions?, VerifiedSsoIdentity?] = [];
 void session;
+void providerProps;
 void typeExports;

@@ -17,9 +17,13 @@ import {
 } from "../index.js";
 
 export {
+  createSsoBetterAuthIntegration,
   createSsoBetterAuthProvider,
   type BetterAuthTokenSet,
   type CreateSsoBetterAuthProviderOptions,
+  type SsoBetterAuthBootstrap,
+  type SsoBetterAuthIntegration,
+  type SsoPublicConfig,
 } from "../index.js";
 
 export interface SsoAuthorizationFlow {
@@ -117,8 +121,24 @@ export interface SsoServer<TUser extends SsoUser = SsoUser> {
   callback: (request: Request) => Promise<Response>;
   profile: (request: Request) => Promise<Response>;
   logout: (request: Request) => Promise<Response>;
-  getSession: (request: Request) => Promise<SsoSession<TUser> | null>;
+  getSession: (request: SsoSessionRequest) => Promise<SsoSession<TUser> | null>;
+  getBootstrap: (request: SsoSessionRequest) => Promise<StandaloneSsoBootstrap<TUser>>;
   handle: (request: Request) => Promise<Response>;
+}
+
+export type SsoSessionRequest = Request | Headers;
+
+export interface StandaloneSsoClientConfig {
+  baseUrl: string;
+  loginPath: string;
+  profilePath: string;
+  logoutPath: string;
+}
+
+export interface StandaloneSsoBootstrap<TUser extends SsoUser = SsoUser> {
+  kind: "standalone";
+  session: SsoSession<TUser> | null;
+  client: StandaloneSsoClientConfig;
 }
 
 const DEFAULT_PATHS: SsoServerPaths = {
@@ -239,8 +259,9 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
   options: CreateSsoServerOptions<TUser>,
 ): SsoServer<TUser> {
   requireValue(options.clientId, "clientId");
-  const appOrigin = new URL(options.appUrl).origin;
-  const redirectOrigin = new URL(options.redirectOrigin ?? appOrigin).origin;
+  const appOrigin = requireOrigin(options.appUrl, "appUrl");
+  const baseUrl = options.baseUrl === undefined ? undefined : requireOrigin(options.baseUrl, "baseUrl");
+  const redirectOrigin = requireOrigin(options.redirectOrigin ?? appOrigin, "redirectOrigin");
   const paths = normalizePaths(options.paths);
   const callbackUrl = new URL(paths.callback, appOrigin).toString();
   const flowTtl = positiveInteger(options.flowTtlSeconds ?? 600, "flowTtlSeconds");
@@ -252,6 +273,12 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     ...(options.trustedOrigins ?? []).map((origin) => new URL(origin).origin),
   ]);
   const key = createSessionKey(options.sessionSecret);
+  const clientConfig: StandaloneSsoClientConfig = {
+    baseUrl: appOrigin,
+    loginPath: paths.login,
+    profilePath: paths.profile,
+    logoutPath: paths.logout,
+  };
 
   async function login(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
@@ -262,7 +289,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       redirectUri: callbackUrl,
       returnTo,
       forceLogin,
-      ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+      ...(baseUrl ? { baseUrl } : {}),
     });
     return redirectResponse(
       authorization.url,
@@ -291,7 +318,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
           state,
           flow,
           maxFlowAgeSeconds: flowTtl,
-          ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+          ...(baseUrl ? { baseUrl } : {}),
           ...(options.fetch ? { fetch: options.fetch } : {}),
         });
         const user = options.onSignIn
@@ -336,13 +363,21 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     }
   }
 
-  async function getSession(request: Request): Promise<SsoSession<TUser> | null> {
+  async function getSession(request: SsoSessionRequest): Promise<SsoSession<TUser> | null> {
     try {
       const session = await unseal<SsoSession<TUser>>(readCookie(request, cookieConfig.sessionName), key);
       return session.expiresAt > Date.now() ? session : null;
     } catch {
       return null;
     }
+  }
+
+  async function getBootstrap(request: SsoSessionRequest): Promise<StandaloneSsoBootstrap<TUser>> {
+    return {
+      kind: "standalone",
+      session: await getSession(request),
+      client: { ...clientConfig },
+    };
   }
 
   async function profile(request: Request): Promise<Response> {
@@ -363,7 +398,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     }
     const global = requestUrl.searchParams.get("global") === "true";
     const returnTo = safeReturnTo(requestUrl.searchParams.get("returnTo"));
-    const globalLogoutUrl = new URL(getSsoEndpoints(options.baseUrl).globalLogout);
+    const globalLogoutUrl = new URL(getSsoEndpoints(baseUrl).globalLogout);
     globalLogoutUrl.searchParams.set("client_id", options.clientId);
     globalLogoutUrl.searchParams.set(
       "return_to",
@@ -393,7 +428,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  return { paths, callbackUrl, login, callback, profile, logout, getSession, handle };
+  return { paths, callbackUrl, login, callback, profile, logout, getSession, getBootstrap, handle };
 }
 
 async function exchangeAuthorizationCode(
@@ -498,8 +533,9 @@ function serializeCookie(
   ].filter((part): part is string => Boolean(part)).join("; ");
 }
 
-function readCookie(request: Request, name: string): string {
-  const value = request.headers.get("cookie")?.split(";")
+function readCookie(request: SsoSessionRequest, name: string): string {
+  const headers = request instanceof Headers ? request : request.headers;
+  const value = headers.get("cookie")?.split(";")
     .map((part) => part.trim())
     .find((part) => part.startsWith(`${name}=`))
     ?.slice(name.length + 1);
@@ -520,6 +556,9 @@ async function unseal<T>(token: string, key: Promise<Uint8Array>): Promise<T> {
 }
 
 function createSessionKey(secret: string | Uint8Array): Promise<Uint8Array> {
+  if (typeof secret !== "string" && !(secret instanceof Uint8Array)) {
+    throw new Error("SSO sessionSecret is required");
+  }
   const bytes = typeof secret === "string" ? new TextEncoder().encode(secret) : new Uint8Array(secret);
   if (bytes.byteLength < 32) throw new Error("SSO sessionSecret must contain at least 32 bytes");
   return getCrypto().subtle.digest("SHA-256", bytes).then((value) => new Uint8Array(value));
@@ -568,8 +607,17 @@ function positiveInteger(value: number, name: string): number {
   return value;
 }
 
-function requireValue(value: string, name: string): void {
-  if (!value.trim()) throw new Error(`SSO ${name} is required`);
+function requireValue(value: unknown, name: string): asserts value is string {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`SSO ${name} is required`);
+}
+
+function requireOrigin(value: unknown, name: string): string {
+  requireValue(value, name);
+  try {
+    return new URL(value).origin;
+  } catch {
+    throw new Error(`SSO ${name} must be a valid absolute URL`);
+  }
 }
 
 function capitalize(value: string): string {

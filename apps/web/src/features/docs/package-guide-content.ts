@@ -26,17 +26,13 @@ export const packageRecipes: Record<GuideMode, PackageRecipe> = {
       },
       {
         title: "Configure the server environment",
-        tabLabel: "TanStack Start / Vite",
+        tabLabel: "TanStack Start",
         filename: ".env",
-        description: "Keep secrets server-only. The client ID and SSO URL are public configuration; use your framework's required public prefix.",
+        description: "Define the SSO values once on the server. Validate them in your application's server-only env module; do not create VITE_SSO_* or NEXT_PUBLIC_SSO_* copies.",
         code: `BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace_with_at_least_32_random_characters
 SSO_CLIENT_ID=your_skycanvas_client_id
-SSO_URL=https://api-sso.skycanvasstudio.com
-
-# Exposed by Vite; these are public, not secrets.
-VITE_SSO_CLIENT_ID=your_skycanvas_client_id
-VITE_SSO_URL=https://api-sso.skycanvasstudio.com`,
+SSO_URL=https://api-sso.skycanvasstudio.com`,
         alternatives: [
           {
             tabLabel: "Next.js",
@@ -44,11 +40,7 @@ VITE_SSO_URL=https://api-sso.skycanvasstudio.com`,
             code: `BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace_with_at_least_32_random_characters
 SSO_CLIENT_ID=your_skycanvas_client_id
-SSO_URL=https://api-sso.skycanvasstudio.com
-
-# Exposed by Next.js; these are public, not secrets.
-NEXT_PUBLIC_SSO_CLIENT_ID=your_skycanvas_client_id
-NEXT_PUBLIC_SSO_URL=https://api-sso.skycanvasstudio.com`,
+SSO_URL=https://api-sso.skycanvasstudio.com`,
           },
         ],
       },
@@ -56,13 +48,14 @@ NEXT_PUBLIC_SSO_URL=https://api-sso.skycanvasstudio.com`,
         title: "Add the provider to Better Auth",
         filename: "src/lib/auth.ts",
         description: "Merge this plugin into your existing Better Auth instance. Preserve its database, plugins, and other sign-in methods.",
-        code: `import { createSsoBetterAuthProvider } from "@skycanvasstudio/sso"
+        code: `import { createSsoBetterAuthIntegration } from "@skycanvasstudio/sso/better-auth"
 import { betterAuth } from "better-auth"
 import { genericOAuth } from "better-auth/plugins"
+import { env } from "./env.server"
 
-const skycanvas = createSsoBetterAuthProvider({
-  clientId: process.env.SSO_CLIENT_ID!,
-  baseUrl: process.env.SSO_URL!,
+export const skycanvas = createSsoBetterAuthIntegration({
+  clientId: env.SSO_CLIENT_ID,
+  baseUrl: env.SSO_URL,
   // forceLogin: true, // optional explicit reauthentication
 })
 
@@ -71,7 +64,7 @@ export const auth = betterAuth({
   account: { encryptOAuthTokens: true },
   plugins: [
     // Keep your existing plugins here.
-    genericOAuth({ config: [skycanvas] }),
+    genericOAuth({ config: [skycanvas.provider] }),
   ],
 })`,
       },
@@ -143,41 +136,35 @@ export class AppModule {}
       },
       {
         title: "Create the browser client",
-        tabLabel: "TanStack Start / Vite",
+        tabLabel: "TanStack Start",
         filename: "src/lib/auth-client.ts",
-        description: "Wrap Better Auth once. Choose the tab matching your frontend so its public environment variables are available in browser code.",
+        description: "Create Better Auth's browser client and the typed SSO React integration. It receives safe configuration later from the server bootstrap, so no browser environment variables are needed.",
         code: `import { createAuthClient } from "better-auth/react"
 import { genericOAuthClient } from "better-auth/client/plugins"
-import { createSsoBetterAuthClient } from "@skycanvasstudio/sso/better-auth"
+import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
 
 export const authClient = createAuthClient({
   plugins: [genericOAuthClient()],
 })
 
-export const sso = createSsoBetterAuthClient({
-  authClient,
-  clientId: import.meta.env.VITE_SSO_CLIENT_ID,
-  baseUrl: import.meta.env.VITE_SSO_URL,
-})
-
-// On the server, keep using auth.api.getSession({ headers }).`,
+export const { SsoProvider, useSso, useSsoSession } =
+  createSsoBetterAuthReact(authClient)`,
         alternatives: [
           {
             tabLabel: "Next.js",
             filename: "src/lib/auth-client.ts",
-            code: `import { createAuthClient } from "better-auth/react"
+            code: `"use client"
+
+import { createAuthClient } from "better-auth/react"
 import { genericOAuthClient } from "better-auth/client/plugins"
-import { createSsoBetterAuthClient } from "@skycanvasstudio/sso/better-auth"
+import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
 
 export const authClient = createAuthClient({
   plugins: [genericOAuthClient()],
 })
 
-export const sso = createSsoBetterAuthClient({
-  authClient,
-  clientId: process.env.NEXT_PUBLIC_SSO_CLIENT_ID!,
-  baseUrl: process.env.NEXT_PUBLIC_SSO_URL,
-})`,
+export const { SsoProvider, useSso, useSsoSession } =
+  createSsoBetterAuthReact(authClient)`,
           },
         ],
       },
@@ -185,24 +172,26 @@ export const sso = createSsoBetterAuthClient({
         title: "Create getInitialAuthSession",
         tabLabel: "TanStack Start",
         filename: "src/lib/auth-session.ts",
-        description: "Copy the complete file for your framework. It exports getInitialAuthSession, reads Better Auth with the incoming request headers, and returns only serializable session data.",
+        description: "This application-owned server function lazily imports auth so TanStack never serializes it. The package returns only the session and safe public SSO configuration.",
         code: `import { createServerFn } from "@tanstack/react-start"
-import { getRequestHeaders } from "@tanstack/react-start/server"
-import { auth } from "@/lib/auth"
+import { getTanStackBetterAuthSsoBootstrap } from "@skycanvasstudio/sso/tanstack-start"
 
 export const getInitialAuthSession = createServerFn({ method: "GET" }).handler(
-  async () => auth.api.getSession({ headers: getRequestHeaders() }),
+  () => getTanStackBetterAuthSsoBootstrap(async () => {
+    const { auth, skycanvas } = await import("./auth")
+    return { auth, skycanvas }
+  }),
 )`,
         alternatives: [
           {
             tabLabel: "Next.js",
             filename: "src/lib/auth-session.server.ts",
             code: `import "server-only"
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
+import { getNextBetterAuthSsoBootstrap } from "@skycanvasstudio/sso/next"
+import { auth, skycanvas } from "@/lib/auth"
 
 export async function getInitialAuthSession() {
-  return auth.api.getSession({ headers: await headers() })
+  return getNextBetterAuthSsoBootstrap({ auth, skycanvas })
 }`,
           },
         ],
@@ -210,90 +199,22 @@ export async function getInitialAuthSession() {
       {
         title: "Add the React session provider",
         tabLabel: "TanStack Start",
-        filename: "src/components/auth-session-provider.tsx",
-        description: "Mount this provider once on the Better Auth path. It starts from the SSR session and then follows Better Auth's reactive browser session. This is not the standalone SkyCanvas SsoProvider.",
-        code: `import { createContext, useContext, type ReactNode } from "react"
-import { authClient } from "@/lib/auth-client"
+        filename: "src/routes/__root.tsx (provider requirement)",
+        description: "The factory creates the required provider and typed hooks for this exact Better Auth client. Mount SsoProvider once with the server bootstrap; do not write an application context wrapper.",
+        code: `import { SsoProvider } from "@/lib/auth-client"
 
-type AuthSession = typeof authClient.$Infer.Session
-
-type AuthSessionContextValue = {
-  session: AuthSession | null
-  isPending: boolean
-  error: unknown
-}
-
-const AuthSessionContext = createContext<AuthSessionContextValue | null>(null)
-
-export function AuthSessionProvider({
-  initialSession,
-  children,
-}: {
-  initialSession: AuthSession | null
-  children: ReactNode
-}) {
-  const current = authClient.useSession()
-  const session = current.isPending ? initialSession : (current.data ?? null)
-
-  return (
-    <AuthSessionContext.Provider
-      value={{
-        session,
-        isPending: current.isPending && initialSession === null,
-        error: current.error,
-      }}
-    >
-      {children}
-    </AuthSessionContext.Provider>
-  )
-}
-
-export function useAuthSession() {
-  const value = useContext(AuthSessionContext)
-  if (!value) throw new Error("useAuthSession requires AuthSessionProvider")
-  return value
-}`,
+// Required above every component that uses useSso or useSsoSession.
+<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>`,
         alternatives: [
           {
             tabLabel: "Next.js",
-            filename: "src/components/auth-session-provider.tsx",
+            filename: "app/layout.tsx (provider requirement)",
             code: `"use client"
 
-import { createContext, useContext, type ReactNode } from "react"
-import { authClient } from "@/lib/auth-client"
+import { SsoProvider } from "@/lib/auth-client"
 
-type AuthSession = typeof authClient.$Infer.Session
-type AuthSessionContextValue = {
-  session: AuthSession | null
-  isPending: boolean
-  error: unknown
-}
-
-const AuthSessionContext = createContext<AuthSessionContextValue | null>(null)
-
-export function AuthSessionProvider({ initialSession, children }: {
-  initialSession: AuthSession | null
-  children: ReactNode
-}) {
-  const current = authClient.useSession()
-  const session = current.isPending ? initialSession : (current.data ?? null)
-
-  return (
-    <AuthSessionContext.Provider value={{
-      session,
-      isPending: current.isPending && initialSession === null,
-      error: current.error,
-    }}>
-      {children}
-    </AuthSessionContext.Provider>
-  )
-}
-
-export function useAuthSession() {
-  const value = useContext(AuthSessionContext)
-  if (!value) throw new Error("useAuthSession requires AuthSessionProvider")
-  return value
-}`,
+// Required in a client boundary below the server layout.
+<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>`,
           },
         ],
       },
@@ -301,40 +222,40 @@ export function useAuthSession() {
         title: "Wrap the app with the initial session",
         tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
-        description: "Load the session during SSR and pass it into AuthSessionProvider above the complete React application.",
+        description: "Load the serializable bootstrap during SSR and mount the package-generated provider above every component that uses the SSO hooks.",
         code: `import { Outlet, createRootRoute } from "@tanstack/react-router"
-import { AuthSessionProvider } from "@/components/auth-session-provider"
+import { SsoProvider } from "@/lib/auth-client"
 import { getInitialAuthSession } from "@/lib/auth-session"
 
 export const Route = createRootRoute({
-  loader: async () => ({ session: await getInitialAuthSession() }),
+  loader: async () => ({ bootstrap: await getInitialAuthSession() }),
   component: Root,
 })
 
 function Root() {
-  const { session } = Route.useLoaderData()
+  const { bootstrap } = Route.useLoaderData()
   return (
-    <AuthSessionProvider initialSession={session}>
+    <SsoProvider bootstrap={bootstrap}>
       <Outlet />
-    </AuthSessionProvider>
+    </SsoProvider>
   )
 }`,
         alternatives: [
           {
             tabLabel: "Next.js",
             filename: "app/layout.tsx",
-            code: `import { AuthSessionProvider } from "@/components/auth-session-provider"
+            code: `import { SsoProvider } from "@/lib/auth-client"
 import { getInitialAuthSession } from "@/lib/auth-session.server"
 import type { ReactNode } from "react"
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const session = await getInitialAuthSession()
+  const bootstrap = await getInitialAuthSession()
   return (
     <html lang="en">
       <body>
-        <AuthSessionProvider initialSession={session}>
+        <SsoProvider bootstrap={bootstrap}>
           {children}
-        </AuthSessionProvider>
+        </SsoProvider>
       </body>
     </html>
   )
@@ -346,11 +267,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         title: "Use the correct user and session types",
         filename: "src/lib/auth-types.ts",
         description: "Better Auth owns the user and session shape on this path. Infer the exact types from your configured client so database fields and plugin extensions stay included. SkyCanvas types describe only SkyCanvas-owned contracts.",
-        code: `import { authClient } from "@/lib/auth-client"
+        code: `import { authClient, useSso } from "@/lib/auth-client"
 
 // Exact Better Auth types, including fields added by your config/plugins.
 export type AuthSession = typeof authClient.$Infer.Session
 export type AuthUser = AuthSession["user"]
+export type SsoReactValue = ReturnType<typeof useSso>
 
 // Example component props:
 export type AccountMenuProps = {
@@ -371,22 +293,21 @@ export type {
         description: "Import the stylesheet once. The menu shows read-only Profile first, custom items next, and Logout last. It follows shadcn theme variables and dark mode.",
         code: `import "@skycanvasstudio/sso/styles.css"
 import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
-import { useAuthSession } from "./auth-session-provider"
-import { sso } from "../lib/auth-client"
+import { useSso } from "../lib/auth-client"
 
 export function AccountMenu() {
-  const { session, isPending } = useAuthSession()
+  const { user, isPending, signIn, signOut } = useSso()
 
   if (isPending) return <span>Loading…</span>
 
-  return session?.user ? (
+  return user ? (
     <SsoUserMenu
-      user={session.user}
+      user={user}
       items={[{ label: "Dashboard", href: "/dashboard" }]}
-      onLogout={() => sso.signOut({ returnTo: "/" })}
+      onLogout={() => signOut({ returnTo: "/" })}
     />
   ) : (
-    <SsoSignInButton onSignIn={() => sso.signIn("/dashboard")} />
+    <SsoSignInButton onSignIn={() => signIn("/dashboard")} />
   )
 }`,
       },
@@ -416,9 +337,11 @@ https://your-domain.example/api/auth/oauth2/callback/skycanvas`,
         filename: "Read the provider configuration",
         description: "Pass these values into your library's generic OAuth/OIDC provider configuration.",
         code: `import { createSsoProvider } from "@skycanvasstudio/sso"
+import { env } from "./env.server"
 
 const sso = createSsoProvider({
-  clientId: process.env.SSO_CLIENT_ID!,
+  clientId: env.SSO_CLIENT_ID,
+  baseUrl: env.SSO_URL,
 })
 
 // Map these into your auth library:
@@ -448,9 +371,11 @@ sso.pkce             // true`,
         filename: "Optional verified user mapping",
         description: "Use this only if your auth library exposes the returned ID token but does not validate/map it for you. Call it on the server.",
         code: `import { verifySsoIdToken } from "@skycanvasstudio/sso/server"
+import { env } from "./env.server"
 
 const identity = await verifySsoIdToken({
-  clientId: process.env.SSO_CLIENT_ID!,
+  clientId: env.SSO_CLIENT_ID,
+  baseUrl: env.SSO_URL,
   idToken: tokens.id_token,
   nonce: expectedNonce,
 })
@@ -491,38 +416,17 @@ APP_URL=http://localhost:3000
 SESSION_SECRET=replace_with_at_least_32_random_characters`,
       },
       {
-        title: "Validate server-only configuration",
-        filename: "src/lib/sso-config.server.ts",
-        description: "Keep environment access and validation in a server-only module so missing values fail with actionable messages and secrets never enter the browser bundle.",
-        code: `function required(name: "SSO_CLIENT_ID" | "SSO_URL" | "APP_URL" | "SESSION_SECRET") {
-  const value = process.env[name]
-  if (!value?.trim()) throw new Error(\`\${name} is required\`)
-  return value
-}
-
-export const ssoConfig = {
-  clientId: required("SSO_CLIENT_ID"),
-  ssoUrl: new URL(required("SSO_URL")).origin,
-  appUrl: new URL(required("APP_URL")).origin,
-  sessionSecret: required("SESSION_SECRET"),
-}
-
-if (ssoConfig.sessionSecret.length < 32) {
-  throw new Error("SESSION_SECRET must contain at least 32 characters")
-}`,
-      },
-      {
         title: "Create one SSO server",
         filename: "src/lib/sso.server.ts",
-        description: "Create the server once from validated configuration. This module must remain server-only.",
+        description: "This is the only place SSO configuration is supplied. Import explicit values from your validated server env module; never pass the whole environment object.",
         code: `import { createSsoServer } from "@skycanvasstudio/sso/server"
-import { ssoConfig } from "./sso-config.server"
+import { env } from "./env.server"
 
 export const sso = createSsoServer({
-  clientId: ssoConfig.clientId,
-  baseUrl: ssoConfig.ssoUrl,
-  appUrl: ssoConfig.appUrl,
-  sessionSecret: ssoConfig.sessionSecret,
+  clientId: env.SSO_CLIENT_ID,
+  baseUrl: env.SSO_URL,
+  appUrl: env.APP_URL,
+  sessionSecret: env.SESSION_SECRET,
 })
 
 console.log(sso.callbackUrl) // register this exact URL`,
@@ -561,46 +465,101 @@ export default { fetch }
 export const GET = (request: Request) => sso.handle(request)
 export const POST = (request: Request) => sso.handle(request)`,
           },
-        ],
-      },
-      {
-        title: "Create the browser client",
-        filename: "src/lib/sso-client.ts",
-        description: "Browser code talks only to your local routes. For a separate frontend, set baseUrl to the backend origin and configure credentialed CORS.",
-        code: `import { createSsoClient } from "@skycanvasstudio/sso/client"
+          {
+            tabLabel: "Elysia",
+            filename: "src/index.ts",
+            code: `import { Elysia } from "elysia"
+import { sso } from "./lib/sso.server"
 
-export const ssoClient = createSsoClient()`,
+new Elysia()
+  .all("/auth/*", ({ request }) => sso.handle(request))
+  .listen(3000)`,
+          },
+          {
+            tabLabel: "Express",
+            filename: "src/server.ts",
+            code: `import express from "express"
+import { createNodeSsoHandler } from "@skycanvasstudio/sso/node"
+import { sso } from "./lib/sso.server"
+
+const app = express()
+app.all("/auth/*splat", createNodeSsoHandler(sso))`,
+          },
+          {
+            tabLabel: "NestJS",
+            filename: "src/app.module.ts",
+            code: `import { MiddlewareConsumer, Module, RequestMethod } from "@nestjs/common"
+import { createNodeSsoHandler } from "@skycanvasstudio/sso/node"
+import { sso } from "./auth/sso.server"
+
+@Module({})
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(createNodeSsoHandler(sso))
+      .forRoutes({ path: "auth/*splat", method: RequestMethod.ALL })
+  }
+}`,
+          },
+        ],
       },
       {
         title: "Load the initial session for SSR",
         tabLabel: "TanStack Start",
         filename: "src/lib/sso-session.ts",
-        description: "Read the encrypted cookie on the server and return only plain SsoSession data. Passing it to SsoProvider avoids an unauthenticated flash and an extra profile request.",
+        description: "Keep createServerFn in application source and lazily import sso.server. The helper returns a plain bootstrap with the session and browser route configuration.",
         code: `import { createServerFn } from "@tanstack/react-start"
-import { getRequest } from "@tanstack/react-start/server"
-import type { SsoSession } from "@skycanvasstudio/sso/types"
+import { getTanStackStandaloneSsoBootstrap } from "@skycanvasstudio/sso/tanstack-start"
 
-export const getSsoSession = createServerFn({ method: "GET" }).handler(
-  async (): Promise<SsoSession | null> => {
-    const request = getRequest()
-    const { sso } = await import("./sso.server")
-    return sso.getSession(request)
-  },
+export const getSsoBootstrap = createServerFn({ method: "GET" }).handler(
+  () => getTanStackStandaloneSsoBootstrap(
+    () => import("./sso.server").then(({ sso }) => sso),
+  ),
 )`,
         alternatives: [
           {
             tabLabel: "Next.js",
             filename: "src/lib/sso-session.server.ts",
             code: `import "server-only"
-import { headers } from "next/headers"
-import type { SsoSession } from "@skycanvasstudio/sso/types"
+import { getNextStandaloneSsoBootstrap } from "@skycanvasstudio/sso/next"
 import { sso } from "./sso.server"
 
-export async function getSsoSession(): Promise<SsoSession | null> {
-  const request = new Request(new URL("/", process.env.APP_URL!), {
-    headers: await headers(),
-  })
-  return sso.getSession(request)
+export function getSsoBootstrap() {
+  return getNextStandaloneSsoBootstrap({ sso })
+}`,
+          },
+          {
+            tabLabel: "Elysia",
+            filename: "src/index.ts (session endpoint)",
+            code: `import { sso } from "./lib/sso.server"
+
+app.get("/api/sso/bootstrap", ({ request }) =>
+  sso.getBootstrap(request),
+)`,
+          },
+          {
+            tabLabel: "Express",
+            filename: "src/routes/session.ts",
+            code: `import { nodeRequestHeaders } from "@skycanvasstudio/sso/node"
+import { sso } from "../lib/sso.server"
+
+app.get("/api/sso/bootstrap", async (request, response) => {
+  response.json(await sso.getBootstrap(nodeRequestHeaders(request)))
+})`,
+          },
+          {
+            tabLabel: "NestJS",
+            filename: "src/auth/sso.controller.ts",
+            code: `import { Controller, Get, Req } from "@nestjs/common"
+import { nodeRequestHeaders } from "@skycanvasstudio/sso/node"
+import { sso } from "./sso.server"
+
+@Controller("api/sso")
+export class SsoController {
+  @Get("bootstrap")
+  getBootstrap(@Req() request: { headers: Record<string, string> }) {
+    return sso.getBootstrap(nodeRequestHeaders(request))
+  }
 }`,
           },
         ],
@@ -608,52 +567,24 @@ export async function getSsoSession(): Promise<SsoSession | null> {
       {
         title: "Add SsoProvider for React",
         tabLabel: "TanStack Start",
-        filename: "src/components/app-sso-provider.tsx",
-        description: "This provider is required only on the no-auth-library path. Create it once around the application; do not add it to a Better Auth integration.",
+        filename: "src/routes/__root.tsx (provider requirement)",
+        description: "SsoProvider is required on the standalone React path. Pass the complete server bootstrap; the package creates its browser client internally.",
         code: `import "@skycanvasstudio/sso/styles.css"
 import { SsoProvider } from "@skycanvasstudio/sso/react"
-import { ssoClient } from "@/lib/sso-client"
-import type { SsoSession } from "@skycanvasstudio/sso/types"
-import type { ReactNode } from "react"
 
-export function AppSsoProvider({
-  initialSession,
-  children,
-}: {
-  initialSession: SsoSession | null
-  children: ReactNode
-}) {
-  return (
-    <SsoProvider client={ssoClient} initialSession={initialSession}>
-      {children}
-    </SsoProvider>
-  )
-}`,
+// Mount once above every component that uses useSso or useSsoSession.
+<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>`,
         alternatives: [
           {
             tabLabel: "Next.js",
-            filename: "src/components/app-sso-provider.tsx",
+            filename: "app/layout.tsx (provider requirement)",
             code: `"use client"
 
 import "@skycanvasstudio/sso/styles.css"
 import { SsoProvider } from "@skycanvasstudio/sso/react"
-import { ssoClient } from "@/lib/sso-client"
-import type { SsoSession } from "@skycanvasstudio/sso/types"
-import type { ReactNode } from "react"
 
-export function AppSsoProvider({
-  initialSession,
-  children,
-}: {
-  initialSession: SsoSession | null
-  children: ReactNode
-}) {
-  return (
-    <SsoProvider client={ssoClient} initialSession={initialSession}>
-      {children}
-    </SsoProvider>
-  )
-}`,
+// Mount once in a client boundary below the server layout.
+<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>`,
           },
         ],
       },
@@ -661,25 +592,25 @@ export function AppSsoProvider({
         title: "Wrap the application with initial session data",
         tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
-        description: "Load the plain session during SSR and pass it into AppSsoProvider once above every component that calls useSso or useSsoSession.",
+        description: "Load the bootstrap during SSR and pass it into SsoProvider once above every component that calls useSso or useSsoSession.",
         code: `import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router"
-import { AppSsoProvider } from "@/components/app-sso-provider"
-import { getSsoSession } from "@/lib/sso-session"
+import { SsoProvider } from "@skycanvasstudio/sso/react"
+import { getSsoBootstrap } from "@/lib/sso-session"
 
 export const Route = createRootRoute({
-  loader: async () => ({ session: await getSsoSession() }),
+  loader: async () => ({ bootstrap: await getSsoBootstrap() }),
   component: RootDocument,
 })
 
 function RootDocument() {
-  const { session } = Route.useLoaderData()
+  const { bootstrap } = Route.useLoaderData()
 
   return (
     <html lang="en">
       <body>
-        <AppSsoProvider initialSession={session}>
+        <SsoProvider bootstrap={bootstrap}>
           <Outlet />
-        </AppSsoProvider>
+        </SsoProvider>
         <Scripts />
       </body>
     </html>
@@ -689,19 +620,19 @@ function RootDocument() {
           {
             tabLabel: "Next.js",
             filename: "app/layout.tsx",
-            code: `import { AppSsoProvider } from "@/components/app-sso-provider"
-import { getSsoSession } from "@/lib/sso-session.server"
+            code: `import { SsoProvider } from "@skycanvasstudio/sso/react"
+import { getSsoBootstrap } from "@/lib/sso-session.server"
 import type { ReactNode } from "react"
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const session = await getSsoSession()
+  const bootstrap = await getSsoBootstrap()
 
   return (
     <html lang="en">
       <body>
-        <AppSsoProvider initialSession={session}>
+        <SsoProvider bootstrap={bootstrap}>
           {children}
-        </AppSsoProvider>
+        </SsoProvider>
       </body>
     </html>
   )
