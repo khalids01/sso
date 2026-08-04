@@ -49,6 +49,11 @@ export const auth = betterAuth({
 })
 ```
 
+For TanStack Start, `tanstackStartCookies()` must remain the final plugin in
+the array. The SSO server uses a distinct cookie prefix, so a local service app
+and local SSO server cannot overwrite each other's OAuth state cookies merely
+because both use the `localhost` hostname.
+
 Mount `auth.handler` only through Better Auth's normal framework route. Register
 exactly `{BETTER_AUTH_URL}/api/auth/oauth2/callback/skycanvas`. Do not create a
 second callback or standalone `createSsoServer` instance.

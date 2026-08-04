@@ -13,6 +13,16 @@ describe("auth rate-limit config", () => {
     expect(source).toMatch(/maxAge:\s*5\s*\*\s*60/);
   });
 
+  it("isolates SSO OAuth cookies from service applications on localhost", async () => {
+    const authConfigPath = new URL(
+      "../../../packages/auth/src/auth-options.server.ts",
+      import.meta.url,
+    );
+    const source = await Bun.file(authConfigPath).text();
+
+    expect(source).toContain('cookiePrefix: "skycanvas-sso"');
+  });
+
   it("keeps Better Auth rate-limit enabled and magic-link limits explicit", async () => {
     const authConfigPath = new URL(
       "../../../packages/auth/src/auth-options.server.ts",

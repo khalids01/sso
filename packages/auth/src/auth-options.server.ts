@@ -96,6 +96,10 @@ export const authOptions = {
   },
   trustedOrigins: [env.CORS_ORIGIN],
   advanced: {
+    // Service applications may run their own Better Auth server on another
+    // localhost port. Cookies are scoped by host, not port, so isolate every
+    // SSO-owned cookie (including OAuth state) from the application's cookies.
+    cookiePrefix: "skycanvas-sso",
     ...(env.AUTH_COOKIE_DOMAIN
       ? {
           crossSubDomainCookies: {

@@ -47,7 +47,7 @@ SSO_URL=https://api-sso.skycanvasstudio.com`,
       {
         title: "Add the provider to Better Auth",
         filename: "src/lib/auth.ts",
-        description: "Merge this plugin into your existing Better Auth instance. Preserve its database, plugins, and other sign-in methods.",
+        description: "Merge this plugin into your existing Better Auth instance. Preserve its database, plugins, and other sign-in methods. On TanStack Start, keep tanstackStartCookies() as the final plugin in the array.",
         code: `import { createSsoBetterAuthIntegration } from "@skycanvasstudio/sso/better-auth"
 import { betterAuth } from "better-auth"
 import { genericOAuth } from "better-auth/plugins"

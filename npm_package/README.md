@@ -44,6 +44,11 @@ export const auth = betterAuth({
 })
 ```
 
+On TanStack Start, keep Better Auth's `tanstackStartCookies()` plugin last in
+the `plugins` array. SkyCanvas SSO uses its own cookie prefix, so local SSO and
+application servers on different `localhost` ports do not overwrite each
+other's OAuth state cookies.
+
 There are no `VITE_SSO_*` or `NEXT_PUBLIC_SSO_*` variables. The SSR bootstrap
 contains only the session and safe public values; secrets and server functions
 are never serialized.
