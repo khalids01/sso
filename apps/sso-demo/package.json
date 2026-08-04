@@ -13,7 +13,7 @@
     "verify:published-package": "bun run scripts/verify-published-package.ts"
   },
   "dependencies": {
-    "@skycanvasstudio/sso": "npm:@skycanvasstudio/sso@^0.4.1",
+    "@skycanvasstudio/sso": "npm:@skycanvasstudio/sso@^0.6.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/react-start": "^1.168.28",
