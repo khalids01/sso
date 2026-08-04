@@ -1,7 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { SsoProvider } from "@skycanvasstudio/sso/react";
 import { AppShell } from "@/components/app-shell";
-import { DemoSsoProvider } from "@/components/auth/sso-provider";
-import { getSsoSession } from "@/lib/sso-session";
+import { getSsoBootstrap } from "@/lib/sso-session";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -15,21 +15,21 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  loader: async () => ({ session: await getSsoSession() }),
+  loader: async () => ({ bootstrap: await getSsoBootstrap() }),
   component: RootDocument,
 });
 
 function RootDocument() {
-  const { session } = Route.useLoaderData();
+  const { bootstrap } = Route.useLoaderData();
   return (
     <html lang="en" className="dark" data-theme="dark">
       <head>
         <HeadContent />
       </head>
       <body>
-        <DemoSsoProvider initialSession={session}>
+        <SsoProvider bootstrap={bootstrap}>
           <AppShell />
-        </DemoSsoProvider>
+        </SsoProvider>
         <Scripts />
       </body>
     </html>

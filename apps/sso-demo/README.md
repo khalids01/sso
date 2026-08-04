@@ -20,7 +20,8 @@ The integration uses:
 
 - `createSsoServer` for login, callback handling, token verification, encrypted
   application sessions, profile responses, and local/global logout.
-- `createSsoClient` and `SsoProvider` for browser session state.
+- `getTanStackStandaloneSsoBootstrap` and `SsoProvider` for SSR-safe browser
+  session state without an application-owned client or provider wrapper.
 - `SsoSignInButton` for login.
 - `SsoUserMenu` for the read-only profile modal, custom menu items, account
   switching, and logout.
