@@ -9,6 +9,9 @@
   --sso-muted-foreground: var(--muted-foreground, #737373);
   --sso-border: var(--border, #e5e5e5);
   --sso-destructive: var(--destructive, #dc2626);
+  --sso-danger-text: #b91c1c;
+  --sso-danger-surface: #fef2f2;
+  --sso-danger-hover: #fee2e2;
   --sso-ring: var(--ring, #a3a3a3);
   --sso-radius: var(--radius, 0.625rem);
 }
@@ -24,6 +27,9 @@
   --sso-muted-foreground: var(--muted-foreground, #a3a3a3);
   --sso-border: var(--border, #333);
   --sso-destructive: var(--destructive, #f87171);
+  --sso-danger-text: #fca5a5;
+  --sso-danger-surface: #450a0a;
+  --sso-danger-hover: #7f1d1d;
   --sso-ring: var(--ring, #737373);
 }
 
@@ -48,10 +54,8 @@
 .sso-menu-item[data-highlighted], .sso-menu-item:focus { background: var(--sso-muted); }
 .sso-menu-item[data-disabled] { pointer-events: none; opacity: .5; }
 .sso-menu-item svg, .sso-button svg, .sso-icon-button svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.sso-menu-item-danger { color: var(--sso-destructive); }
-.sso-menu-item-danger[data-highlighted], .sso-menu-item-danger:focus { background: var(--sso-destructive); color: var(--sso-primary-foreground); }
-:where(.dark, [data-theme="dark"]) .sso-menu-item-danger { color: color-mix(in srgb, var(--sso-destructive) 65%, white); }
-:where(.dark, [data-theme="dark"]) .sso-menu-item-danger[data-highlighted], :where(.dark, [data-theme="dark"]) .sso-menu-item-danger:focus { color: var(--sso-primary-foreground); }
+.sso-menu-item-danger { background: var(--sso-danger-surface); color: var(--sso-danger-text); }
+.sso-menu-item-danger[data-highlighted], .sso-menu-item-danger:focus { background: var(--sso-danger-hover); color: var(--sso-danger-text); }
 .sso-menu-separator { height: 1px; margin: .375rem -.375rem; background: var(--sso-border); }
 .sso-dialog-overlay { position: fixed; z-index: 60; inset: 0; background: rgb(0 0 0 / .55); backdrop-filter: blur(2px); animation: sso-fade 150ms ease-out; }
 .sso-dialog-content { position: fixed; z-index: 61; top: 50%; left: 50%; width: min(calc(100vw - 2rem), 28rem); box-sizing: border-box; transform: translate(-50%, -50%); border: 1px solid var(--sso-border); border-radius: calc(var(--sso-radius) + .25rem); padding: 1.5rem; background: var(--sso-card); color: var(--sso-card-foreground); box-shadow: 0 24px 80px rgb(0 0 0 / .28); animation: sso-dialog-enter 150ms ease-out; }
