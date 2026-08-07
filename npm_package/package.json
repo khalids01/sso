@@ -27,14 +27,30 @@
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
-      "server": ["dist/server/index.d.ts"],
-      "client": ["dist/client/index.d.ts"],
-      "react": ["dist/react/index.d.ts"],
-      "better-auth": ["dist/better-auth/index.d.ts"],
-      "tanstack-start": ["dist/tanstack-start/index.d.ts"],
-      "next": ["dist/next/index.d.ts"],
-      "node": ["dist/node/index.d.ts"],
-      "types": ["dist/types/index.d.ts"]
+      "server": [
+        "dist/server/index.d.ts"
+      ],
+      "client": [
+        "dist/client/index.d.ts"
+      ],
+      "react": [
+        "dist/react/index.d.ts"
+      ],
+      "better-auth": [
+        "dist/better-auth/index.d.ts"
+      ],
+      "tanstack-start": [
+        "dist/tanstack-start/index.d.ts"
+      ],
+      "next": [
+        "dist/next/index.d.ts"
+      ],
+      "node": [
+        "dist/node/index.d.ts"
+      ],
+      "types": [
+        "dist/types/index.d.ts"
+      ]
     }
   },
   "exports": {
@@ -102,7 +118,8 @@
   "peerDependencies": {
     "@tanstack/react-start": ">=1.160.0",
     "next": ">=14",
-    "react": ">=18"
+    "react": ">=18",
+    "react-hook-form": "^7.84.0"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-start": {
@@ -112,6 +129,9 @@
       "optional": true
     },
     "react": {
+      "optional": true
+    },
+    "react-hook-form": {
       "optional": true
     }
   },
@@ -125,7 +145,8 @@
     "@tanstack/react-start": "^1.168.28",
     "next": "^16.2.3",
     "react": "19.2.5",
-    "react-dom": "19.2.5"
+    "react-dom": "19.2.5",
+    "react-hook-form": "^7.84.0"
   },
   "engines": {
     "node": ">=20"

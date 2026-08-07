@@ -3,16 +3,21 @@
 import { Dialog } from "@base-ui/react/dialog";
 import {
   useEffect,
-  useId,
   useState,
-  type FormEvent,
   type ReactNode,
 } from "react";
+import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 
 import type { SsoAuthMethod, SsoSession } from "../index.js";
 import { useSkycanvas } from "./index.js";
 
 type SocialMethod = Extract<SsoAuthMethod, "google" | "facebook" | "linkedin" | "github">;
+
+type AuthFormValues = {
+  name: string;
+  email: string;
+  password: string;
+};
 
 const socialLabels: Record<SocialMethod, string> = {
   google: "Google",
@@ -59,13 +64,15 @@ export function SsoAuth({
   const routing = suppliedRouting ?? auth.interactionMode;
   const oauthMode = suppliedOauthMode ?? auth.oauthMode;
   const [mode, setMode] = useState(suppliedMode);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const nameId = useId();
-  const emailId = useId();
-  const passwordId = useId();
+  const passwordForm = useForm<AuthFormValues>({
+    defaultValues: { name: "", email: "", password: "" },
+  });
+  const magicLinkForm = useForm<AuthFormValues>({
+    defaultValues: { name: "", email: "", password: "" },
+  });
+  const magicLinkName = magicLinkForm.watch("name");
+  const magicLinkEmail = magicLinkForm.watch("email");
 
   useEffect(() => setMode(suppliedMode), [suppliedMode]);
 
@@ -85,15 +92,19 @@ export function SsoAuth({
     if (session) onSuccess?.(session);
   };
 
-  const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitPassword = async (values: AuthFormValues) => {
     setMessage(null);
     try {
       if (mode === "signin") {
-        complete(await auth.signInWithPassword({ email, password, returnTo }));
+        complete(await auth.signInWithPassword({ email: values.email, password: values.password, returnTo }));
         return;
       }
-      const result = await auth.signUpWithPassword({ name, email, password, returnTo });
+      const result = await auth.signUpWithPassword({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        returnTo,
+      });
       if (result.requiresEmailVerification) {
         setMessage("Check your email to verify your account, then sign in.");
       } else {
@@ -104,15 +115,14 @@ export function SsoAuth({
     }
   };
 
-  const submitMagicLink = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitMagicLink = async (values: AuthFormValues) => {
     setMessage(null);
     try {
       await auth.sendMagicLink({
         intent: mode,
-        email,
+        email: values.email,
         returnTo,
-        ...(mode === "signup" ? { name } : {}),
+        ...(mode === "signup" ? { name: values.name } : {}),
       });
       setMessage("Check your email to continue. Keep this browser window open.");
     } catch (cause) {
@@ -180,37 +190,78 @@ export function SsoAuth({
       {socialMethods.length > 0 && (hasPassword || hasMagicLink) ? <AuthDivider /> : null}
 
       {hasPassword ? (
-        <form className="sso-auth-form" onSubmit={(event) => void submitPassword(event)}>
+        <form className="sso-auth-form" onSubmit={passwordForm.handleSubmit(submitPassword)}>
           {mode === "signup" ? (
-            <AuthField id={nameId} label="Name" type="text" autoComplete="name" value={name} onChange={setName} />
+            <AuthField
+              id="sso-password-name"
+              label="Name"
+              type="text"
+              autoComplete="name"
+              registration={passwordForm.register("name", { required: "Name is required" })}
+              error={passwordForm.formState.errors.name?.message}
+            />
           ) : null}
-          <AuthField id={emailId} label="Email" type="email" autoComplete="email" value={email} onChange={setEmail} />
           <AuthField
-            id={passwordId}
+            id="sso-password-email"
+            label="Email"
+            type="email"
+            autoComplete="email"
+            registration={passwordForm.register("email", {
+              required: "Email is required",
+              pattern: { value: /^\S+@\S+$/i, message: "Enter a valid email" },
+            })}
+            error={passwordForm.formState.errors.email?.message}
+          />
+          <AuthField
+            id="sso-password-password"
             label="Password"
             type="password"
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
-            value={password}
-            onChange={setPassword}
             minLength={mode === "signup" ? 15 : 1}
+            registration={passwordForm.register("password", {
+              required: "Password is required",
+              ...(mode === "signup"
+                ? { minLength: { value: 15, message: "Password must be at least 15 characters" } }
+                : {}),
+            })}
+            error={passwordForm.formState.errors.password?.message}
           />
-          <button className="sso-button sso-auth-submit" type="submit" disabled={busy}>
-            {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+          <button className="sso-button sso-auth-submit" type="submit" disabled={busy || passwordForm.formState.isSubmitting}>
+            {busy || passwordForm.formState.isSubmitting ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
           </button>
         </form>
       ) : null}
 
       {hasMagicLink ? (
-        <form className="sso-auth-form sso-auth-magic-form" onSubmit={(event) => void submitMagicLink(event)}>
+        <form className="sso-auth-form sso-auth-magic-form" onSubmit={magicLinkForm.handleSubmit(submitMagicLink)}>
           {hasPassword ? <AuthDivider /> : null}
-          {mode === "signup" && !hasPassword ? (
-            <AuthField id={`${nameId}-magic`} label="Name" type="text" autoComplete="name" value={name} onChange={setName} />
+          {mode === "signup" ? (
+            <AuthField
+              id="sso-magic-name"
+              label="Name"
+              type="text"
+              autoComplete="name"
+              registration={magicLinkForm.register("name", { required: "Name is required" })}
+              error={magicLinkForm.formState.errors.name?.message}
+            />
           ) : null}
-          {!hasPassword ? (
-            <AuthField id={`${emailId}-magic`} label="Email" type="email" autoComplete="email" value={email} onChange={setEmail} />
-          ) : null}
-          <button className="sso-auth-provider" type="submit" disabled={busy || !email || (mode === "signup" && !name)}>
-            Email me a magic link
+          <AuthField
+            id="sso-magic-email"
+            label="Email"
+            type="email"
+            autoComplete="email"
+            registration={magicLinkForm.register("email", {
+              required: "Email is required",
+              pattern: { value: /^\S+@\S+$/i, message: "Enter a valid email" },
+            })}
+            error={magicLinkForm.formState.errors.email?.message}
+          />
+          <button
+            className="sso-auth-provider"
+            type="submit"
+            disabled={busy || magicLinkForm.formState.isSubmitting || !magicLinkEmail || (mode === "signup" && !magicLinkName)}
+          >
+            {busy || magicLinkForm.formState.isSubmitting ? "Please wait…" : "Email me a magic link"}
           </button>
         </form>
       ) : null}
@@ -221,7 +272,12 @@ export function SsoAuth({
 
       {canSwitch ? <p className="sso-auth-switch">
         {mode === "signin" ? "Need an account?" : "Already have an account?"}{" "}
-        <button type="button" onClick={() => { setMessage(null); setMode(mode === "signin" ? "signup" : "signin"); }}>
+        <button type="button" onClick={() => {
+          setMessage(null);
+          passwordForm.clearErrors();
+          magicLinkForm.clearErrors();
+          setMode(mode === "signin" ? "signup" : "signin");
+        }}>
           {mode === "signin" ? "Sign up" : "Sign in"}
         </button>
       </p> : null}
@@ -258,22 +314,22 @@ function AuthField(props: {
   label: string;
   type: string;
   autoComplete: string;
-  value: string;
-  onChange: (value: string) => void;
-  minLength?: number;
+  registration: UseFormRegisterReturn;
+  error: string | undefined;
+  minLength?: number | undefined;
 }) {
   return (
     <label className="sso-auth-field" htmlFor={props.id}>
       <span>{props.label}</span>
       <input
+        {...props.registration}
         id={props.id}
         type={props.type}
         autoComplete={props.autoComplete}
-        value={props.value}
         minLength={props.minLength}
-        required
-        onChange={(event) => props.onChange(event.currentTarget.value)}
+        aria-invalid={props.error ? "true" : "false"}
       />
+      {props.error ? <span className="sso-auth-field-error" role="alert">{props.error}</span> : null}
     </label>
   );
 }
