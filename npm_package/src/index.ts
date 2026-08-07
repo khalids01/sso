@@ -87,9 +87,22 @@ export interface SsoSession<TUser extends SsoUser = SsoUser> {
 export interface SsoClientMetadata {
   client_id: string;
   application_id: string;
+  application_logo_url?: string | null;
   audience: string;
   issuer: string;
+  sign_in_methods?: SsoAuthMethod[];
+  sign_up_methods?: SsoAuthMethod[];
+  registration_mode?: "closed" | "invite_only" | "open";
+  password_email_verification_required?: boolean;
 }
+
+export type SsoAuthMethod =
+  | "magic_link"
+  | "password"
+  | "google"
+  | "facebook"
+  | "linkedin"
+  | "github";
 
 export interface SsoTokenResponse {
   access_token: string;

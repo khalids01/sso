@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import {
   auth,
   runWithOAuthProviderConnection,
@@ -9,12 +9,22 @@ import { env } from "@sso/env/server";
 import { randomUUID } from "node:crypto";
 import {
   CheckEmailDto,
+  EmbeddedPasswordLoginDto,
+  EmbeddedPasswordSignupDto,
+  EmbeddedMagicLinkDto,
   MagicLinkLoginDto,
   MagicLinkSignupDto,
   PasswordLoginDto,
   PasswordSignupDto,
   SocialLoginDto,
 } from "./auth.dto";
+import {
+  issueEmbeddedAuthorizationCode,
+  createEmbeddedMagicLinkTransaction,
+  consumeEmbeddedMagicLinkTransaction,
+  OAuthTokenError,
+  validateEmbeddedAuthorizationRequest,
+} from "../oauth/oauth-token.service";
 import {
   getApplicationSocialProviderConnection,
   storeSocialProviderContext,
@@ -101,8 +111,219 @@ function recordAuthUsage(input: {
   });
 }
 
+async function getCreatedSession(token: string | undefined, userId: string | undefined) {
+  if (!token || !userId) return null;
+  return prisma.session.findFirst({
+    where: { token, userId, expiresAt: { gt: new Date() } },
+    select: { id: true },
+  });
+}
+
+function embeddedAuthError(set: { status?: number | string }, error: unknown) {
+  if (error instanceof OAuthTokenError) {
+    set.status = error.status;
+    return { error: error.code, message: error.auditReason };
+  }
+  set.status = 500;
+  return { error: "server_error", message: "Embedded authentication failed" };
+}
+
 export const authController = new Elysia({ prefix: "/auth" })
   .get("/platform-settings", () => getPlatformAuthSettings())
+  .post(
+    "/sdk/magic-link",
+    async ({ body, request, set }) => {
+      try {
+        await validateEmbeddedAuthorizationRequest({
+          clientId: body.clientId,
+          redirectUri: body.redirectUri,
+          origin: new URL(body.origin).origin,
+          method: "magic_link",
+          intent: body.intent,
+        });
+        if (body.intent === "signup" && !body.name) {
+          set.status = 400;
+          return { error: "invalid_request", message: "Name is required" };
+        }
+        const existingUser = await prisma.user.findUnique({
+          where: { email: body.email },
+          select: { id: true },
+        });
+        if (body.intent === "signin" && !existingUser) {
+          set.status = 400;
+          return { error: "user_not_found", message: "User not found" };
+        }
+        if (body.intent === "signup" && existingUser) {
+          set.status = 400;
+          return { error: "user_already_exists", message: "User already exists" };
+        }
+        const transaction = await createEmbeddedMagicLinkTransaction({
+          clientId: body.clientId,
+          redirectUri: body.redirectUri,
+          origin: new URL(body.origin).origin,
+          state: body.state,
+          nonce: body.nonce,
+          codeChallenge: body.codeChallenge,
+        });
+        const callbackURL = new URL("/auth/sdk/magic-link/callback", env.BETTER_AUTH_URL);
+        callbackURL.searchParams.set("transaction", transaction);
+        await auth.api.signInMagicLink({
+          body: {
+            email: body.email,
+            ...(body.name ? { name: body.name } : {}),
+            callbackURL: callbackURL.toString(),
+          },
+          headers: request.headers,
+        });
+        return { success: true };
+      } catch (error) {
+        return embeddedAuthError(set, error);
+      }
+    },
+    { body: EmbeddedMagicLinkDto },
+  )
+  .get(
+    "/sdk/magic-link/callback",
+    async ({ query, request, set, redirect }) => {
+      try {
+        const session = await auth.api.getSession({ headers: request.headers });
+        if (!session?.user.id || !session.session.id) {
+          set.status = 401;
+          return { error: "authentication_required" };
+        }
+        const transaction = await consumeEmbeddedMagicLinkTransaction(query.transaction);
+        const redirectUrl = await issueEmbeddedAuthorizationCode({
+          ...transaction,
+          userId: session.user.id,
+          sessionId: session.session.id,
+        });
+        return redirect(redirectUrl, 303);
+      } catch (error) {
+        return embeddedAuthError(set, error);
+      }
+    },
+    { query: t.Object({ transaction: t.String({ minLength: 20, maxLength: 256 }) }) },
+  )
+  .post(
+    "/sdk/password/login",
+    async ({ body, request, set }) => {
+      try {
+        const client = await validateEmbeddedAuthorizationRequest({
+          clientId: body.clientId,
+          redirectUri: body.redirectUri,
+          origin: new URL(body.origin).origin,
+          method: "password",
+          intent: "signin",
+        });
+        const response = await auth.api.signInEmail({
+          body: { email: body.email, password: body.password },
+          headers: request.headers,
+          asResponse: true,
+        });
+        if (!response.ok) {
+          set.status = 401;
+          return { error: "invalid_credentials", message: "Invalid email or password" };
+        }
+        const result = await response.json() as {
+          token?: string;
+          user?: { id?: string; emailVerified?: boolean };
+        };
+        if (
+          client.application.passwordEmailVerificationRequired &&
+          result.user?.emailVerified !== true
+        ) {
+          if (result.token) await prisma.session.deleteMany({ where: { token: result.token } });
+          set.status = 403;
+          return {
+            error: "email_verification_required",
+            message: "Verify your email before signing in",
+          };
+        }
+        const session = await getCreatedSession(result.token, result.user?.id);
+        if (!session || !result.user?.id) {
+          set.status = 500;
+          return { error: "session_creation_failed", message: "Could not create session" };
+        }
+        const redirectUrl = await issueEmbeddedAuthorizationCode({
+          clientId: body.clientId,
+          redirectUri: body.redirectUri,
+          origin: new URL(body.origin).origin,
+          state: body.state,
+          nonce: body.nonce,
+          codeChallenge: body.codeChallenge,
+          userId: result.user.id,
+          sessionId: session.id,
+        });
+        return { redirectUrl };
+      } catch (error) {
+        return embeddedAuthError(set, error);
+      }
+    },
+    { body: EmbeddedPasswordLoginDto },
+  )
+  .post(
+    "/sdk/password/signup",
+    async ({ body, request, set }) => {
+      try {
+        const client = await validateEmbeddedAuthorizationRequest({
+          clientId: body.clientId,
+          redirectUri: body.redirectUri,
+          origin: new URL(body.origin).origin,
+          method: "password",
+          intent: "signup",
+        });
+        const signup = await auth.api.signUpEmail({
+          body: {
+            name: body.name,
+            email: body.email,
+            password: body.password,
+            onboardingComplete: false,
+          },
+          headers: request.headers,
+          asResponse: true,
+        });
+        if (!signup.ok) {
+          set.status = signup.status;
+          return { error: "signup_rejected", message: "Could not create account" };
+        }
+        if (client.application.passwordEmailVerificationRequired) {
+          await auth.api.sendVerificationEmail({
+            body: { email: body.email, callbackURL: body.origin },
+            headers: request.headers,
+          });
+          return { requiresEmailVerification: true };
+        }
+        const signin = await auth.api.signInEmail({
+          body: { email: body.email, password: body.password },
+          headers: request.headers,
+          asResponse: true,
+        });
+        const result = await signin.json() as {
+          token?: string;
+          user?: { id?: string };
+        };
+        const session = await getCreatedSession(result.token, result.user?.id);
+        if (!signin.ok || !session || !result.user?.id) {
+          set.status = 500;
+          return { error: "session_creation_failed", message: "Could not create session" };
+        }
+        const redirectUrl = await issueEmbeddedAuthorizationCode({
+          clientId: body.clientId,
+          redirectUri: body.redirectUri,
+          origin: new URL(body.origin).origin,
+          state: body.state,
+          nonce: body.nonce,
+          codeChallenge: body.codeChallenge,
+          userId: result.user.id,
+          sessionId: session.id,
+        });
+        return { redirectUrl };
+      } catch (error) {
+        return embeddedAuthError(set, error);
+      }
+    },
+    { body: EmbeddedPasswordSignupDto },
+  )
   .post(
     "/social",
     async ({ body, request, set }) => {

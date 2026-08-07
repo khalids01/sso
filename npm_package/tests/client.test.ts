@@ -44,6 +44,39 @@ test("browser client can request fresh authentication", () => {
   );
 });
 
+test("browser client can select a social provider without configuring provider callbacks", () => {
+  let destination = "";
+  const client = createSsoClient({
+    baseUrl: "https://app.example.com",
+    navigate: (url) => { destination = url; },
+  });
+
+  client.login({ returnTo: "/dashboard", provider: "github" });
+  expect(destination).toBe(
+    "https://app.example.com/auth/login?returnTo=%2Fdashboard&provider=github",
+  );
+});
+
+test("browser client starts an embedded magic link through the local app", async () => {
+  let request: { input: string; init?: RequestInit } | undefined;
+  const client = createSsoClient({
+    baseUrl: "https://app.example.com",
+    fetch: (async (input: string | URL | Request, init?: RequestInit) => {
+      request = { input: String(input), ...(init ? { init } : {}) };
+      return Response.json({ success: true });
+    }) as typeof fetch,
+  });
+
+  await client.sendMagicLink({ email: "user@example.com", returnTo: "/dashboard" });
+  expect(request?.input).toBe("https://app.example.com/auth/magic-link");
+  expect(request?.init?.credentials).toBe("include");
+  expect(JSON.parse(String(request?.init?.body))).toEqual({
+    intent: "signin",
+    email: "user@example.com",
+    returnTo: "/dashboard",
+  });
+});
+
 test("browser client maps unauthorized profile responses to no session", async () => {
   const client = createSsoClient({
     fetch: (async () => new Response(null, { status: 401 })) as unknown as typeof fetch,

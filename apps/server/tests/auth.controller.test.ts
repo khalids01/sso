@@ -47,6 +47,8 @@ mock.module("@sso/db/server", () => ({
     },
   },
   Prisma,
+  getApplicationClientAccess: mock(async () => ({ allowed: true })),
+  registerApplicationMemberIfAllowed: mock(async () => true),
 }));
 
 mock.module("@sso/auth/server", () => ({
@@ -58,6 +60,10 @@ mock.module("@sso/auth/server", () => ({
   runWithOAuthProviderConnection: mock(
     (_connection: unknown, operation: () => unknown) => operation(),
   ),
+  hashOAuthToken: (value: string) => value,
+  isValidPkceVerifier: () => true,
+  securelyMatchesChallenge: mock(async () => true),
+  getAvailableApplicationAuthMethodIds: () => new Set(["magic_link", "password"]),
 }));
 
 mock.module("@sso/redis/server", () => ({
@@ -183,6 +189,19 @@ describe("authController", () => {
 
   it("returns 400 when magic-link login is requested for an unknown user", async () => {
     findUniqueMock.mockResolvedValue(null);
+    applicationClientFindUniqueMock.mockResolvedValue({
+      id: "application-client-1",
+      applicationId: "application-1",
+      status: "active",
+      oauthDisabled: false,
+      application: {
+        status: "active",
+        signInMethods: ["magic_link"],
+        signUpMethods: ["magic_link"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: false,
+      },
+    });
 
     const { authController } = await import("../src/modules/auth/auth.controller");
 
@@ -194,13 +213,13 @@ describe("authController", () => {
         },
         body: JSON.stringify({
           email: "missing@example.com",
+          callbackURL: "http://localhost:5002/authorize?client_id=sso_client_1",
         }),
       }),
     );
 
-    const body = await response.json();
-
     expect(response.status).toBe(400);
+    const body = await response.json();
     expect(body).toEqual({ message: "User not found" });
     expect(authApi.signInMagicLink).not.toHaveBeenCalled();
     expect(response.headers.get("x-request-id")).toBeTruthy();

@@ -3,6 +3,7 @@ export type {
   BetterAuthSsoActions,
   CreateSsoProviderOptions,
   SsoClientMetadata,
+  SsoAuthMethod,
   SsoEndpoints,
   SsoProvider,
   SsoBetterAuthBootstrap,
@@ -46,17 +47,15 @@ export type {
   BetterAuthSsoProviderProps,
   BetterAuthSsoReact,
   SsoDisplayUser,
+  SsoAuthProps,
+  SsoAuthDialogProps,
+  SsoContextValue,
   SsoMenuItem,
   SsoProviderProps,
   SsoSignInButtonProps,
   SsoStatus,
   SsoUserMenuProps,
 } from "../react/index.js";
-
-export type {
-  BetterAuthServerIntegration,
-  BetterAuthServerLike,
-} from "../tanstack-start/index.js";
 
 export type { NextBetterAuthServerLike } from "../next/index.js";
 

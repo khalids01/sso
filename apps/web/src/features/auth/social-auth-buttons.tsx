@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { client } from "@/lib/client";
@@ -75,11 +76,43 @@ function ProviderIcon({ provider }: { provider: SocialAuthMethod }) {
 export function SocialAuthButtons({
   methods,
   requestSignUp = false,
+  autoStartProvider,
 }: {
   methods: SocialAuthMethod[];
   requestSignUp?: boolean;
+  autoStartProvider?: SocialAuthMethod;
 }) {
   const rememberMethod = useAuthMethodStore((state) => state.rememberMethod);
+  const autoStarted = useRef(false);
+  const startSocial = useCallback(async (method: SocialAuthMethod) => {
+    const { data, error } = await client.auth.social.post({
+      provider: method,
+      callbackURL: getAuthCallbackURL(),
+      requestSignUp,
+    });
+    if (error) {
+      const message =
+        typeof error.value === "object" &&
+        error.value &&
+        "message" in error.value
+          ? String(error.value.message)
+          : `${labels[method]} authentication failed`;
+      toast.error(message);
+      return;
+    }
+    if (data instanceof Response) return;
+    if (data && "url" in data && typeof data.url === "string") {
+      rememberMethod(method);
+      window.location.assign(data.url);
+    }
+  }, [rememberMethod, requestSignUp]);
+
+  useEffect(() => {
+    if (!autoStartProvider || !methods.includes(autoStartProvider) || autoStarted.current) return;
+    autoStarted.current = true;
+    void startSocial(autoStartProvider);
+  }, [autoStartProvider, methods, startSocial]);
+
   if (methods.length === 0) return null;
 
   return (
@@ -90,28 +123,7 @@ export function SocialAuthButtons({
           type="button"
           variant="outline"
           className="relative h-11 w-full justify-center rounded-lg bg-background font-medium shadow-xs transition-colors hover:bg-muted/60"
-          onClick={async () => {
-            const { data, error } = await client.auth.social.post({
-              provider: method,
-              callbackURL: getAuthCallbackURL(),
-              requestSignUp,
-            });
-            if (error) {
-              const message =
-                typeof error.value === "object" &&
-                error.value &&
-                "message" in error.value
-                  ? String(error.value.message)
-                  : `${labels[method]} authentication failed`;
-              toast.error(message);
-              return;
-            }
-            if (data instanceof Response) return;
-            if (data && "url" in data && typeof data.url === "string") {
-              rememberMethod(method);
-              window.location.assign(data.url);
-            }
-          }}
+          onClick={() => void startSocial(method)}
         >
           <span className="flex items-center justify-center gap-2">
             <ProviderIcon provider={method} />

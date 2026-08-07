@@ -3,8 +3,10 @@
 import {
   createContext,
   createElement,
+  Fragment,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -14,6 +16,7 @@ import {
   type BetterAuthSsoActions,
   type SsoBetterAuthBootstrap,
   type SsoSession,
+  type SsoClientMetadata,
   type SsoUser,
   safeReturnTo,
 } from "../index.js";
@@ -23,6 +26,15 @@ import {
   type SsoLogoutOptions,
 } from "../client/index.js";
 import type { StandaloneSsoBootstrap } from "../server/index.js";
+
+export {
+  SignIn,
+  SignUp,
+  SsoAuth,
+  SsoAuthDialog,
+  type SsoAuthProps,
+  type SsoAuthDialogProps,
+} from "./auth-components.js";
 
 export {
   SsoSignInButton,
@@ -39,31 +51,61 @@ export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
   session: SsoSession<TUser> | null;
   status: SsoStatus;
   error: Error | null;
+  metadata: SsoClientMetadata | null;
+  interactionMode: "hosted" | "embedded";
+  oauthMode: "redirect" | "popup";
   login: (returnToOrOptions?: string | SsoLoginOptions) => void;
+  signIn: (options?: SsoLoginOptions) => Promise<SsoSession<TUser> | null>;
+  signInWithPassword: (input: { email: string; password: string; returnTo?: string }) => Promise<SsoSession<TUser> | null>;
+  signUpWithPassword: (input: { name: string; email: string; password: string; returnTo?: string }) => Promise<{ session: SsoSession<TUser> | null; requiresEmailVerification: boolean }>;
+  sendMagicLink: (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => Promise<void>;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
   refresh: () => Promise<SsoSession<TUser> | null>;
 }
 
 export interface SsoProviderProps<TUser extends SsoUser = SsoUser> {
-  bootstrap: StandaloneSsoBootstrap<TUser>;
+  bootstrap?: StandaloneSsoBootstrap<TUser>;
+  baseUrl?: string;
   children?: ReactNode;
 }
 
 const SsoContext = createContext<SsoContextValue<SsoUser> | null>(null);
 
 export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderProps<TUser>) {
-  const bootstrap = requireStandaloneBootstrap(props.bootstrap);
+  const bootstrap = props.bootstrap ? requireStandaloneBootstrap(props.bootstrap) : undefined;
+  const clientOptions = bootstrap?.client;
   const client = useMemo(
-    () => createSsoClient<TUser>(bootstrap.client),
+    () => createSsoClient<TUser>({
+      ...(props.baseUrl ? { baseUrl: props.baseUrl } : clientOptions?.baseUrl ? { baseUrl: clientOptions.baseUrl } : {}),
+      ...(clientOptions ? {
+        loginPath: clientOptions.loginPath,
+        profilePath: clientOptions.profilePath,
+        logoutPath: clientOptions.logoutPath,
+      } : {}),
+      ...(clientOptions?.configPath ? { configPath: clientOptions.configPath } : {}),
+      ...(clientOptions?.passwordLoginPath ? { passwordLoginPath: clientOptions.passwordLoginPath } : {}),
+      ...(clientOptions?.passwordSignupPath ? { passwordSignupPath: clientOptions.passwordSignupPath } : {}),
+      ...(clientOptions?.magicLinkPath ? { magicLinkPath: clientOptions.magicLinkPath } : {}),
+      ...(clientOptions?.oauthMode ? { oauthMode: clientOptions.oauthMode } : {}),
+    }),
     [
-      bootstrap.client.baseUrl,
-      bootstrap.client.loginPath,
-      bootstrap.client.logoutPath,
-      bootstrap.client.profilePath,
+      clientOptions?.baseUrl,
+      clientOptions?.loginPath,
+      clientOptions?.configPath,
+      clientOptions?.passwordLoginPath,
+      clientOptions?.passwordSignupPath,
+      clientOptions?.magicLinkPath,
+      clientOptions?.logoutPath,
+      clientOptions?.profilePath,
+      clientOptions?.oauthMode,
+      props.baseUrl,
     ],
   );
-  const [session, setSession] = useState<SsoSession<TUser> | null>(bootstrap.session ?? null);
-  const [loading, setLoading] = useState(false);
+  const [session, setSession] = useState<SsoSession<TUser> | null>(bootstrap?.session ?? null);
+  const [metadata, setMetadata] = useState<SsoClientMetadata | null>(null);
+  const [interactionMode, setInteractionMode] = useState(clientOptions?.interactionMode ?? "embedded");
+  const [oauthMode, setOauthMode] = useState(clientOptions?.oauthMode ?? "popup");
+  const [loading, setLoading] = useState(!bootstrap);
   const [error, setError] = useState<Error | null>(null);
 
   const refresh = useCallback(async () => {
@@ -82,26 +124,156 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     }
   }, [client]);
 
+  useEffect(() => {
+    let active = true;
+    void Promise.all([client.getSession(), client.getConfig()])
+      .then(([nextSession, config]) => {
+        if (!active) return;
+        setSession(nextSession);
+        setMetadata(config.metadata);
+        setInteractionMode(config.client?.interactionMode ?? "embedded");
+        setOauthMode(config.client?.oauthMode ?? "popup");
+        setError(null);
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setError(cause instanceof Error ? cause : new Error("SSO initialization failed"));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [client]);
+
+  const signIn = useCallback(async (options?: SsoLoginOptions) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await client.signIn(options);
+      const nextSession = await client.getSession();
+      setSession(nextSession);
+      return nextSession;
+    } catch (cause) {
+      const nextError = cause instanceof Error ? cause : new Error("SSO sign-in failed");
+      setError(nextError);
+      throw nextError;
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
+  const signInWithPassword = useCallback(async (input: { email: string; password: string; returnTo?: string }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const nextSession = await client.signInWithPassword(input);
+      setSession(nextSession);
+      return nextSession;
+    } catch (cause) {
+      const nextError = cause instanceof Error ? cause : new Error("SSO password sign-in failed");
+      setError(nextError);
+      throw nextError;
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
+  const signUpWithPassword = useCallback(async (input: { name: string; email: string; password: string; returnTo?: string }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await client.signUpWithPassword(input);
+      setSession(result.session);
+      return result;
+    } catch (cause) {
+      const nextError = cause instanceof Error ? cause : new Error("SSO password signup failed");
+      setError(nextError);
+      throw nextError;
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
   const logout = useCallback(async (options?: SsoLogoutOptions) => {
     await client.logout(options);
     setSession(null);
     setError(null);
   }, [client]);
 
+  const sendMagicLink = useCallback(async (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await client.sendMagicLink(input);
+    } catch (cause) {
+      const nextError = cause instanceof Error ? cause : new Error("SSO magic-link request failed");
+      setError(nextError);
+      throw nextError;
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
   const value = useMemo<SsoContextValue<TUser>>(() => ({
     session,
     status: loading ? "loading" : error ? "error" : session ? "authenticated" : "unauthenticated",
     error,
+    metadata,
+    interactionMode,
+    oauthMode,
     login: client.login,
+    signIn,
+    signInWithPassword,
+    signUpWithPassword,
+    sendMagicLink,
     logout,
     refresh,
-  }), [client.login, error, loading, logout, refresh, session]);
+  }), [client.login, error, interactionMode, loading, logout, metadata, oauthMode, refresh, sendMagicLink, session, signIn, signInWithPassword, signUpWithPassword]);
 
   return createElement(
     SsoContext.Provider,
     { value: value as SsoContextValue<SsoUser> },
     props.children,
   );
+}
+
+export const SkycanvasProvider = SsoProvider;
+export const SkyCanvasProvider = SsoProvider;
+
+export function useSkycanvas<TUser extends SsoUser = SsoUser>() {
+  const value = useOptionalSso<TUser>();
+  if (!value) throw new Error("useSkycanvas requires SkycanvasProvider");
+  return value;
+}
+
+export const useSkyCanvas = useSkycanvas;
+
+export function useAuth<TUser extends SsoUser = SsoUser>() {
+  const value = useSkycanvas<TUser>();
+  return {
+    isLoaded: value.status !== "loading",
+    isSignedIn: value.status === "authenticated",
+    userId: value.session?.user.id ?? null,
+    session: value.session,
+    signOut: value.logout,
+  };
+}
+
+export function useUser<TUser extends SsoUser = SsoUser>() {
+  const value = useSkycanvas<TUser>();
+  return {
+    isLoaded: value.status !== "loading",
+    isSignedIn: value.status === "authenticated",
+    user: value.session?.user ?? null,
+  };
+}
+
+export function SignedIn({ children }: { children?: ReactNode }) {
+  return useSkycanvas().status === "authenticated" ? createElement(Fragment, null, children) : null;
+}
+
+export function SignedOut({ children }: { children?: ReactNode }) {
+  return useSkycanvas().status === "unauthenticated" ? createElement(Fragment, null, children) : null;
 }
 
 export function useOptionalSso<TUser extends SsoUser = SsoUser>() {

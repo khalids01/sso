@@ -49,6 +49,8 @@ export default function SignUpForm({
       method === "linkedin" ||
       method === "github",
   );
+  const requestedProvider = new URLSearchParams(search).get("provider");
+  const autoStartProvider = socialMethods.find((method) => method === requestedProvider);
   const signupAvailable =
     showMagicSignup || showPasswordSignup || socialMethods.length > 0;
   const magicLinkForm = useForm({
@@ -112,7 +114,11 @@ export default function SignUpForm({
         <div className="space-y-5">
           {socialMethods.length > 0 ? (
             <>
-              <SocialAuthButtons methods={socialMethods} requestSignUp />
+              <SocialAuthButtons
+                methods={socialMethods}
+                requestSignUp
+                autoStartProvider={autoStartProvider}
+              />
               {showMagicSignup || showPasswordSignup ? (
                 <AuthMethodDivider label="or sign up with email" />
               ) : null}

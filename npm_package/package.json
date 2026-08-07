@@ -1,7 +1,7 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.6.1",
-  "description": "SkyCanvas SSO helpers and optional React UI for servers and web applications",
+  "version": "0.7.1",
+  "description": "Clerk-style embedded and hosted authentication for SkyCanvas SSO, with optional Better Auth integration",
   "homepage": "https://sso.skycanvasstudio.com/docs",
   "repository": {
     "type": "git",
@@ -140,6 +140,9 @@
     "oidc",
     "pkce",
     "react",
+    "embedded-auth",
+    "passwordless",
+    "tanstack-start",
     "skycanvas"
   ]
 }

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
   auth,
   hashOAuthToken,
@@ -10,6 +10,10 @@ import { env } from "@sso/env/server";
 import { getAvailableApplicationAuthMethodIds } from "@sso/auth/server";
 import { z } from "zod";
 import { recordApplicationUsage } from "../application-usage/application-usage.service";
+import {
+  getApplicationClientAccess,
+  registerApplicationMemberIfAllowed,
+} from "@sso/db/server";
 
 const TOKEN_TTL_SECONDS = 10 * 60;
 const challengePattern = /^[A-Za-z0-9_-]{43}$/;
@@ -29,10 +33,30 @@ const storedCodeSchema = z.object({
   }),
 });
 
+const embeddedMagicLinkSchema = z.object({
+  type: z.literal("embedded_magic_link"),
+  clientId: z.string().min(1),
+  redirectUri: z.url(),
+  origin: z.url(),
+  state: z.string().min(20),
+  nonce: z.string().min(20),
+  codeChallenge: z.string().regex(challengePattern),
+});
+
 type ConsumedCodeRow = {
   value: string;
   expiresAt: Date;
 };
+
+type TokenExchangeResult = {
+  access_token: string;
+  id_token: string;
+  token_type: "Bearer";
+  expires_in: number;
+  scope: "openid";
+};
+
+const activeCodeExchanges = new Map<string, Promise<TokenExchangeResult>>();
 
 export type PublicAuthMethod =
   | "magic_link"
@@ -62,6 +86,17 @@ export type TokenExchangeInput = {
   origin?: string;
   requestId: string;
   request?: Request;
+};
+
+export type EmbeddedAuthorizationInput = {
+  clientId: string;
+  redirectUri: string;
+  state: string;
+  nonce: string;
+  codeChallenge: string;
+  origin: string;
+  userId: string;
+  sessionId: string;
 };
 
 export class OAuthTokenError extends Error {
@@ -159,6 +194,137 @@ export async function isOriginRegisteredForActiveClient(origin: string) {
   return Boolean(client);
 }
 
+export async function validateEmbeddedAuthorizationRequest(input: {
+  clientId: string;
+  redirectUri: string;
+  origin: string;
+  method: PublicAuthMethod;
+  intent: "signin" | "signup";
+}) {
+  const client = await prisma.applicationClient.findFirst({
+    where: {
+      clientId: input.clientId,
+      public: true,
+      status: "active",
+      oauthDisabled: false,
+      redirectUris: { has: input.redirectUri },
+      allowedOrigins: { has: input.origin },
+      application: { status: "active" },
+    },
+    select: {
+      id: true,
+      applicationId: true,
+      application: {
+        select: {
+          signInMethods: true,
+          signUpMethods: true,
+          registrationMode: true,
+          passwordEmailVerificationRequired: true,
+        },
+      },
+    },
+  });
+  const methods = input.intent === "signup"
+    ? client?.application.signUpMethods
+    : client?.application.signInMethods;
+  if (
+    !client ||
+    !methods?.includes(input.method) ||
+    (input.intent === "signup" && client.application.registrationMode === "closed")
+  ) {
+    throw new OAuthTokenError("invalid_client", 403, "embedded_auth_not_allowed");
+  }
+  return client;
+}
+
+export async function issueEmbeddedAuthorizationCode(
+  input: EmbeddedAuthorizationInput,
+) {
+  let access = await getApplicationClientAccess(input.userId, input.clientId);
+  if (access.allowed === false && access.reason === "membership_missing") {
+    if (await registerApplicationMemberIfAllowed(input.userId, input.clientId)) {
+      access = await getApplicationClientAccess(input.userId, input.clientId);
+    }
+  }
+  if (!access.allowed) {
+    throw new OAuthTokenError("invalid_grant", 403, access.reason);
+  }
+  if (!challengePattern.test(input.codeChallenge)) {
+    throw new OAuthTokenError("invalid_request", 400, "invalid_code_challenge");
+  }
+  const code = randomBytes(32).toString("base64url");
+  const now = new Date();
+  await prisma.verification.create({
+    data: {
+      id: randomUUID(),
+      identifier: hashOAuthToken(code),
+      value: JSON.stringify({
+        type: "authorization_code",
+        userId: input.userId,
+        sessionId: input.sessionId,
+        query: {
+          client_id: input.clientId,
+          redirect_uri: input.redirectUri,
+          response_type: "code",
+          scope: "openid",
+          code_challenge_method: "S256",
+          code_challenge: input.codeChallenge,
+          nonce: input.nonce,
+        },
+      }),
+      expiresAt: new Date(now.getTime() + TOKEN_TTL_SECONDS * 1_000),
+      createdAt: now,
+      updatedAt: now,
+    },
+  });
+  const redirect = new URL(input.redirectUri);
+  redirect.searchParams.set("code", code);
+  redirect.searchParams.set("state", input.state);
+  redirect.searchParams.set("iss", env.SSO_ISSUER);
+  return redirect.toString();
+}
+
+export async function createEmbeddedMagicLinkTransaction(
+  input: Omit<EmbeddedAuthorizationInput, "userId" | "sessionId">,
+) {
+  const token = randomBytes(32).toString("base64url");
+  const now = new Date();
+  await prisma.verification.create({
+    data: {
+      id: randomUUID(),
+      identifier: hashOAuthToken(token),
+      value: JSON.stringify({ type: "embedded_magic_link", ...input }),
+      expiresAt: new Date(now.getTime() + TOKEN_TTL_SECONDS * 1_000),
+      createdAt: now,
+      updatedAt: now,
+    },
+  });
+  return token;
+}
+
+export async function consumeEmbeddedMagicLinkTransaction(token: string) {
+  const rows = await prisma.$queryRaw<ConsumedCodeRow[]>`
+    DELETE FROM "verification"
+    WHERE "identifier" = ${hashOAuthToken(token)}
+    RETURNING "value", "expiresAt"
+  `;
+  const row = rows[0];
+  if (!row || row.expiresAt.getTime() <= Date.now()) {
+    throw new OAuthTokenError("invalid_grant", 400, "magic_link_transaction_invalid");
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(row.value);
+  } catch {
+    throw new OAuthTokenError("invalid_grant", 400, "magic_link_transaction_invalid");
+  }
+  const parsed = embeddedMagicLinkSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new OAuthTokenError("invalid_grant", 400, "magic_link_transaction_invalid");
+  }
+  return parsed.data;
+}
+
 export async function getPublicClientMetadata(
   clientId: string,
 ): Promise<PublicClientMetadata | null> {
@@ -226,7 +392,30 @@ export async function getPublicClientMetadata(
   };
 }
 
-export async function exchangeAuthorizationCode(input: TokenExchangeInput) {
+export function exchangeAuthorizationCode(input: TokenExchangeInput) {
+  const exchangeKey = hashOAuthToken([
+    input.code,
+    input.clientId,
+    input.redirectUri,
+    input.codeVerifier,
+    input.origin ?? "",
+  ].join("\0"));
+  const active = activeCodeExchanges.get(exchangeKey);
+  if (active) return active;
+
+  const exchange = performAuthorizationCodeExchange(input);
+  activeCodeExchanges.set(exchangeKey, exchange);
+  void exchange.finally(() => {
+    if (activeCodeExchanges.get(exchangeKey) === exchange) {
+      activeCodeExchanges.delete(exchangeKey);
+    }
+  }).catch(() => undefined);
+  return exchange;
+}
+
+async function performAuthorizationCodeExchange(
+  input: TokenExchangeInput,
+): Promise<TokenExchangeResult> {
   let audit: {
     userId?: string;
     applicationId?: string;

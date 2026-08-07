@@ -13,6 +13,13 @@ values after each journey. It also receives signed application revocation events
 verifies their application audience and pairwise subject, and simulates
 idempotent local-session deletion. No production callback route is added.
 
+The SSO demo coverage also provisions a run-owned application with separate
+clients for the two consumer modes. It runs password-based
+`login → logout → login` journeys for:
+
+- Clerk-like standalone auth, asserting that the browser stays on the client app.
+- The Better Auth adapter, asserting its OAuth callback and persisted session.
+
 ## First-time setup
 
 Install dependencies and Chromium:
@@ -54,9 +61,8 @@ E2E_ACTOR_ROLE=owner bun e2e
 ```
 
 The setup provisions the dedicated identity, rotates its password, assigns the
-requested non-owner role, logs in through the visible form, then derives expected
-behavior from the real session permissions. Owner creation always stays outside
-Playwright.
+requested non-owner role, authenticates it, then derives expected behavior from
+the real session permissions. Owner creation always stays outside Playwright.
 
 Watch or debug the browser:
 

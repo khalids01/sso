@@ -1,7 +1,8 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
-import { SsoProvider } from "@skycanvasstudio/sso/react";
+import { SkyCanvasProvider } from "@skycanvasstudio/sso/react";
 import { AppShell } from "@/components/app-shell";
-import { getSsoBootstrap } from "@/lib/sso-session";
+import { BetterAuthSsoProvider } from "@/lib/better-auth-client";
+import { getBetterAuthBootstrap } from "@/lib/better-auth-session";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -15,21 +16,23 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  loader: async () => ({ bootstrap: await getSsoBootstrap() }),
+  loader: async () => ({ betterAuthBootstrap: await getBetterAuthBootstrap() }),
   component: RootDocument,
 });
 
 function RootDocument() {
-  const { bootstrap } = Route.useLoaderData();
+  const { betterAuthBootstrap } = Route.useLoaderData();
   return (
     <html lang="en" className="dark" data-theme="dark">
       <head>
         <HeadContent />
       </head>
       <body>
-        <SsoProvider bootstrap={bootstrap}>
-          <AppShell />
-        </SsoProvider>
+        <SkyCanvasProvider>
+          <BetterAuthSsoProvider bootstrap={betterAuthBootstrap}>
+            <AppShell />
+          </BetterAuthSsoProvider>
+        </SkyCanvasProvider>
         <Scripts />
       </body>
     </html>

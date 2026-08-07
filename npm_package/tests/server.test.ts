@@ -188,7 +188,7 @@ describe("framework-independent SSO server", () => {
     expect(callback.headers.get("location")).toBe("https://app.example.com/dashboard");
     const sessionCookie = callback.headers.getSetCookie()
       .map(cookiePair)
-      .find((cookie) => cookie.startsWith("sso_session="));
+      .find((cookie) => cookie.startsWith("sso_session_"));
     expect(sessionCookie).toBeDefined();
 
     const profile = await sso.handle(new Request("https://app.example.com/auth/profile", {
@@ -203,8 +203,14 @@ describe("framework-independent SSO server", () => {
     expect(bootstrap.client).toEqual({
       baseUrl: "https://app.example.com",
       loginPath: "/auth/login",
+      configPath: "/auth/config",
+      passwordLoginPath: "/auth/password/login",
+      passwordSignupPath: "/auth/password/signup",
+      magicLinkPath: "/auth/magic-link",
       profilePath: "/auth/profile",
       logoutPath: "/auth/logout",
+      interactionMode: "embedded",
+      oauthMode: "popup",
     });
     expect(JSON.stringify(bootstrap)).not.toContain("test-session-secret");
 
@@ -246,6 +252,58 @@ describe("framework-independent SSO server", () => {
       sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
       cookies: { sameSite: "none" },
     })).toThrow("must be Secure");
+  });
+
+  test("names local cookies per client so localhost applications cannot overwrite OAuth state", async () => {
+    const first = createSsoServer({
+      clientId: "client_one",
+      appUrl: "http://localhost:3000",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const second = createSsoServer({
+      clientId: "client_two",
+      appUrl: "http://localhost:4000",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const firstCookie = requiredHeader(
+      await first.login(new Request("http://localhost:3000/auth/login")),
+      "set-cookie",
+    ).split("=", 1)[0];
+    const secondCookie = requiredHeader(
+      await second.login(new Request("http://localhost:4000/auth/login")),
+      "set-cookie",
+    ).split("=", 1)[0];
+
+    expect(firstCookie).toBe("sso_flow_client_one");
+    expect(secondCookie).toBe("sso_flow_client_two");
+    expect(firstCookie).not.toBe(secondCookie);
+  });
+
+  test("completes popup login without allowing the return path to inject script", async () => {
+    const sso = createSsoServer({
+      clientId,
+      appUrl: "https://app.example.com",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const returnTo = "/?next=</script><script>alert(1)</script>";
+    const login = await sso.login(new Request(
+      `https://app.example.com/auth/login?popup=true&returnTo=${encodeURIComponent(returnTo)}`,
+    ));
+    const authorizationUrl = new URL(requiredHeader(login, "location"));
+    identityNonce = requiredParam(authorizationUrl, "nonce");
+    const response = await sso.callback(new Request(
+      `https://app.example.com/auth/callback?code=authorization_code&state=${requiredParam(authorizationUrl, "state")}`,
+      { headers: { cookie: cookiePair(requiredHeader(login, "set-cookie")) } },
+    ));
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("skycanvas:sso:complete");
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(response.headers.getSetCookie().some((cookie) => cookie.startsWith("sso_session_"))).toBe(true);
   });
 
   test("reports actionable server configuration errors", () => {

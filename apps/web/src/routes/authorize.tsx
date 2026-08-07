@@ -7,6 +7,8 @@ import { authClient } from "@/lib/auth-client";
 import { BRANDING } from "@/constants/branding";
 import { getProviderRedirect } from "@/features/auth/provider-redirect";
 
+const activeAuthorizations = new Set<string>();
+
 export const Route = createFileRoute("/authorize")({
   component: AuthorizePage,
 });
@@ -30,45 +32,56 @@ function AuthorizePage() {
         setErrorMessage("This authorization request is invalid or incomplete.");
         return;
       }
+      if (activeAuthorizations.has(oauthQuery)) return;
+      activeAuthorizations.add(oauthQuery);
 
-      const publicClient = await authClient.oauth2.publicClient({
-        query: { client_id: clientId },
-      });
+      try {
+        const publicClient = await authClient.oauth2.publicClient({
+          query: { client_id: clientId },
+        });
 
-      if (publicClient.error || !publicClient.data) {
-        setErrorMessage("This application is unavailable.");
-        return;
-      }
+        if (publicClient.error || !publicClient.data) {
+          activeAuthorizations.delete(oauthQuery);
+          setErrorMessage("This application is unavailable.");
+          return;
+        }
 
-      setClientName(publicClient.data.client_name || "application");
+        setClientName(publicClient.data.client_name || "application");
 
-      const continuation = await authClient.oauth2.continue({
-        postLogin: true,
-        oauth_query: oauthQuery,
-      });
-
-      const continuationRedirect = getProviderRedirect(continuation.data);
-      if (continuationRedirect) {
-        window.location.assign(continuationRedirect);
-        return;
-      }
-
-      if (continuation.error) {
-        const denial = await authClient.oauth2.consent({
-          accept: false,
+        const continuation = await authClient.oauth2.continue({
+          postLogin: true,
           oauth_query: oauthQuery,
         });
 
-        const denialRedirect = getProviderRedirect(denial.data);
-        if (denialRedirect) {
-          window.location.assign(denialRedirect);
+        const continuationRedirect = getProviderRedirect(continuation.data);
+        if (continuationRedirect) {
+          window.location.assign(continuationRedirect);
           return;
         }
-      }
 
-      setErrorMessage(
-        `${BRANDING.appName} could not complete this authorization request.`,
-      );
+        if (continuation.error) {
+          const denial = await authClient.oauth2.consent({
+            accept: false,
+            oauth_query: oauthQuery,
+          });
+
+          const denialRedirect = getProviderRedirect(denial.data);
+          if (denialRedirect) {
+            window.location.assign(denialRedirect);
+            return;
+          }
+        }
+
+        activeAuthorizations.delete(oauthQuery);
+        setErrorMessage(
+          `${BRANDING.appName} could not complete this authorization request.`,
+        );
+      } catch {
+        activeAuthorizations.delete(oauthQuery);
+        setErrorMessage(
+          `${BRANDING.appName} could not complete this authorization request.`,
+        );
+      }
     };
 
     void continueAuthorization();

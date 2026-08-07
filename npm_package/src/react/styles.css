@@ -71,6 +71,35 @@
 .sso-profile-fields dt { color: var(--sso-muted-foreground); font-size: .75rem; font-weight: 500; }
 .sso-profile-fields dd { margin: 0; overflow-wrap: anywhere; font-size: .875rem; }
 .sso-spin { animation: sso-spin 700ms linear infinite; }
+.sso-auth-card { width: 100%; max-width: 26rem; box-sizing: border-box; border: 1px solid var(--sso-border); border-radius: calc(var(--sso-radius) + .25rem); padding: 1.5rem; background: var(--sso-card); color: var(--sso-card-foreground); box-shadow: 0 10px 30px rgb(0 0 0 / .08); }
+.sso-auth-heading { margin-bottom: 1.5rem; text-align: center; }
+.sso-auth-heading h2 { margin: 0; font-size: 1.5rem; line-height: 1.2; font-weight: 650; letter-spacing: -.025em; }
+.sso-auth-heading p { margin: .5rem 0 0; color: var(--sso-muted-foreground); font-size: .875rem; }
+.sso-auth-loading { margin: 0; color: var(--sso-muted-foreground); font-size: .875rem; text-align: center; }
+.sso-auth-socials, .sso-auth-form { display: grid; gap: .75rem; }
+.sso-auth-provider { position: relative; display: flex; width: 100%; min-height: 2.75rem; box-sizing: border-box; align-items: center; justify-content: center; gap: .625rem; border: 1px solid var(--sso-border); border-radius: var(--sso-radius); padding: .5rem .875rem; background: var(--sso-background); color: var(--sso-foreground); font: inherit; font-size: .875rem; font-weight: 500; cursor: pointer; }
+.sso-auth-provider:hover { background: var(--sso-muted); }
+.sso-auth-provider:focus-visible, .sso-auth-field input:focus-visible, .sso-auth-switch button:focus-visible { outline: 2px solid var(--sso-ring); outline-offset: 2px; }
+.sso-auth-provider:disabled { cursor: not-allowed; opacity: .55; }
+.sso-provider-mark { display: inline-grid; width: 1.25rem; height: 1.25rem; place-items: center; border-radius: 9999px; font-size: .7rem; font-weight: 800; }
+.sso-provider-google { color: #4285f4; background: #fff; border: 1px solid #ddd; }
+.sso-provider-facebook { color: #fff; background: #1877f2; }
+.sso-provider-linkedin { color: #fff; background: #0a66c2; }
+.sso-provider-github { color: #fff; background: #181717; }
+.sso-auth-divider { display: flex; align-items: center; gap: .75rem; margin: 1.25rem 0; color: var(--sso-muted-foreground); font-size: .75rem; white-space: nowrap; }
+.sso-auth-divider::before, .sso-auth-divider::after { content: ""; height: 1px; flex: 1; background: var(--sso-border); }
+.sso-auth-field { display: grid; gap: .375rem; font-size: .875rem; font-weight: 500; }
+.sso-auth-field input { width: 100%; height: 2.75rem; box-sizing: border-box; border: 1px solid var(--sso-border); border-radius: var(--sso-radius); padding: 0 .75rem; background: var(--sso-background); color: var(--sso-foreground); font: inherit; font-weight: 400; box-shadow: 0 1px 2px rgb(0 0 0 / .04); }
+.sso-auth-field input::placeholder { color: var(--sso-muted-foreground); }
+.sso-auth-submit { width: 100%; margin-top: .25rem; }
+.sso-auth-form + .sso-auth-provider { margin-top: .75rem; }
+.sso-auth-message { margin: 1rem 0 0; border-radius: var(--sso-radius); padding: .625rem .75rem; background: var(--sso-danger-surface); color: var(--sso-danger-text); font-size: .8125rem; line-height: 1.4; }
+.sso-auth-switch { margin: 1.25rem 0 0; color: var(--sso-muted-foreground); font-size: .8125rem; text-align: center; }
+.sso-auth-switch button { border: 0; padding: 0; background: none; color: var(--sso-foreground); font: inherit; font-weight: 600; cursor: pointer; }
+.sso-auth-dialog { padding: 0; border: 0; background: transparent; box-shadow: none; }
+.sso-auth-dialog .sso-auth-card { max-width: none; }
+.sso-auth-close { position: absolute; z-index: 1; top: .75rem; right: .75rem; font-size: 1.25rem; }
+.sso-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 @keyframes sso-spin { to { transform: rotate(360deg); } }
 @keyframes sso-fade { from { opacity: 0; } }
 @keyframes sso-enter { from { opacity: 0; transform: scale(.98); } }

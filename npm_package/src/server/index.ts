@@ -11,6 +11,7 @@ import {
   getSsoEndpoints,
   safeReturnTo,
   type SsoClientMetadata,
+  type SsoAuthMethod,
   type SsoSession,
   type SsoTokenResponse,
   type SsoUser,
@@ -31,6 +32,7 @@ export interface SsoAuthorizationFlow {
   redirectUri: string;
   returnTo: string;
   createdAt: number;
+  popup?: boolean;
 }
 
 export interface CreateSsoAuthorizationOptions {
@@ -39,6 +41,8 @@ export interface CreateSsoAuthorizationOptions {
   baseUrl?: string;
   returnTo?: string | null;
   forceLogin?: boolean;
+  intent?: "signin" | "signup";
+  provider?: Extract<SsoAuthMethod, "google" | "facebook" | "linkedin" | "github">;
 }
 
 export interface FinishSsoAuthorizationOptions {
@@ -77,6 +81,10 @@ export interface VerifiedSsoAuthorization {
 export interface SsoServerPaths {
   login: string;
   callback: string;
+  config: string;
+  passwordLogin: string;
+  passwordSignup: string;
+  magicLink: string;
   profile: string;
   logout: string;
 }
@@ -108,6 +116,8 @@ export interface CreateSsoServerOptions<TUser extends SsoUser = SsoUser> {
   flowTtlSeconds?: number;
   sessionTtlSeconds?: number;
   fetch?: typeof fetch;
+  interactionMode?: "hosted" | "embedded";
+  oauthMode?: "redirect" | "popup";
   onSignIn?: (context: SsoSignInContext) => TUser | Promise<TUser>;
   onError?: (error: unknown, request: Request) => void;
 }
@@ -117,6 +127,10 @@ export interface SsoServer<TUser extends SsoUser = SsoUser> {
   callbackUrl: string;
   login: (request: Request) => Promise<Response>;
   callback: (request: Request) => Promise<Response>;
+  config: () => Promise<Response>;
+  passwordLogin: (request: Request) => Promise<Response>;
+  passwordSignup: (request: Request) => Promise<Response>;
+  magicLink: (request: Request) => Promise<Response>;
   profile: (request: Request) => Promise<Response>;
   logout: (request: Request) => Promise<Response>;
   getSession: (request: SsoSessionRequest) => Promise<SsoSession<TUser> | null>;
@@ -129,8 +143,14 @@ export type SsoSessionRequest = Request | Headers;
 export interface StandaloneSsoClientConfig {
   baseUrl: string;
   loginPath: string;
+  configPath?: string;
+  passwordLoginPath?: string;
+  passwordSignupPath?: string;
+  magicLinkPath?: string;
   profilePath: string;
   logoutPath: string;
+  interactionMode?: "hosted" | "embedded";
+  oauthMode?: "redirect" | "popup";
 }
 
 export interface StandaloneSsoBootstrap<TUser extends SsoUser = SsoUser> {
@@ -142,6 +162,10 @@ export interface StandaloneSsoBootstrap<TUser extends SsoUser = SsoUser> {
 const DEFAULT_PATHS: SsoServerPaths = {
   login: "/auth/login",
   callback: "/auth/callback",
+  config: "/auth/config",
+  passwordLogin: "/auth/password/login",
+  passwordSignup: "/auth/password/signup",
+  magicLink: "/auth/magic-link",
   profile: "/auth/profile",
   logout: "/auth/logout",
 };
@@ -173,7 +197,8 @@ export async function createSsoAuthorization(
     nonce: flow.nonce,
     code_challenge_method: "S256",
     code_challenge: challenge,
-    ...(options.forceLogin ? { prompt: "login" } : {}),
+    ...(options.forceLogin ? { prompt: "login" } : options.intent === "signup" ? { prompt: "create" } : {}),
+    ...(options.provider ? { provider: options.provider } : {}),
   }).toString();
   return { url, flow };
 }
@@ -264,7 +289,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
   const callbackUrl = new URL(paths.callback, appOrigin).toString();
   const flowTtl = positiveInteger(options.flowTtlSeconds ?? 600, "flowTtlSeconds");
   const sessionTtl = positiveInteger(options.sessionTtlSeconds ?? 600, "sessionTtlSeconds");
-  const cookieConfig = normalizeCookieOptions(options.cookies, appOrigin);
+  const cookieConfig = normalizeCookieOptions(options.cookies, appOrigin, options.clientId);
   const trustedOrigins = new Set([
     appOrigin,
     redirectOrigin,
@@ -274,21 +299,33 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
   const clientConfig: StandaloneSsoClientConfig = {
     baseUrl: appOrigin,
     loginPath: paths.login,
+    configPath: paths.config,
+    passwordLoginPath: paths.passwordLogin,
+    passwordSignupPath: paths.passwordSignup,
+    magicLinkPath: paths.magicLink,
     profilePath: paths.profile,
     logoutPath: paths.logout,
+    interactionMode: options.interactionMode ?? "embedded",
+    oauthMode: options.oauthMode ?? "popup",
   };
 
   async function login(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
     const returnTo = requestUrl.searchParams.get("returnTo");
     const forceLogin = requestUrl.searchParams.get("forceLogin") === "true";
+    const popup = requestUrl.searchParams.get("popup") === "true";
+    const provider = parseSocialProvider(requestUrl.searchParams.get("provider"));
+    const intent = requestUrl.searchParams.get("intent") === "signup" ? "signup" : "signin";
     const authorization = await createSsoAuthorization({
       clientId: options.clientId,
       redirectUri: callbackUrl,
       returnTo,
       forceLogin,
+      intent,
+      ...(provider ? { provider } : {}),
       ...(baseUrl ? { baseUrl } : {}),
     });
+    authorization.flow.popup = popup;
     return redirectResponse(
       authorization.url,
       serializeCookie(cookieConfig.flowName, await seal(authorization.flow, flowTtl, key), flowTtl, cookieConfig),
@@ -324,11 +361,20 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
           : authorization.user as TUser;
         const seconds = Math.min(authorization.tokens.expires_in, sessionTtl);
         const session: SsoSession<TUser> = { user, expiresAt: Date.now() + seconds * 1000 };
-        return redirectResponse(
-          new URL(authorization.returnTo, redirectOrigin),
-          serializeCookie(cookieConfig.sessionName, await seal(session, seconds, key), seconds, cookieConfig),
-          serializeCookie(cookieConfig.flowName, "", 0, cookieConfig),
+        const sessionCookie = serializeCookie(
+          cookieConfig.sessionName,
+          await seal(session, seconds, key),
+          seconds,
+          cookieConfig,
         );
+        const flowCookie = serializeCookie(cookieConfig.flowName, "", 0, cookieConfig);
+        return flow.popup
+          ? popupCompletionResponse(authorization.returnTo, appOrigin, sessionCookie, flowCookie)
+          : redirectResponse(
+              new URL(authorization.returnTo, redirectOrigin),
+              sessionCookie,
+              flowCookie,
+            );
       })();
       pendingCallbacks.set(callbackKey, pending);
       try {
@@ -378,6 +424,154 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     };
   }
 
+  async function config(): Promise<Response> {
+    try {
+      const metadata = await fetchSsoClientMetadata(
+        options.clientId,
+        baseUrl,
+        options.fetch,
+      );
+      return Response.json(
+        { client: { ...clientConfig }, metadata },
+        { headers: { "cache-control": "private, max-age=60" } },
+      );
+    } catch {
+      return Response.json({ error: "sso_configuration_unavailable" }, { status: 503 });
+    }
+  }
+
+  async function embeddedPassword(request: Request, intent: "login" | "signup") {
+    const origin = request.headers.get("origin");
+    if (origin && origin !== appOrigin) {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json() as Record<string, unknown>;
+    } catch {
+      return Response.json({ error: "invalid_request" }, { status: 400 });
+    }
+    const email = typeof body.email === "string" ? body.email : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    const name = typeof body.name === "string" ? body.name : "";
+    const returnTo = typeof body.returnTo === "string" ? body.returnTo : "/";
+    if (!email || !password || (intent === "signup" && !name)) {
+      return Response.json({ error: "invalid_request" }, { status: 400 });
+    }
+    const authorization = await createSsoAuthorization({
+      clientId: options.clientId,
+      redirectUri: callbackUrl,
+      returnTo,
+      ...(baseUrl ? { baseUrl } : {}),
+    });
+    const target = new URL(
+      `/auth/sdk/password/${intent}`,
+      baseUrl ?? getSsoEndpoints().authorization,
+    );
+    const response = await getFetch(options.fetch)(target, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        clientId: options.clientId,
+        redirectUri: callbackUrl,
+        origin: appOrigin,
+        state: authorization.flow.state,
+        nonce: authorization.flow.nonce,
+        codeChallenge: authorization.url.searchParams.get("code_challenge"),
+        email,
+        password,
+        ...(intent === "signup" ? { name } : {}),
+      }),
+    });
+    const result = await response.json().catch(() => null) as Record<string, unknown> | null;
+    if (!response.ok) {
+      return Response.json(
+        {
+          error: typeof result?.error === "string" ? result.error : "authentication_failed",
+          message: typeof result?.message === "string" ? result.message : "Authentication failed",
+        },
+        { status: response.status },
+      );
+    }
+    return Response.json(result, {
+      headers: {
+        "cache-control": "no-store",
+        "set-cookie": serializeCookie(
+          cookieConfig.flowName,
+          await seal(authorization.flow, flowTtl, key),
+          flowTtl,
+          cookieConfig,
+        ),
+      },
+    });
+  }
+
+  const passwordLogin = (request: Request) => embeddedPassword(request, "login");
+  const passwordSignup = (request: Request) => embeddedPassword(request, "signup");
+
+  async function magicLink(request: Request) {
+    const origin = request.headers.get("origin");
+    if (origin && origin !== appOrigin) {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json() as Record<string, unknown>;
+    } catch {
+      return Response.json({ error: "invalid_request" }, { status: 400 });
+    }
+    const email = typeof body.email === "string" ? body.email : "";
+    const name = typeof body.name === "string" ? body.name : "";
+    const intent = body.intent === "signup" ? "signup" : "signin";
+    const returnTo = typeof body.returnTo === "string" ? body.returnTo : "/";
+    if (!email || (intent === "signup" && !name)) {
+      return Response.json({ error: "invalid_request" }, { status: 400 });
+    }
+    const authorization = await createSsoAuthorization({
+      clientId: options.clientId,
+      redirectUri: callbackUrl,
+      returnTo,
+      ...(baseUrl ? { baseUrl } : {}),
+    });
+    const target = new URL("/auth/sdk/magic-link", baseUrl ?? getSsoEndpoints().authorization);
+    const response = await getFetch(options.fetch)(target, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        clientId: options.clientId,
+        redirectUri: callbackUrl,
+        origin: appOrigin,
+        state: authorization.flow.state,
+        nonce: authorization.flow.nonce,
+        codeChallenge: authorization.url.searchParams.get("code_challenge"),
+        intent,
+        email,
+        ...(name ? { name } : {}),
+      }),
+    });
+    const result = await response.json().catch(() => null) as Record<string, unknown> | null;
+    if (!response.ok) {
+      return Response.json(
+        {
+          error: typeof result?.error === "string" ? result.error : "authentication_failed",
+          message: typeof result?.message === "string" ? result.message : "Could not send magic link",
+        },
+        { status: response.status },
+      );
+    }
+    return Response.json({ success: true }, {
+      headers: {
+        "cache-control": "no-store",
+        "set-cookie": serializeCookie(
+          cookieConfig.flowName,
+          await seal(authorization.flow, flowTtl, key),
+          flowTtl,
+          cookieConfig,
+        ),
+      },
+    });
+  }
+
   async function profile(request: Request): Promise<Response> {
     const session = await getSession(request);
     return session
@@ -416,6 +610,10 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     const { pathname } = new URL(request.url);
     if (pathname === paths.login && request.method === "GET") return login(request);
     if (pathname === paths.callback && request.method === "GET") return callback(request);
+    if (pathname === paths.config && request.method === "GET") return config();
+    if (pathname === paths.passwordLogin && request.method === "POST") return passwordLogin(request);
+    if (pathname === paths.passwordSignup && request.method === "POST") return passwordSignup(request);
+    if (pathname === paths.magicLink && request.method === "POST") return magicLink(request);
     if (pathname === paths.profile && request.method === "GET") return profile(request);
     if (pathname === paths.logout && request.method === "POST") return logout(request);
     if (
@@ -426,7 +624,53 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  return { paths, callbackUrl, login, callback, profile, logout, getSession, getBootstrap, handle };
+  return {
+    paths,
+    callbackUrl,
+    login,
+    callback,
+    config,
+    passwordLogin,
+    passwordSignup,
+    magicLink,
+    profile,
+    logout,
+    getSession,
+    getBootstrap,
+    handle,
+  };
+}
+
+function parseSocialProvider(value: string | null) {
+  return value === "google" || value === "facebook" || value === "linkedin" || value === "github"
+    ? value
+    : undefined;
+}
+
+function popupCompletionResponse(
+  returnTo: string,
+  appOrigin: string,
+  ...cookies: string[]
+) {
+  const payload = jsonForInlineScript({ type: "skycanvas:sso:complete", returnTo });
+  const origin = jsonForInlineScript(appOrigin);
+  const fallback = jsonForInlineScript(new URL(returnTo, appOrigin).toString());
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Signed in</title></head><body><script>if(window.opener){window.opener.postMessage(${payload},${origin});window.close()}else{window.location.replace(${fallback})}</script></body></html>`;
+  const headers = new Headers({
+    "cache-control": "no-store",
+    "content-type": "text/html; charset=utf-8",
+  });
+  for (const cookie of cookies) headers.append("set-cookie", cookie);
+  return new Response(html, { status: 200, headers });
+}
+
+function jsonForInlineScript(value: unknown) {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 async function exchangeAuthorizationCode(
@@ -500,13 +744,18 @@ function normalizePaths(paths: Partial<SsoServerPaths> | undefined): SsoServerPa
 type NormalizedCookieOptions = Required<Pick<SsoCookieOptions, "flowName" | "sessionName" | "path" | "sameSite" | "secure">> &
   Pick<SsoCookieOptions, "domain">;
 
-function normalizeCookieOptions(options: SsoCookieOptions | undefined, appOrigin: string): NormalizedCookieOptions {
+function normalizeCookieOptions(
+  options: SsoCookieOptions | undefined,
+  appOrigin: string,
+  clientId: string,
+): NormalizedCookieOptions {
   const secure = options?.secure ?? appOrigin.startsWith("https:");
   const sameSite = options?.sameSite ?? "lax";
+  const clientSuffix = clientId.replace(/[^A-Za-z0-9_-]/g, "_").slice(-32);
   if (sameSite === "none" && !secure) throw new Error("SSO SameSite=None cookies must be Secure");
   return {
-    flowName: options?.flowName ?? "sso_flow",
-    sessionName: options?.sessionName ?? "sso_session",
+    flowName: options?.flowName ?? `sso_flow_${clientSuffix}`,
+    sessionName: options?.sessionName ?? `sso_session_${clientSuffix}`,
     path: options?.path ?? "/",
     sameSite,
     secure,

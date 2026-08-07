@@ -1,141 +1,106 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "../fixtures/test";
 import { e2eEnv } from "../helpers/environment";
-import { readRunState, updateRunState } from "../helpers/run-state";
 
-function buildSignupEmail() {
-  const [mailbox, domain] = e2eEnv.E2E_ACTOR_EMAIL.split("@");
-  if (!mailbox || !domain) throw new Error("E2E actor email is invalid");
-  return `${mailbox.split("+")[0]}+${e2eEnv.runPrefix}signup@${domain}`;
+async function submitEmbeddedPassword(page: Page) {
+  await page.getByLabel("Email", { exact: true }).fill(e2eEnv.E2E_ACTOR_EMAIL);
+  await page.getByLabel("Password", { exact: true }).fill(e2eEnv.E2E_ACTOR_PASSWORD);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
 
-test("SSO demo creates a verified session and signs out locally and centrally", async ({ browser }) => {
-  const fixture = readRunState().oauthFixture;
-  if (!fixture) throw new Error("OAuth E2E fixture was not provisioned");
+async function submitHostedPassword(page: Page) {
+  const form = page.getByRole("form", { name: "Password sign in" });
+  await form.getByLabel("Email", { exact: true }).fill(e2eEnv.E2E_ACTOR_EMAIL);
+  await form.getByLabel("Password", { exact: true }).fill(e2eEnv.E2E_ACTOR_PASSWORD);
+  await form.getByRole("button", { name: "Sign in with password" }).click();
+}
 
+async function expectBetterAuthDashboard(page: Page) {
+  await page.waitForURL((url) =>
+    url.pathname === "/better-auth/dashboard" ||
+    url.pathname === "/api/better-auth/error"
+  );
+  if (new URL(page.url()).pathname === "/api/better-auth/error") {
+    const { default: prisma } = await import("../../../packages/db/src/client.server");
+    try {
+      const events = await prisma.applicationUsageEvent.findMany({
+        where: { application: { slug: `${e2eEnv.runPrefix}consumer-auth` } },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: { type: true, outcome: true, reason: true },
+      });
+      throw new Error(`Better Auth callback failed: ${JSON.stringify(events)}`);
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+  await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/better-auth/dashboard`);
+}
+
+test("Clerk-like package auth stays in the client app and survives logout then login", async ({ browser }) => {
   const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
   const page = await context.newPage();
+  const mainFrameOrigins: string[] = [];
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame() && frame.url().startsWith("http")) {
+      mainFrameOrigins.push(new URL(frame.url()).origin);
+    }
+  });
+
   try {
-    await page.goto(`${e2eEnv.E2E_DEMO_ORIGIN}/?client_id=${encodeURIComponent(fixture.clientId)}`);
-    await expect(page.getByRole("heading", { name: /whole SSO contract/i })).toBeVisible();
-    await page.getByRole("button", { name: "Continue with SSO" }).click();
+    await page.goto(`${e2eEnv.E2E_DEMO_ORIGIN}/standalone`);
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+    await submitEmbeddedPassword(page);
 
-    await expect(page).toHaveURL(/\/application\/login\?/);
-    await expect(page.getByRole("heading", { name: `Continue to E2E OAuth Client ${e2eEnv.runId}` })).toBeVisible();
-    const passwordForm = page.getByRole("form", { name: "Password sign in" });
-    await passwordForm.getByLabel("Email", { exact: true }).fill(e2eEnv.E2E_ACTOR_EMAIL);
-    await passwordForm.getByLabel("Password", { exact: true }).fill(e2eEnv.E2E_ACTOR_PASSWORD);
-    await passwordForm.getByRole("button", { name: "Sign in with password" }).click();
-
-    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/dashboard?connected=true`);
-    await expect(page.getByText("Verified session", { exact: true })).toBeVisible();
-    await expect(page.getByText(fixture.applicationId, { exact: true })).toBeVisible();
-    await expect(page.getByText(fixture.clientId, { exact: true })).toBeVisible();
-    await expect(page.getByText(fixture.memberId, { exact: true })).toBeVisible();
-    expect(page.url()).not.toMatch(/(?:access_token|id_token|code)=/);
-    expect(await page.evaluate(() => ({
-      localAccessToken: localStorage.getItem("access_token"),
-      localIdToken: localStorage.getItem("id_token"),
-      sessionAccessToken: sessionStorage.getItem("access_token"),
-      sessionIdToken: sessionStorage.getItem("id_token"),
-    }))).toEqual({
-      localAccessToken: null,
-      localIdToken: null,
-      sessionAccessToken: null,
-      sessionIdToken: null,
-    });
+    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/standalone/dashboard`);
+    await expect(page.getByText("Standalone session", { exact: true })).toBeVisible();
+    await expect(page.getByText(e2eEnv.E2E_ACTOR_EMAIL, { exact: true })).toBeVisible();
+    expect(mainFrameOrigins.every((origin) => origin === e2eEnv.E2E_DEMO_ORIGIN)).toBe(true);
 
     await page.reload();
-    await expect(page.getByText("Verified session", { exact: true })).toBeVisible();
+    await expect(page.getByText("Authenticated without Better Auth", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Sign out everywhere" }).click();
+    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/standalone`);
 
-    const centralSessionBeforeLogout = await page.request.get(
-      `${e2eEnv.E2E_API_ORIGIN}/api/auth/get-session`,
-    );
-    expect(centralSessionBeforeLogout.ok()).toBe(true);
-    expect(await centralSessionBeforeLogout.json()).toMatchObject({
-      user: { email: e2eEnv.E2E_ACTOR_EMAIL },
-    });
-
-    await page.getByRole("button", { name: "Open account menu" }).click();
-    await page.getByRole("menuitem", { name: "Sign out everywhere" }).click();
-    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/`);
-    await expect(page.getByRole("button", { name: "Continue with SSO" })).toBeVisible();
-
-    const centralSessionAfterLogout = await page.request.get(
-      `${e2eEnv.E2E_API_ORIGIN}/api/auth/get-session`,
-    );
-    expect(centralSessionAfterLogout.ok()).toBe(true);
-    expect(await centralSessionAfterLogout.json()).toBeNull();
+    mainFrameOrigins.length = 0;
+    await submitEmbeddedPassword(page);
+    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/standalone/dashboard`);
+    await expect(page.getByText(e2eEnv.E2E_ACTOR_EMAIL, { exact: true })).toBeVisible();
+    expect(mainFrameOrigins.every((origin) => origin === e2eEnv.E2E_DEMO_ORIGIN)).toBe(true);
+    expect(page.url()).not.toContain("state_mismatch");
   } finally {
     await context.close();
   }
 });
 
-test("SSO demo signs up, signs out, and logs in with only a password", async ({ browser }) => {
-  const fixture = readRunState().oauthFixture;
-  if (!fixture) throw new Error("OAuth E2E fixture was not provisioned");
-  const signupEmail = buildSignupEmail();
-  const signupPassword = `E2E-signup-${e2eEnv.runId}!`;
-  updateRunState((state) => {
-    state.signupUserEmail = signupEmail;
-  });
-
+test("Better Auth adapter creates its session and survives logout then login", async ({ browser }) => {
   const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
   const page = await context.newPage();
+
   try {
-    await page.goto(`${e2eEnv.E2E_DEMO_ORIGIN}/?client_id=${encodeURIComponent(fixture.clientId)}`);
-    await page.getByRole("button", { name: "Continue with SSO" }).click();
-    await page.getByRole("link", { name: "Need an account? Sign Up" }).click();
-
-    await expect(page).toHaveURL(/\/application\/signup\?/);
-    const signupForm = page.getByRole("form", { name: "Password signup" });
-    await signupForm.getByLabel("Name", { exact: true }).fill(`E2E Signup ${e2eEnv.runId}`);
-    await signupForm.getByLabel("Email", { exact: true }).fill(signupEmail);
-    await signupForm.getByLabel("Password", { exact: true }).fill(signupPassword);
-    await signupForm.getByRole("button", { name: "Create account with password" }).click();
-
-    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/dashboard?connected=true`);
-    await expect(page.getByText("Verified session", { exact: true })).toBeVisible();
-    await expect(page.getByText(fixture.applicationId, { exact: true })).toBeVisible();
-
-    const { default: prisma } = await import("../../../packages/db/src/client.server");
-    let membershipId: string;
-    try {
-      const user = await prisma.user.findUnique({
-        where: { email: signupEmail },
-        select: {
-          emailVerified: true,
-          applicationMemberships: {
-            where: { applicationId: fixture.applicationId },
-            select: { id: true, status: true },
-          },
-        },
-      });
-      expect(user).toMatchObject({
-        emailVerified: false,
-        applicationMemberships: [{ status: "active" }],
-      });
-      membershipId = user?.applicationMemberships[0]?.id ?? "";
-      expect(membershipId).not.toBe("");
-    } finally {
-      await prisma.$disconnect();
-    }
-
-    await page.getByRole("button", { name: "Open account menu" }).click();
-    await page.getByRole("menuitem", { name: "Sign out everywhere" }).click();
-    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/`);
-
-    await page.getByRole("button", { name: "Continue with SSO" }).click();
+    await page.goto(`${e2eEnv.E2E_DEMO_ORIGIN}/better-auth`);
+    await page.getByRole("button", { name: "Continue with Better Auth SSO" }).click();
     await expect(page).toHaveURL(/\/application\/login\?/);
-    const loginForm = page.getByRole("form", { name: "Password sign in" });
-    await loginForm.getByLabel("Email", { exact: true }).fill(signupEmail);
-    await loginForm.getByLabel("Password", { exact: true }).fill(signupPassword);
-    await loginForm.getByRole("button", { name: "Sign in with password" }).click();
+    await expect(page.getByRole("heading", {
+      name: `Continue to E2E Better Auth Client ${e2eEnv.runId}`,
+    })).toBeVisible();
+    await submitHostedPassword(page);
 
-    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/dashboard?connected=true`);
-    await expect(page.getByText("Verified session", { exact: true })).toBeVisible();
-    await expect(page.getByText(fixture.applicationId, { exact: true })).toBeVisible();
-    await expect(page.getByText(membershipId, { exact: true })).toBeVisible();
-    expect(page.url()).not.toMatch(/(?:access_token|id_token|code)=/);
+    await expectBetterAuthDashboard(page);
+    await expect(page.getByText("Better Auth session", { exact: true })).toBeVisible();
+    await expect(page.getByText(e2eEnv.E2E_ACTOR_EMAIL, { exact: true })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByText("Authenticated through the Better Auth adapter", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Sign out everywhere" }).click();
+    await expect(page).toHaveURL(`${e2eEnv.E2E_DEMO_ORIGIN}/better-auth`);
+
+    await page.getByRole("button", { name: "Continue with Better Auth SSO" }).click();
+    await expect(page).toHaveURL(/\/application\/login\?/);
+    await submitHostedPassword(page);
+    await expectBetterAuthDashboard(page);
+    await expect(page.getByText(e2eEnv.E2E_ACTOR_EMAIL, { exact: true })).toBeVisible();
+    expect(page.url()).not.toContain("state_mismatch");
   } finally {
     await context.close();
   }

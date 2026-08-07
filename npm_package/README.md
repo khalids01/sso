@@ -1,6 +1,6 @@
 # @skycanvasstudio/sso
 
-SkyCanvas SSO helpers for Better Auth, standalone servers, browsers, and React.
+Clerk-style authentication for SkyCanvas SSO, with an optional Better Auth adapter.
 
 Documentation: https://sso.skycanvasstudio.com/docs
 
@@ -10,11 +10,86 @@ Documentation: https://sso.skycanvasstudio.com/docs
 bun add @skycanvasstudio/sso
 ```
 
+For a new application, use the standalone integration below. Your application
+does **not** install Better Auth or create auth tables. Better Auth remains an
+internal implementation detail of the SkyCanvas SSO service.
+
+## TanStack Start quickstart (recommended)
+
+Create one server-only module:
+
+```ts
+// src/lib/skycanvas.server.ts
+import { createTanStackSso } from "@skycanvasstudio/sso/tanstack-start"
+import { env } from "./env.server"
+
+export const skycanvas = createTanStackSso({
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  secretKey: env.SKYCANVAS_SECRET_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
+  interactionMode: "embedded", // or "hosted"
+  oauthMode: "popup",          // or "redirect"
+})
+```
+
+Add its middleware:
+
+```ts
+// src/start.ts
+import { createServerOnlyFn, createStart } from "@tanstack/react-start"
+import { createTanStackSsoMiddleware } from "@skycanvasstudio/sso/tanstack-start"
+
+const loadSkycanvas = createServerOnlyFn(
+  () => import("./lib/skycanvas.server").then(({ skycanvas }) => skycanvas),
+)
+const skycanvasMiddleware = createTanStackSsoMiddleware(
+  loadSkycanvas,
+)
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [skycanvasMiddleware],
+}))
+```
+
+Keep the `createServerOnlyFn` boundary exactly as shown. It prevents the server
+secret and server-only module from entering TanStack's client graph.
+
+Wrap the root and render the packaged UI anywhere—page, card, or modal:
+
+```tsx
+import "@skycanvasstudio/sso/styles.css"
+import { SignIn, SkyCanvasProvider } from "@skycanvasstudio/sso/react"
+
+<SkyCanvasProvider>
+  <SignIn returnTo="/dashboard" />
+</SkyCanvasProvider>
+```
+
+`SignIn`, `SignUp`, `SsoAuth`, and `SsoAuthDialog` read the application policy
+from SkyCanvas and only show enabled methods. Password and magic-link forms stay
+inside the application. Social providers use a small popup by default. Google,
+GitHub, Facebook, and LinkedIn continue to use the single callback configured
+on the SkyCanvas SSO service; consuming applications do not add provider
+callbacks or JavaScript origins in Google.
+
+Server code can read the session with `await skycanvas.auth()`. The middleware
+also exposes `context.skycanvasAuth` to subsequent request middleware/routes.
+
+In the SkyCanvas dashboard, register the application callback
+`{APP_URL}/auth/callback` and its allowed origin. This is SkyCanvas application
+configuration, not a Google OAuth change.
+
+The publishable key is the application client ID from SkyCanvas. `secretKey`
+encrypts this application's local session cookie; generate it with
+`openssl rand -base64 32` and never expose it to browser code.
+
+## Integration choices
+
 Choose exactly one session owner:
 
 1. Better Auth already owns your users and sessions.
 2. Another OAuth/OIDC library owns your users and sessions.
-3. `createSsoServer` owns a standalone encrypted application session.
+3. SkyCanvas owns a standalone encrypted application session (recommended for new apps).
 
 Do not combine Better Auth session APIs with the standalone `SsoProvider`.
 
@@ -144,7 +219,7 @@ Register:
 {BETTER_AUTH_URL}/api/auth/oauth2/callback/skycanvas
 ```
 
-## Standalone session
+## Low-level standalone session API
 
 Configure all four values once in the only required SSO module:
 
@@ -161,9 +236,10 @@ export const sso = createSsoServer({
 })
 ```
 
-Mount `sso.handle(request)` for `GET /auth/login`, `GET /auth/callback`,
-`GET /auth/profile`, and `POST /auth/logout`. Elysia, TanStack Start, and Next.js
-use Web `Request`/`Response` directly. Express and NestJS can use:
+Mount `sso.handle(request)` for the complete `/auth/*` namespace. It owns the
+login/callback, public UI configuration, embedded password and magic-link,
+profile, and logout endpoints. Elysia, TanStack Start, and Next.js use Web
+`Request`/`Response` directly. Express and NestJS can use:
 
 ```ts
 import { createNodeSsoHandler } from "@skycanvasstudio/sso/node"
@@ -193,7 +269,9 @@ const bootstrap = await getNextStandaloneSsoBootstrap({ sso })
 ```
 
 Mount the package provider directly; it creates the browser client from the
-bootstrap, so no `sso-client.ts` or application wrapper is needed:
+bootstrap, so no `sso-client.ts` or application wrapper is needed. For new
+TanStack Start applications, prefer the shorter `createTanStackSso` quickstart
+above, which does not require a bootstrap loader:
 
 ```tsx
 import { SsoProvider } from "@skycanvasstudio/sso/react"

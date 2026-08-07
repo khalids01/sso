@@ -39,6 +39,8 @@ export default function SignInForm({
       method === "linkedin" ||
       method === "github",
   );
+  const requestedProvider = new URLSearchParams(search).get("provider");
+  const autoStartProvider = socialMethods.find((method) => method === requestedProvider);
   const showSignup = !applicationPolicy || applicationPolicy.signUpMethods.length > 0;
 
   return (
@@ -70,7 +72,7 @@ export default function SignInForm({
       <div className="space-y-6">
         {socialMethods.length > 0 ? (
           <>
-            <SocialAuthButtons methods={socialMethods} />
+            <SocialAuthButtons methods={socialMethods} autoStartProvider={autoStartProvider} />
             {(showPassword || showMagicLink) ? (
               <AuthMethodDivider label="or continue with email" />
             ) : null}

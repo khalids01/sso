@@ -24,18 +24,42 @@ setup("provision and authenticate the selected E2E actor", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Welcome Back" })).toBeVisible();
   const passwordForm = page.getByRole("form", { name: "Password sign in" });
-  const emailInput = passwordForm.getByLabel("Email", { exact: true });
-  const passwordInput = passwordForm.getByLabel("Password", { exact: true });
+  if (await passwordForm.isVisible()) {
+    const emailInput = passwordForm.getByLabel("Email", { exact: true });
+    const passwordInput = passwordForm.getByLabel("Password", { exact: true });
 
-  await emailInput.fill(e2eEnv.E2E_ACTOR_EMAIL);
-  await passwordInput.fill(e2eEnv.E2E_ACTOR_PASSWORD);
-  await expect(emailInput).toHaveValue(e2eEnv.E2E_ACTOR_EMAIL);
-  await expect(passwordInput).toHaveValue(e2eEnv.E2E_ACTOR_PASSWORD);
+    await emailInput.fill(e2eEnv.E2E_ACTOR_EMAIL);
+    await passwordInput.fill(e2eEnv.E2E_ACTOR_PASSWORD);
+    await expect(emailInput).toHaveValue(e2eEnv.E2E_ACTOR_EMAIL);
+    await expect(passwordInput).toHaveValue(e2eEnv.E2E_ACTOR_PASSWORD);
 
-  await Promise.all([
-    page.waitForURL(/\/dashboard(?:\?.*)?$/),
-    passwordForm.getByRole("button", { name: "Sign in with password" }).click(),
-  ]);
+    await Promise.all([
+      page.waitForURL(/\/dashboard(?:\?.*)?$/),
+      passwordForm.getByRole("button", { name: "Sign in with password" }).click(),
+    ]);
+  } else {
+    const authModulePath = ["../../../packages/auth/src/", "index.server"].join("");
+    const { auth } = await import(authModulePath) as any;
+    const signIn = await auth.api.signInEmail({
+      body: {
+        email: e2eEnv.E2E_ACTOR_EMAIL,
+        password: e2eEnv.E2E_ACTOR_PASSWORD,
+      },
+      asResponse: true,
+    });
+    expect(signIn.ok, await signIn.text()).toBe(true);
+    const cookies = signIn.headers.getSetCookie().map((value: string) => {
+      const pair = value.split(";", 1)[0] ?? "";
+      const separator = pair.indexOf("=");
+      return {
+        name: pair.slice(0, separator),
+        value: pair.slice(separator + 1),
+        url: e2eEnv.E2E_API_ORIGIN,
+      };
+    });
+    await page.context().addCookies(cookies);
+    await page.goto("/dashboard");
+  }
 
   const response = await page.request.get(`${e2eEnv.E2E_API_ORIGIN}/session/context`);
   expect(response.ok()).toBeTruthy();

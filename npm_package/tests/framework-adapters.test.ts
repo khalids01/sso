@@ -13,6 +13,17 @@ describe("framework bootstrap adapters", () => {
     expect(calls).toBe(1);
   });
 
+  test("creates lazy Clerk-style middleware without loading server config", async () => {
+    let calls = 0;
+    const { createTanStackSsoMiddleware } = await import("../src/tanstack-start/index.js");
+    const middleware = createTanStackSsoMiddleware(async () => {
+      calls += 1;
+      return {} as never;
+    });
+    expect(middleware).toBeDefined();
+    expect(calls).toBe(0);
+  });
+
   test("validates Next.js integrations before reading request headers", async () => {
     const { getNextBetterAuthSsoBootstrap, getNextStandaloneSsoBootstrap } =
       await import("../src/next/index.js");

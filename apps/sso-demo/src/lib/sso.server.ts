@@ -1,17 +1,16 @@
-import { createSsoServer } from "@skycanvasstudio/sso/server";
+import { createTanStackSso } from "@skycanvasstudio/sso/tanstack-start";
 import { createDemoUser } from "./demo-user.server";
 import { getDemoSsoConfig } from "./sso-config.server";
 import type { DemoUser } from "./sso-types";
 
 const config = getDemoSsoConfig();
 
-export const sso = createSsoServer<DemoUser>({
-  clientId: config.clientId,
+export const skycanvas = createTanStackSso<DemoUser>({
+  publishableKey: config.clientId,
+  secretKey: config.sessionSecret,
   appUrl: config.appUrl,
-  baseUrl: config.ssoUrl,
-  sessionSecret: config.sessionSecret,
+  ssoUrl: config.ssoUrl,
+  interactionMode: "embedded",
+  oauthMode: "popup",
   onSignIn: createDemoUser,
-  onError(error) {
-    console.error("[sso-demo] SSO callback failed", error);
-  },
 });

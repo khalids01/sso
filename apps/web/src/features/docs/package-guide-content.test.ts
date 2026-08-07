@@ -21,11 +21,12 @@ describe("SSO integration guide", () => {
     const better = JSON.stringify(packageRecipes.better);
     const standalone = JSON.stringify(packageRecipes.manual);
     expect(better).toContain("<SsoProvider bootstrap={bootstrap}>");
-    expect(standalone).toContain("<SsoProvider bootstrap={bootstrap}>");
+    expect(standalone).toContain("<SkyCanvasProvider>");
+    expect(standalone).toContain("createTanStackSso");
+    expect(standalone).toContain("interactionMode");
+    expect(standalone).not.toContain("better-auth");
     expect(better).not.toContain("Add the React session provider");
     expect(standalone).not.toContain("Add SsoProvider for React");
-    for (const framework of frameworkTabs) {
-      expect(standalone).toContain(`\"tabLabel\":\"${framework}\"`);
-    }
+    for (const framework of frameworkTabs) expect(better).toContain(framework);
   });
 });

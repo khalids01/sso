@@ -1,6 +1,5 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
-import { AccountMenu } from "./auth/account-menu";
 
 export function AppShell() {
   return (
@@ -17,7 +16,10 @@ export function AppShell() {
             </span>
           </span>
         </Link>
-        <AccountMenu />
+        <nav className="flex gap-4 text-sm text-muted-foreground">
+          <Link to="/standalone">Standalone</Link>
+          <Link to="/better-auth">Better Auth</Link>
+        </nav>
       </header>
 
       <Outlet />

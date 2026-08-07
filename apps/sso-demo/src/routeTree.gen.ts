@@ -9,12 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StandaloneRouteImport } from './routes/standalone'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as BetterAuthRouteImport } from './routes/better-auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StandaloneDashboardRouteImport } from './routes/standalone_.dashboard'
+import { Route as BetterAuthDashboardRouteImport } from './routes/better-auth_.dashboard'
 
+const StandaloneRoute = StandaloneRouteImport.update({
+  id: '/standalone',
+  path: '/standalone',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BetterAuthRoute = BetterAuthRouteImport.update({
+  id: '/better-auth',
+  path: '/better-auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +36,99 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StandaloneDashboardRoute = StandaloneDashboardRouteImport.update({
+  id: '/standalone_/dashboard',
+  path: '/standalone/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BetterAuthDashboardRoute = BetterAuthDashboardRouteImport.update({
+  id: '/better-auth_/dashboard',
+  path: '/better-auth/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/better-auth': typeof BetterAuthRoute
   '/dashboard': typeof DashboardRoute
+  '/standalone': typeof StandaloneRoute
+  '/better-auth/dashboard': typeof BetterAuthDashboardRoute
+  '/standalone/dashboard': typeof StandaloneDashboardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/better-auth': typeof BetterAuthRoute
   '/dashboard': typeof DashboardRoute
+  '/standalone': typeof StandaloneRoute
+  '/better-auth/dashboard': typeof BetterAuthDashboardRoute
+  '/standalone/dashboard': typeof StandaloneDashboardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/better-auth': typeof BetterAuthRoute
   '/dashboard': typeof DashboardRoute
+  '/standalone': typeof StandaloneRoute
+  '/better-auth_/dashboard': typeof BetterAuthDashboardRoute
+  '/standalone_/dashboard': typeof StandaloneDashboardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/better-auth'
+    | '/dashboard'
+    | '/standalone'
+    | '/better-auth/dashboard'
+    | '/standalone/dashboard'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard'
-  id: '__root__' | '/' | '/dashboard'
+  to:
+    | '/'
+    | '/better-auth'
+    | '/dashboard'
+    | '/standalone'
+    | '/better-auth/dashboard'
+    | '/standalone/dashboard'
+  id:
+    | '__root__'
+    | '/'
+    | '/better-auth'
+    | '/dashboard'
+    | '/standalone'
+    | '/better-auth_/dashboard'
+    | '/standalone_/dashboard'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BetterAuthRoute: typeof BetterAuthRoute
   DashboardRoute: typeof DashboardRoute
+  StandaloneRoute: typeof StandaloneRoute
+  BetterAuthDashboardRoute: typeof BetterAuthDashboardRoute
+  StandaloneDashboardRoute: typeof StandaloneDashboardRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/standalone': {
+      id: '/standalone'
+      path: '/standalone'
+      fullPath: '/standalone'
+      preLoaderRoute: typeof StandaloneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/better-auth': {
+      id: '/better-auth'
+      path: '/better-auth'
+      fullPath: '/better-auth'
+      preLoaderRoute: typeof BetterAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +138,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/standalone_/dashboard': {
+      id: '/standalone_/dashboard'
+      path: '/standalone/dashboard'
+      fullPath: '/standalone/dashboard'
+      preLoaderRoute: typeof StandaloneDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/better-auth_/dashboard': {
+      id: '/better-auth_/dashboard'
+      path: '/better-auth/dashboard'
+      fullPath: '/better-auth/dashboard'
+      preLoaderRoute: typeof BetterAuthDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BetterAuthRoute: BetterAuthRoute,
   DashboardRoute: DashboardRoute,
+  StandaloneRoute: StandaloneRoute,
+  BetterAuthDashboardRoute: BetterAuthDashboardRoute,
+  StandaloneDashboardRoute: StandaloneDashboardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

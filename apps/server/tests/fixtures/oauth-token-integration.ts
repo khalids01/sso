@@ -174,6 +174,7 @@ try {
     exchange(concurrentCode, concurrentVerifier),
     exchange(concurrentCode, concurrentVerifier),
   ]);
+  const afterConcurrent = await exchange(concurrentCode, concurrentVerifier);
 
   const burnedVerifier = verifier();
   const burnedCode = await createCode(burnedVerifier);
@@ -316,6 +317,7 @@ try {
     refreshTokenPresent: Boolean(tokens.refresh_token),
     resourceIndicator: resourceIndicator.status,
     concurrent: concurrent.map((response) => response.status).sort(),
+    afterConcurrent: afterConcurrent.status,
     wrongVerifier: wrongVerifier.status,
     afterWrongVerifier: afterWrongVerifier.status,
     expired: expired.status,

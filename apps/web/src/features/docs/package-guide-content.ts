@@ -10,6 +10,82 @@ export type PackageRecipe = {
   samples: CodeSample[];
 };
 
+const clerkLikeManualRecipe: Pick<PackageRecipe, "description" | "samples"> = {
+  description:
+    "Recommended for new TypeScript applications. Install one package; Better Auth stays private inside New SSO. Embedded mode renders packaged sign-in/sign-up forms in your app, while hosted mode redirects to the SSO page. Social OAuth uses a popup and does not require another Google callback or JavaScript origin.",
+  samples: [
+    {
+      title: "Install one package",
+      filename: "Terminal",
+      description: "No Better Auth package, auth database, or consumer-side OAuth plugin is required.",
+      code: `bun add @skycanvasstudio/sso`,
+    },
+    {
+      title: "Add the two server keys",
+      filename: ".env",
+      description: "Copy the publishable key from SkyCanvas. Generate the secret key with openssl rand -base64 32; it encrypts this app's local session and must stay server-only.",
+      code: `SKYCANVAS_PUBLISHABLE_KEY=your_client_id
+SKYCANVAS_SECRET_KEY=replace_with_at_least_32_random_characters
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
+    },
+    {
+      title: "Configure SkyCanvas once",
+      filename: "src/lib/skycanvas.server.ts",
+      description: "Choose embedded forms or the hosted page here. Popup is recommended for social OAuth; redirect remains available.",
+      code: `import { createTanStackSso } from "@skycanvasstudio/sso/tanstack-start"
+import { env } from "./env.server"
+
+export const skycanvas = createTanStackSso({
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  secretKey: env.SKYCANVAS_SECRET_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
+  interactionMode: "embedded", // "hosted" redirects to the SSO auth page
+  oauthMode: "popup",          // or "redirect"
+})`,
+    },
+    {
+      title: "Add one middleware",
+      filename: "src/start.ts",
+      description: "It mounts the package auth routes and makes the verified session available as context.skycanvasAuth.",
+      code: `import { createServerOnlyFn, createStart } from "@tanstack/react-start"
+import { createTanStackSsoMiddleware } from "@skycanvasstudio/sso/tanstack-start"
+
+const loadSkycanvas = createServerOnlyFn(
+  () => import("./lib/skycanvas.server").then(({ skycanvas }) => skycanvas),
+)
+const skycanvasMiddleware = createTanStackSsoMiddleware(
+  loadSkycanvas,
+)
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [skycanvasMiddleware],
+}))`,
+    },
+    {
+      title: "Use the packaged UI anywhere",
+      filename: "src/routes/login.tsx",
+      description: "SignIn, SignUp, SsoAuth, and SsoAuthDialog automatically show only methods enabled for this application and use shadcn-compatible theme variables.",
+      code: `import "@skycanvasstudio/sso/styles.css"
+import { SignIn, SkyCanvasProvider } from "@skycanvasstudio/sso/react"
+
+export function LoginPage() {
+  return (
+    <SkyCanvasProvider>
+      <SignIn returnTo="/dashboard" />
+    </SkyCanvasProvider>
+  )
+}`,
+    },
+    {
+      title: "Register the app once in SkyCanvas",
+      filename: "SkyCanvas dashboard (not a project file)",
+      description: "Add your app origin and callback in SkyCanvas. Do not add this callback—or each consumer domain—to Google, GitHub, Facebook, or LinkedIn; those providers keep pointing only to New SSO.",
+      code: `Allowed origin: http://localhost:3000
+Callback URL:  http://localhost:3000/auth/callback`,
+    },
+  ],
+};
+
 export const packageRecipes: Record<GuideMode, PackageRecipe> = {
   better: {
     label: "Use SSO with Better Auth",
@@ -616,6 +692,7 @@ export function SignIn() {
 https://your-domain.example/auth/callback`,
       },
     ],
+    ...clerkLikeManualRecipe,
   },
 
   language: {
