@@ -14,6 +14,20 @@ For a new application, use the standalone integration below. Your application
 does **not** install Better Auth or create auth tables. Better Auth remains an
 internal implementation detail of the SkyCanvas SSO service.
 
+## Environment variables
+
+For the standalone Clerk-like integration, all SkyCanvas environment variables
+are **server-only**, including `SKYCANVAS_PUBLISHABLE_KEY`. The packaged React
+UI receives safe configuration from the server bootstrap and local auth routes.
+Do not create `VITE_SKYCANVAS_*` or `NEXT_PUBLIC_SKYCANVAS_*` variables.
+
+```bash
+# server environment only
+SKYCANVAS_PUBLISHABLE_KEY=your_client_id
+SKYCANVAS_SECRET_KEY=replace_with_at_least_32_random_characters
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com
+```
+
 ## TanStack Start quickstart (recommended)
 
 Create one server-only module:

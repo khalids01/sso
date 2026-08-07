@@ -21,12 +21,19 @@ const clerkLikeManualRecipe: Pick<PackageRecipe, "description" | "samples"> = {
       code: `bun add @skycanvasstudio/sso`,
     },
     {
-      title: "Add the two server keys",
-      filename: ".env",
-      description: "Copy the publishable key from SkyCanvas. Generate the secret key with openssl rand -base64 32; it encrypts this app's local session and must stay server-only.",
-      code: `SKYCANVAS_PUBLISHABLE_KEY=your_client_id
+      title: "Server environment (required)",
+      filename: ".env — server only",
+      description: "Put all three values in your server-only environment module. Despite its name, SKYCANVAS_PUBLISHABLE_KEY is read only by createTanStackSso on the server; SKYCANVAS_SECRET_KEY must never reach browser code.",
+      code: `# Server only — do not prefix these with VITE_ or NEXT_PUBLIC_
+SKYCANVAS_PUBLISHABLE_KEY=your_client_id
 SKYCANVAS_SECRET_KEY=replace_with_at_least_32_random_characters
 SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
+    },
+    {
+      title: "Client environment (not needed)",
+      filename: "No client .env entry",
+      description: "The packaged UI gets its safe configuration from the server bootstrap and local auth routes. Do not create VITE_SKYCANVAS_* or NEXT_PUBLIC_SKYCANVAS_* variables—not even for the publishable key.",
+      code: `No browser environment variables are required.`,
     },
     {
       title: "Configure SkyCanvas once",

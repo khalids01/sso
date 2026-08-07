@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StandaloneRouteImport } from './routes/standalone'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BetterAuthRouteImport } from './routes/better-auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,6 +21,16 @@ import { Route as BetterAuthDashboardRouteImport } from './routes/better-auth_.d
 const StandaloneRoute = StandaloneRouteImport.update({
   id: '/standalone',
   path: '/standalone',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -51,6 +63,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/better-auth': typeof BetterAuthRoute
   '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/standalone': typeof StandaloneRoute
   '/better-auth/dashboard': typeof BetterAuthDashboardRoute
   '/standalone/dashboard': typeof StandaloneDashboardRoute
@@ -59,6 +73,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/better-auth': typeof BetterAuthRoute
   '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/standalone': typeof StandaloneRoute
   '/better-auth/dashboard': typeof BetterAuthDashboardRoute
   '/standalone/dashboard': typeof StandaloneDashboardRoute
@@ -68,6 +84,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/better-auth': typeof BetterAuthRoute
   '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/standalone': typeof StandaloneRoute
   '/better-auth_/dashboard': typeof BetterAuthDashboardRoute
   '/standalone_/dashboard': typeof StandaloneDashboardRoute
@@ -78,6 +96,8 @@ export interface FileRouteTypes {
     | '/'
     | '/better-auth'
     | '/dashboard'
+    | '/login'
+    | '/signup'
     | '/standalone'
     | '/better-auth/dashboard'
     | '/standalone/dashboard'
@@ -86,6 +106,8 @@ export interface FileRouteTypes {
     | '/'
     | '/better-auth'
     | '/dashboard'
+    | '/login'
+    | '/signup'
     | '/standalone'
     | '/better-auth/dashboard'
     | '/standalone/dashboard'
@@ -94,6 +116,8 @@ export interface FileRouteTypes {
     | '/'
     | '/better-auth'
     | '/dashboard'
+    | '/login'
+    | '/signup'
     | '/standalone'
     | '/better-auth_/dashboard'
     | '/standalone_/dashboard'
@@ -103,6 +127,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BetterAuthRoute: typeof BetterAuthRoute
   DashboardRoute: typeof DashboardRoute
+  LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
   StandaloneRoute: typeof StandaloneRoute
   BetterAuthDashboardRoute: typeof BetterAuthDashboardRoute
   StandaloneDashboardRoute: typeof StandaloneDashboardRoute
@@ -115,6 +141,20 @@ declare module '@tanstack/react-router' {
       path: '/standalone'
       fullPath: '/standalone'
       preLoaderRoute: typeof StandaloneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -159,6 +199,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BetterAuthRoute: BetterAuthRoute,
   DashboardRoute: DashboardRoute,
+  LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
   StandaloneRoute: StandaloneRoute,
   BetterAuthDashboardRoute: BetterAuthDashboardRoute,
   StandaloneDashboardRoute: StandaloneDashboardRoute,
@@ -168,10 +210,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

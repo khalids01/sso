@@ -10,6 +10,9 @@ describe("SSO integration guide", () => {
     expect(guide).not.toContain("process.env");
     expect(guide).not.toContain("VITE_SSO_CLIENT_ID");
     expect(guide).not.toContain("NEXT_PUBLIC_SSO_CLIENT_ID");
+    expect(guide).toContain("Client environment (not needed)");
+    expect(guide).toContain("VITE_SKYCANVAS_*");
+    expect(guide).toContain("NEXT_PUBLIC_SKYCANVAS_*");
     expect(guide).not.toContain("createSsoBetterAuthProvider");
     expect(guide).not.toContain("createSsoBetterAuthClient");
     expect(guide).not.toContain("initialSession");

@@ -3,6 +3,7 @@ import { SkyCanvasProvider } from "@skycanvasstudio/sso/react";
 import { AppShell } from "@/components/app-shell";
 import { BetterAuthSsoProvider } from "@/lib/better-auth-client";
 import { getBetterAuthBootstrap } from "@/lib/better-auth-session";
+import appCss from "../index.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -15,6 +16,7 @@ export const Route = createRootRoute({
         content: "Reference TanStack application for the SSO authorization-code flow",
       },
     ],
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
   loader: async () => ({ betterAuthBootstrap: await getBetterAuthBootstrap() }),
   component: RootDocument,
