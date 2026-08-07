@@ -1,25 +1,13 @@
-import { SignIn } from "@skycanvasstudio/sso/react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Badge } from "@/components/ui/badge";
+import { createFileRoute } from "@tanstack/react-router";
+import { StandaloneLayout } from "@/features/standalone";
+import { getSsoBootstrap } from "@/lib/sso-session";
 
 export const Route = createFileRoute("/standalone")({
-  component: StandaloneSignInPage,
+  loader: async () => ({ bootstrap: await getSsoBootstrap() }),
+  component: StandaloneRouteLayout,
 });
 
-function StandaloneSignInPage() {
-  const navigate = useNavigate();
-
-  return (
-    <main className="mx-auto w-full max-w-md px-5 pt-10 md:pt-16">
-      <Badge className="mb-5">Clerk-like standalone</Badge>
-      <p className="mb-6 text-sm leading-6 text-muted-foreground">
-        This form is rendered by the npm package. Password authentication stays
-        inside the client application.
-      </p>
-      <SignIn
-        returnTo="/standalone/dashboard"
-        onSuccess={() => void navigate({ to: "/standalone/dashboard" })}
-      />
-    </main>
-  );
+function StandaloneRouteLayout() {
+  const { bootstrap } = Route.useLoaderData();
+  return <StandaloneLayout bootstrap={bootstrap} />;
 }
