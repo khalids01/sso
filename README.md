@@ -50,9 +50,9 @@ bun run dev
 ```
 
 The web app runs at [http://localhost:5002](http://localhost:5002), and the API runs at [http://localhost:5001](http://localhost:5001).
-The optional SSO demo runs at [http://localhost:5003](http://localhost:5003) after
-its application client and local environment are configured. See
-[`apps/sso-demo/README.md`](apps/sso-demo/README.md).
+The TanStack Start SSO reference runs at [http://localhost:5003](http://localhost:5003)
+after its application client and local environment are configured. Separate
+Elysia API and Next.js App Router references live beside it under `apps/`.
 
 Token issuance is disabled by default. Configure a stable `SSO_ISSUER` and set
 `ENABLE_OAUTH_TOKEN_ISSUANCE=true` only in an environment approved for the new
@@ -108,6 +108,8 @@ sso/
 ├── apps/
 │   ├── web/         # TanStack Start frontend and admin UI
 │   ├── sso-demo/    # TanStack Start reference relying-party application
+│   ├── sso-demo-elysia/ # React frontend + separate Elysia auth API
+│   ├── sso-demo-next/   # Next.js App Router reference application
 │   └── server/      # Elysia API server
 ├── packages/
 │   ├── auth/        # Better Auth configuration and session types

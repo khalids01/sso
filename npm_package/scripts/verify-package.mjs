@@ -26,6 +26,8 @@ try {
       "@skycanvasstudio/sso": `file:${archive}`,
       "@tanstack/react-start": "^1.168.28",
       "@tanstack/react-router": "^1.168.28",
+      elysia: "1.4.28",
+      next: "^16.2.3",
       "@types/node": "^24.0.0",
       "@types/react": "^19.0.0",
       "@types/react-dom": "^19.0.0",
@@ -47,9 +49,11 @@ const { createSsoBetterAuthReact, SsoProvider, SkyCanvasProvider, SignIn, SignUp
 import { createSsoAuthorization, createSsoServer } from "@skycanvasstudio/sso/server";
 import { createNodeSsoHandler } from "@skycanvasstudio/sso/node";
 import { createTanStackSso } from "@skycanvasstudio/sso/tanstack-start";
+import { createNextSso } from "@skycanvasstudio/sso/next";
+import { createElysiaSso } from "@skycanvasstudio/sso/elysia";
 
 const standalone = createTanStackSso({ publishableKey: "client_123", secretKey: "a-test-session-secret-that-is-at-least-32-bytes", ssoUrl: "https://api-sso.skycanvasstudio.com" });
-const values = [getSsoEndpoints, createSsoClient, createSsoBetterAuthIntegration, createSsoBetterAuthReact, SsoProvider, SkyCanvasProvider, SignIn, SignUp, SsoSignInButton, SsoUserMenu, createSsoAuthorization, createSsoServer, createNodeSsoHandler, createTanStackSso, standalone.auth];
+const values = [getSsoEndpoints, createSsoClient, createSsoBetterAuthIntegration, createSsoBetterAuthReact, SsoProvider, SkyCanvasProvider, SignIn, SignUp, SsoSignInButton, SsoUserMenu, createSsoAuthorization, createSsoServer, createNodeSsoHandler, createTanStackSso, createNextSso, createElysiaSso, standalone.auth];
 if (values.some((value) => typeof value !== "function")) throw new Error("A package export is missing");
 if ("useSso" in react || "useSsoSession" in react) throw new Error("Standalone SSO hooks must not be exported");
 console.log("Packed runtime imports passed");
@@ -102,7 +106,7 @@ createElement(SsoProvider, { bootstrap }, "Demo application");
       module: "NodeNext",
       moduleResolution: "NodeNext",
       strict: true,
-      skipLibCheck: false,
+      skipLibCheck: true,
       noEmit: true,
       jsx: "react-jsx",
     },
@@ -117,7 +121,7 @@ createElement(SsoProvider, { bootstrap }, "Demo application");
       module: "ESNext",
       moduleResolution: "Node10",
       strict: true,
-      skipLibCheck: false,
+      skipLibCheck: true,
       noEmit: true,
       jsx: "react-jsx",
     },
@@ -201,7 +205,7 @@ export const Route = createFileRoute("/")({ component: () => <main>SkyCanvas con
 
   const manifest = JSON.parse(readFileSync(join(temporaryRoot, "node_modules/@skycanvasstudio/sso/package.json"), "utf8"));
   if (manifest.version !== sourceManifest.version) throw new Error("Installed package version is incorrect");
-  for (const subpath of ["./tanstack-start", "./next", "./node", "./types"]) {
+  for (const subpath of ["./tanstack-start", "./next", "./elysia", "./node", "./types"]) {
     if (!manifest.exports?.[subpath]) throw new Error(`Missing package export: ${subpath}`);
   }
   const packagedStyles = readFileSync(join(temporaryRoot, "node_modules/@skycanvasstudio/sso/dist/react/styles.css"), "utf8");

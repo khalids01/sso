@@ -11,6 +11,7 @@ export interface SsoSignInButtonProps
   callbackURL?: string;
   onSignIn?: AsyncAction;
   loadingLabel?: string;
+  onAuthError?: (error: Error) => void;
 }
 
 export interface SsoMenuItem {
@@ -43,6 +44,7 @@ export function SsoSignInButton({
   callbackURL = "/",
   onSignIn,
   loadingLabel = "Signing in…",
+  onAuthError,
   children = "Sign in",
   className,
   disabled,
@@ -54,7 +56,15 @@ export function SsoSignInButton({
   const signIn = async () => {
     setLoading(true);
     try {
-      await (onSignIn ? onSignIn() : sso?.login(callbackURL));
+      if (onSignIn) {
+        await onSignIn();
+      } else if (sso) {
+        await sso.signIn({ returnTo: callbackURL });
+      } else {
+        throw new Error("SsoSignInButton requires SkyCanvasProvider or onSignIn");
+      }
+    } catch (cause) {
+      onAuthError?.(cause instanceof Error ? cause : new Error("SSO sign-in failed"));
     } finally {
       setLoading(false);
     }

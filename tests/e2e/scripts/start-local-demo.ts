@@ -16,7 +16,6 @@ if (e2eEnv.E2E_TARGET === "local") {
   const { default: prisma } = await import("../../../packages/db/src/client.server");
   const slug = `${e2eEnv.runPrefix}consumer-auth`;
   const standaloneClientId = `sso_client_${randomBytes(18).toString("base64url")}`;
-  const betterAuthClientId = `sso_client_${randomBytes(18).toString("base64url")}`;
 
   try {
     await prisma.application.deleteMany({ where: { slug } });
@@ -24,7 +23,7 @@ if (e2eEnv.E2E_TARGET === "local") {
       data: {
         slug,
         name: `E2E Consumer Auth ${e2eEnv.runId}`,
-        description: "Run-owned standalone and Better Auth consumer fixture",
+        description: "Run-owned Clerk-like package consumer fixture",
         signInMethods: ["password"],
         signUpMethods: ["password"],
         registrationMode: "open",
@@ -48,31 +47,11 @@ if (e2eEnv.E2E_TARGET === "local") {
               redirectUris: [`${e2eEnv.E2E_DEMO_ORIGIN}/auth/callback`],
               allowedOrigins: [e2eEnv.E2E_DEMO_ORIGIN],
             },
-            {
-              clientId: betterAuthClientId,
-              name: `E2E Better Auth Client ${e2eEnv.runId}`,
-              clientType: "public",
-              status: "active",
-              oauthDisabled: false,
-              skipConsent: true,
-              enableEndSession: false,
-              scopes: ["openid"],
-              tokenEndpointAuthMethod: "none",
-              grantTypes: ["authorization_code"],
-              responseTypes: ["code"],
-              public: true,
-              metadata: { runId: e2eEnv.runId, integration: "better-auth" },
-              redirectUris: [
-                `${e2eEnv.E2E_DEMO_ORIGIN}/api/better-auth/oauth2/callback/skycanvas`,
-              ],
-              allowedOrigins: [e2eEnv.E2E_DEMO_ORIGIN],
-            },
           ],
         },
       },
     });
     process.env.SSO_CLIENT_ID = standaloneClientId;
-    process.env.BETTER_AUTH_SSO_CLIENT_ID = betterAuthClientId;
   } finally {
     await prisma.$disconnect();
   }

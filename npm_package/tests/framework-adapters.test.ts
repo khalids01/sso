@@ -34,4 +34,30 @@ describe("framework bootstrap adapters", () => {
       "Next.js standalone SSO bootstrap requires an SsoServer",
     );
   });
+
+  test("creates complete Next.js route handlers without reading request headers", async () => {
+    const { createNextSso } = await import("../src/next/index.js");
+    const integration = createNextSso({
+      clientId: "client_next",
+      appUrl: "https://next.example.com",
+      baseUrl: "https://sso.example.com",
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+
+    expect(integration.handlers.GET).toBeFunction();
+    expect(integration.handlers.POST).toBeFunction();
+    expect(integration.handlers.OPTIONS).toBeFunction();
+    expect(integration.sso.callbackUrl).toBe("https://next.example.com/auth/callback");
+  });
+
+  test("creates an Elysia plugin for native Web requests", async () => {
+    const { createElysiaSso } = await import("../src/elysia/index.js");
+    const plugin = createElysiaSso({
+      handle: async () => Response.json({ ok: true }),
+    } as never);
+
+    const response = await plugin.handle(new Request("http://localhost/auth/profile"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+  });
 });

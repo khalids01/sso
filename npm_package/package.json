@@ -1,7 +1,7 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.7.1",
-  "description": "Clerk-style embedded and hosted authentication for SkyCanvas SSO, with optional Better Auth integration",
+  "version": "0.8.0",
+  "description": "Clerk-style embedded and popup authentication for React, TanStack Start, Next.js, and Elysia applications",
   "homepage": "https://sso.skycanvasstudio.com/docs",
   "repository": {
     "type": "git",
@@ -44,6 +44,9 @@
       ],
       "next": [
         "dist/next/index.d.ts"
+      ],
+      "elysia": [
+        "dist/elysia/index.d.ts"
       ],
       "node": [
         "dist/node/index.d.ts"
@@ -90,6 +93,11 @@
       "import": "./dist/next/index.js",
       "default": "./dist/next/index.js"
     },
+    "./elysia": {
+      "types": "./dist/elysia/index.d.ts",
+      "import": "./dist/elysia/index.js",
+      "default": "./dist/elysia/index.js"
+    },
     "./node": {
       "types": "./dist/node/index.d.ts",
       "import": "./dist/node/index.js",
@@ -113,25 +121,26 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
-    "jose": "^6.1.0"
+    "jose": "^6.1.0",
+    "react-hook-form": "^7.84.0"
   },
   "peerDependencies": {
     "@tanstack/react-start": ">=1.160.0",
+    "elysia": ">=1.4.0",
     "next": ">=14",
-    "react": ">=18",
-    "react-hook-form": "^7.84.0"
+    "react": ">=18"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-start": {
+      "optional": true
+    },
+    "elysia": {
       "optional": true
     },
     "next": {
       "optional": true
     },
     "react": {
-      "optional": true
-    },
-    "react-hook-form": {
       "optional": true
     }
   },
@@ -143,6 +152,7 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "better-auth": "1.6.23",
     "@tanstack/react-start": "^1.168.28",
+    "elysia": "^1.4.28",
     "next": "^16.2.3",
     "react": "19.2.5",
     "react-dom": "19.2.5",
@@ -164,6 +174,8 @@
     "embedded-auth",
     "passwordless",
     "tanstack-start",
+    "nextjs",
+    "elysia",
     "skycanvas"
   ]
 }

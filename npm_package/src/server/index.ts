@@ -333,14 +333,16 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
   }
 
   async function callback(request: Request): Promise<Response> {
+    let callbackFlow: SsoAuthorizationFlow | null = null;
     try {
       const url = new URL(request.url);
+      const state = url.searchParams.get("state");
+      const flow = await unseal<SsoAuthorizationFlow>(readCookie(request, cookieConfig.flowName), key);
+      callbackFlow = flow;
+      if (!state || flow.state !== state) throw new Error("SSO state mismatch");
       if (url.searchParams.has("error")) throw new Error("SSO authorization was denied");
       const code = url.searchParams.get("code");
-      const state = url.searchParams.get("state");
-      if (!code || !state) throw new Error("SSO callback is missing code or state");
-      const flow = await unseal<SsoAuthorizationFlow>(readCookie(request, cookieConfig.flowName), key);
-      if (flow.state !== state) throw new Error("SSO state mismatch");
+      if (!code) throw new Error("SSO callback is missing code");
 
       const callbackKey = `${options.clientId}:${state}`;
       const existing = pendingCallbacks.get(callbackKey);
@@ -369,7 +371,11 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
         );
         const flowCookie = serializeCookie(cookieConfig.flowName, "", 0, cookieConfig);
         return flow.popup
-          ? popupCompletionResponse(authorization.returnTo, appOrigin, sessionCookie, flowCookie)
+          ? popupCompletionResponse({
+              returnTo: authorization.returnTo,
+              openerOrigin: redirectOrigin,
+              cookies: [sessionCookie, flowCookie],
+            })
           : redirectResponse(
               new URL(authorization.returnTo, redirectOrigin),
               sessionCookie,
@@ -394,6 +400,15 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       }
     } catch (error) {
       options.onError?.(error, request);
+      if (callbackFlow?.popup) {
+        return popupCompletionResponse({
+          returnTo: callbackFlow.returnTo,
+          openerOrigin: redirectOrigin,
+          error: "authentication_failed",
+          message: error instanceof Error ? error.message : "SSO authentication failed",
+          cookies: [serializeCookie(cookieConfig.flowName, "", 0, cookieConfig)],
+        });
+      }
       return Response.json(
         { error: "invalid_sso_callback" },
         {
@@ -442,7 +457,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
 
   async function embeddedPassword(request: Request, intent: "login" | "signup") {
     const origin = request.headers.get("origin");
-    if (origin && origin !== appOrigin) {
+    if (origin && !isTrustedOrigin(origin)) {
       return Response.json({ error: "forbidden" }, { status: 403 });
     }
     let body: Record<string, unknown>;
@@ -474,7 +489,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       body: JSON.stringify({
         clientId: options.clientId,
         redirectUri: callbackUrl,
-        origin: appOrigin,
+        origin: redirectOrigin,
         state: authorization.flow.state,
         nonce: authorization.flow.nonce,
         codeChallenge: authorization.url.searchParams.get("code_challenge"),
@@ -511,7 +526,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
 
   async function magicLink(request: Request) {
     const origin = request.headers.get("origin");
-    if (origin && origin !== appOrigin) {
+    if (origin && !isTrustedOrigin(origin)) {
       return Response.json({ error: "forbidden" }, { status: 403 });
     }
     let body: Record<string, unknown>;
@@ -540,7 +555,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       body: JSON.stringify({
         clientId: options.clientId,
         redirectUri: callbackUrl,
-        origin: appOrigin,
+        origin: redirectOrigin,
         state: authorization.flow.state,
         nonce: authorization.flow.nonce,
         codeChallenge: authorization.url.searchParams.get("code_challenge"),
@@ -585,7 +600,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
   async function logout(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
     const origin = request.headers.get("origin");
-    if (origin && !trustedOrigins.has(new URL(origin).origin)) {
+    if (origin && !isTrustedOrigin(origin)) {
       return Response.json({ error: "forbidden" }, { status: 403 });
     }
     const global = requestUrl.searchParams.get("global") === "true";
@@ -608,20 +623,48 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
 
   async function handle(request: Request): Promise<Response> {
     const { pathname } = new URL(request.url);
-    if (pathname === paths.login && request.method === "GET") return login(request);
-    if (pathname === paths.callback && request.method === "GET") return callback(request);
-    if (pathname === paths.config && request.method === "GET") return config();
-    if (pathname === paths.passwordLogin && request.method === "POST") return passwordLogin(request);
-    if (pathname === paths.passwordSignup && request.method === "POST") return passwordSignup(request);
-    if (pathname === paths.magicLink && request.method === "POST") return magicLink(request);
-    if (pathname === paths.profile && request.method === "GET") return profile(request);
-    if (pathname === paths.logout && request.method === "POST") return logout(request);
-    if (
+    const isSsoPath = Object.values(paths).includes(pathname);
+    if (request.method === "OPTIONS" && isSsoPath) {
+      return withCors(request, new Response(null, { status: 204 }));
+    }
+    let response: Response | null = null;
+    if (pathname === paths.login && request.method === "GET") response = await login(request);
+    else if (pathname === paths.callback && request.method === "GET") response = await callback(request);
+    else if (pathname === paths.config && request.method === "GET") response = await config();
+    else if (pathname === paths.passwordLogin && request.method === "POST") response = await passwordLogin(request);
+    else if (pathname === paths.passwordSignup && request.method === "POST") response = await passwordSignup(request);
+    else if (pathname === paths.magicLink && request.method === "POST") response = await magicLink(request);
+    else if (pathname === paths.profile && request.method === "GET") response = await profile(request);
+    else if (pathname === paths.logout && request.method === "POST") response = await logout(request);
+    else if (
       pathname === paths.logout &&
       request.method === "GET" &&
       new URL(request.url).searchParams.get("global") === "true"
-    ) return logout(request);
-    return Response.json({ error: "not_found" }, { status: 404 });
+    ) response = await logout(request);
+    return withCors(
+      request,
+      response ?? Response.json({ error: "not_found" }, { status: 404 }),
+    );
+  }
+
+  function isTrustedOrigin(value: string) {
+    try {
+      return trustedOrigins.has(new URL(value).origin);
+    } catch {
+      return false;
+    }
+  }
+
+  function withCors(request: Request, response: Response) {
+    const value = request.headers.get("origin");
+    if (!value || !isTrustedOrigin(value)) return response;
+    const origin = new URL(value).origin;
+    response.headers.set("access-control-allow-origin", origin);
+    response.headers.set("access-control-allow-credentials", "true");
+    response.headers.set("access-control-allow-methods", "GET, POST, OPTIONS");
+    response.headers.set("access-control-allow-headers", "Content-Type");
+    response.headers.append("vary", "Origin");
+    return response;
   }
 
   return {
@@ -647,20 +690,29 @@ function parseSocialProvider(value: string | null) {
     : undefined;
 }
 
-function popupCompletionResponse(
-  returnTo: string,
-  appOrigin: string,
-  ...cookies: string[]
-) {
-  const payload = jsonForInlineScript({ type: "skycanvas:sso:complete", returnTo });
-  const origin = jsonForInlineScript(appOrigin);
-  const fallback = jsonForInlineScript(new URL(returnTo, appOrigin).toString());
+function popupCompletionResponse(options: {
+  returnTo: string;
+  openerOrigin: string;
+  error?: string;
+  message?: string;
+  cookies: string[];
+}) {
+  const payload = jsonForInlineScript({
+    type: "skycanvas:sso:complete",
+    returnTo: options.returnTo,
+    ...(options.error ? { error: options.error } : {}),
+    ...(options.message ? { message: options.message } : {}),
+  });
+  const origin = jsonForInlineScript(options.openerOrigin);
+  const fallback = jsonForInlineScript(new URL(options.returnTo, options.openerOrigin).toString());
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Signed in</title></head><body><script>if(window.opener){window.opener.postMessage(${payload},${origin});window.close()}else{window.location.replace(${fallback})}</script></body></html>`;
   const headers = new Headers({
     "cache-control": "no-store",
     "content-type": "text/html; charset=utf-8",
+    "content-security-policy": "default-src 'none'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+    "x-content-type-options": "nosniff",
   });
-  for (const cookie of cookies) headers.append("set-cookie", cookie);
+  for (const cookie of options.cookies) headers.append("set-cookie", cookie);
   return new Response(html, { status: 200, headers });
 }
 

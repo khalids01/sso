@@ -306,6 +306,52 @@ describe("framework-independent SSO server", () => {
     expect(response.headers.getSetCookie().some((cookie) => cookie.startsWith("sso_session_"))).toBe(true);
   });
 
+  test("notifies the opener when popup authorization is denied", async () => {
+    const sso = createSsoServer({
+      clientId,
+      appUrl: "https://auth-api.example.com",
+      redirectOrigin: "https://app.example.com",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const login = await sso.login(new Request(
+      "https://auth-api.example.com/auth/login?popup=true&returnTo=/dashboard",
+    ));
+    const authorizationUrl = new URL(requiredHeader(login, "location"));
+    const response = await sso.callback(new Request(
+      `https://auth-api.example.com/auth/callback?error=access_denied&state=${requiredParam(authorizationUrl, "state")}`,
+      { headers: { cookie: cookiePair(requiredHeader(login, "set-cookie")) } },
+    ));
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("authentication_failed");
+    expect(html).toContain("https://app.example.com");
+    expect(html).not.toContain("https://auth-api.example.com/dashboard");
+  });
+
+  test("supports a separate trusted frontend origin with credentialed CORS", async () => {
+    const sso = createSsoServer({
+      clientId,
+      appUrl: "https://auth-api.example.com",
+      redirectOrigin: "https://app.example.com",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const response = await sso.handle(new Request(
+      "https://auth-api.example.com/auth/profile",
+      { headers: { origin: "https://app.example.com" } },
+    ));
+    const preflight = await sso.handle(new Request(
+      "https://auth-api.example.com/auth/profile",
+      { method: "OPTIONS", headers: { origin: "https://app.example.com" } },
+    ));
+
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://app.example.com");
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(preflight.status).toBe(204);
+  });
+
   test("reports actionable server configuration errors", () => {
     expect(() => createSsoServer({
       clientId,

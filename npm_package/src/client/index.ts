@@ -13,6 +13,7 @@ export interface SsoClientOptions<TUser extends SsoUser = SsoUser> {
   oauthMode?: "redirect" | "popup";
   fetch?: typeof fetch;
   navigate?: (url: string) => void;
+  popupTimeoutMs?: number;
 }
 
 export interface SsoLoginOptions {
@@ -65,7 +66,10 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
     const target = buildLoginTarget(loginOptions);
     if (mode === "popup") {
       target.searchParams.set("popup", "true");
-      await popupSignIn(baseUrl ? target.toString() : `${target.pathname}${target.search}`);
+      await popupSignIn(
+        baseUrl ? target.toString() : `${target.pathname}${target.search}`,
+        options.popupTimeoutMs,
+      );
       return;
     }
     const navigate = options.navigate ?? defaultNavigate;
@@ -74,8 +78,12 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
 
   const completeEmbeddedAuthorization = async (redirectUrl: string) => {
     const callback = new URL(redirectUrl);
-    const currentOrigin = typeof window === "undefined" ? undefined : window.location.origin;
-    if (currentOrigin && callback.origin !== currentOrigin) {
+    const expectedOrigin = baseUrl
+      ? new URL(baseUrl).origin
+      : typeof window === "undefined"
+        ? undefined
+        : window.location.origin;
+    if (expectedOrigin && callback.origin !== expectedOrigin) {
       throw new Error("SSO embedded callback returned an unexpected origin");
     }
     const response = await getFetch(options.fetch)(callback.toString(), {
@@ -190,24 +198,40 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
   };
 }
 
-async function popupSignIn(url: string): Promise<void> {
+async function popupSignIn(url: string, timeoutMs = 10 * 60_000): Promise<void> {
   if (typeof window === "undefined") {
     throw new Error("SSO popup sign-in requires a browser");
   }
-  const popup = window.open(url, "skycanvas-sso", "popup=yes,width=520,height=720");
+  const popupUrl = new URL(url, window.location.href);
+  const expectedMessageOrigin = popupUrl.origin;
+  const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - 520) / 2));
+  const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - 720) / 2));
+  const popup = window.open(
+    popupUrl.toString(),
+    "skycanvas-sso",
+    `popup=yes,width=520,height=720,left=${left},top=${top}`,
+  );
   if (!popup) {
     window.location.assign(url.replace(/([?&])popup=true(&|$)/, "$1").replace(/[?&]$/, ""));
     return;
   }
   await new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => finish(new Error("SSO popup timed out")), 10 * 60_000);
+    const timeout = window.setTimeout(() => finish(new Error("SSO popup timed out")), timeoutMs);
     const poll = window.setInterval(() => {
       if (popup.closed) finish(new Error("SSO popup was closed"));
     }, 400);
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+      if (event.origin !== expectedMessageOrigin) return;
       if (event.source !== popup) return;
       if (event.data?.type !== "skycanvas:sso:complete") return;
+      if (event.data?.error) {
+        finish(new Error(
+          typeof event.data.message === "string"
+            ? event.data.message
+            : "SSO authentication failed",
+        ));
+        return;
+      }
       finish();
     };
     const finish = (error?: Error) => {

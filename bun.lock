@@ -53,13 +53,12 @@
     "apps/sso-demo": {
       "name": "sso-demo",
       "dependencies": {
-        "@skycanvasstudio/sso": "^0.7.1",
+        "@skycanvasstudio/sso": "workspace:*",
         "@tailwindcss/vite": "^4.3.3",
         "@tanstack/react-router": "^1.170.18",
         "@tanstack/react-start": "^1.168.28",
         "@tanstack/router-plugin": "^1.168.20",
         "@vitejs/plugin-react": "^6.0.3",
-        "better-auth": "1.6.23",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-react": "^1.8.0",
@@ -77,6 +76,40 @@
         "shadcn": "^4.13.0",
         "typescript": "catalog:",
         "vite": "^8.1.5",
+      },
+    },
+    "apps/sso-demo-elysia": {
+      "name": "sso-demo-elysia",
+      "dependencies": {
+        "@skycanvasstudio/sso": "workspace:*",
+        "@vitejs/plugin-react": "^6.0.3",
+        "elysia": "^1.4.29",
+        "react": "19.2.5",
+        "react-dom": "19.2.5",
+        "react-hook-form": "^7.84.0",
+        "vite": "^8.1.5",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.9",
+        "@types/react": "19.2.14",
+        "@types/react-dom": "19.2.3",
+        "typescript": "catalog:",
+      },
+    },
+    "apps/sso-demo-next": {
+      "name": "sso-demo-next",
+      "dependencies": {
+        "@skycanvasstudio/sso": "workspace:*",
+        "next": "^16.2.3",
+        "react": "19.2.5",
+        "react-dom": "19.2.5",
+        "react-hook-form": "^7.84.0",
+      },
+      "devDependencies": {
+        "@types/node": "^24.0.0",
+        "@types/react": "19.2.14",
+        "@types/react-dom": "19.2.3",
+        "typescript": "catalog:",
       },
     },
     "apps/web": {
@@ -143,10 +176,11 @@
     },
     "npm_package": {
       "name": "@skycanvasstudio/sso",
-      "version": "0.7.1",
+      "version": "0.8.0",
       "dependencies": {
         "@base-ui/react": "^1.2.0",
         "jose": "^6.1.0",
+        "react-hook-form": "^7.84.0",
       },
       "devDependencies": {
         "@tanstack/react-start": "^1.168.28",
@@ -156,6 +190,7 @@
         "@types/react-dom": "^19.0.0",
         "@typescript/native": "npm:typescript@^7.0.2",
         "better-auth": "1.6.23",
+        "elysia": "^1.4.28",
         "next": "^16.2.3",
         "react": "19.2.5",
         "react-dom": "19.2.5",
@@ -163,12 +198,13 @@
       },
       "peerDependencies": {
         "@tanstack/react-start": ">=1.160.0",
+        "elysia": ">=1.4.0",
         "next": ">=14",
         "react": ">=18",
-        "react-hook-form": "^7.84.0",
       },
       "optionalPeers": [
         "@tanstack/react-start",
+        "elysia",
         "next",
         "react",
       ],
@@ -1964,6 +2000,10 @@
 
     "sso-demo": ["sso-demo@workspace:apps/sso-demo"],
 
+    "sso-demo-elysia": ["sso-demo-elysia@workspace:apps/sso-demo-elysia"],
+
+    "sso-demo-next": ["sso-demo-next@workspace:apps/sso-demo-next"],
+
     "standard-as-callback": ["standard-as-callback@2.1.0", "", {}, "sha512-qoRRSyROncaz1z0mvYqIE4lCd9p2R90i6GxW3uZv5ucSu8tU7B5HXUP1gG8pVZsYNVaXjk8ClXHPttLyxAL48A=="],
 
     "standardwebhooks": ["standardwebhooks@1.0.0", "", { "dependencies": { "@stablelib/base64": "^1.0.0", "fast-sha256": "^1.3.0" } }, "sha512-BbHGOQK9olHPMvQNHWul6MYlrRTAOKn03rOe4A8O3CLWhNf4YHBqq2HJKKC+sfqpxiBY52pNeesD6jIiLDz8jg=="],
@@ -2437,8 +2477,6 @@
     "shadcn/postcss": ["postcss@8.5.19", "", { "dependencies": { "nanoid": "^3.3.12", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-Mz8SaolMd8nB+G13WkORcxQKHZ/NE4xXevtkJHVuG+guo9/wYKlIMTKAqGdEmYOXR2ijPjTYNHssizdaVSUNdQ=="],
 
     "shadcn/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
-
-    "sso-demo/@skycanvasstudio/sso": ["@skycanvasstudio/sso@0.7.1", "", { "dependencies": { "@base-ui/react": "^1.2.0", "jose": "^6.1.0" }, "peerDependencies": { "@tanstack/react-start": ">=1.160.0", "next": ">=14", "react": ">=18" }, "optionalPeers": ["@tanstack/react-start", "next", "react"] }, "sha512-ExyyrvJKTBCgq8bVzKyaYGR3Iset4N0MrgzAFw7cQBq5o1BUicBIULB+u+p4bM3do9MMiTdBcQBHtCBQEdOzRg=="],
 
     "sso-demo/zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
 

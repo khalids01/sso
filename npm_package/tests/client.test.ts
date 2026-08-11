@@ -111,3 +111,102 @@ test("browser client uses top-level navigation for global logout by default", as
     "https://app.example.com/auth/logout?global=true&returnTo=%2Fsigned-out",
   );
 });
+
+test("popup sign-in accepts completion from a separate auth-route origin", async () => {
+  const browser = installPopupBrowser("https://frontend.example.com");
+  try {
+    const client = createSsoClient({
+      baseUrl: "https://auth-api.example.com",
+      oauthMode: "popup",
+      popupTimeoutMs: 1_000,
+    });
+    const pending = client.signIn({ returnTo: "/dashboard" });
+    browser.complete("https://auth-api.example.com", {
+      type: "skycanvas:sso:complete",
+      returnTo: "/dashboard",
+    });
+    await pending;
+
+    expect(browser.openedUrl).toContain("https://auth-api.example.com/auth/login");
+    expect(browser.openedUrl).toContain("popup=true");
+    expect(browser.popup.closed).toBe(true);
+  } finally {
+    browser.restore();
+  }
+});
+
+test("popup sign-in surfaces callback errors", async () => {
+  const browser = installPopupBrowser("https://frontend.example.com");
+  try {
+    const client = createSsoClient({
+      baseUrl: "https://auth-api.example.com",
+      oauthMode: "popup",
+      popupTimeoutMs: 1_000,
+    });
+    const pending = client.signIn();
+    browser.complete("https://auth-api.example.com", {
+      type: "skycanvas:sso:complete",
+      error: "authentication_failed",
+      message: "Access was denied",
+    });
+
+    await expect(pending).rejects.toThrow("Access was denied");
+  } finally {
+    browser.restore();
+  }
+});
+
+function installPopupBrowser(frontendOrigin: string) {
+  const originalWindow = globalThis.window;
+  const listeners = new Set<(event: MessageEvent) => void>();
+  const popup = {
+    closed: false,
+    close() { this.closed = true; },
+  };
+  let openedUrl = "";
+  const fakeWindow = {
+    location: {
+      origin: frontendOrigin,
+      href: `${frontendOrigin}/`,
+      assign() {},
+    },
+    screenX: 0,
+    screenY: 0,
+    outerWidth: 1440,
+    outerHeight: 900,
+    open(url: string | URL) {
+      openedUrl = String(url);
+      return popup;
+    },
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
+    addEventListener(type: string, listener: (event: MessageEvent) => void) {
+      if (type === "message") listeners.add(listener);
+    },
+    removeEventListener(type: string, listener: (event: MessageEvent) => void) {
+      if (type === "message") listeners.delete(listener);
+    },
+  };
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: fakeWindow,
+  });
+
+  return {
+    popup,
+    get openedUrl() { return openedUrl; },
+    complete(origin: string, data: unknown) {
+      for (const listener of listeners) {
+        listener({ origin, source: popup, data } as unknown as MessageEvent);
+      }
+    },
+    restore() {
+      Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        value: originalWindow,
+      });
+    },
+  };
+}

@@ -58,6 +58,7 @@ export type {
 } from "../react/index.js";
 
 export type { NextBetterAuthServerLike } from "../next/index.js";
+export type { ElysiaSsoOptions } from "../elysia/index.js";
 
 export type {
   NodeHeaderValue,
