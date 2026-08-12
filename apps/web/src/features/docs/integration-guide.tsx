@@ -12,9 +12,15 @@ import {
   Menu,
   Server,
   ShieldCheck,
+  TriangleAlert,
   X,
 } from "lucide-react";
-import { securityChecklist, type CodeSample } from "./integration-guide-content";
+import {
+  integrationComparison,
+  securityChecklist,
+  troubleshootingItems,
+  type CodeSample,
+} from "./integration-guide-content";
 import { CopyCodeBlock } from "./copy-code-block";
 import ssoAgentGuide from "./sso-agent-guide.md?raw";
 import { packageRecipes, type GuideMode } from "./package-guide-content";
@@ -45,6 +51,9 @@ export function IntegrationGuide() {
     {
       label: "Reference",
       items: [
+        { label: "Choose an integration", href: "#choose-integration" },
+        { label: "SDK reference", href: "#sdk-reference" },
+        { label: "Troubleshooting", href: "#troubleshooting" },
         { label: "Security checklist", href: "#security" },
       ],
     },
@@ -148,10 +157,47 @@ export function IntegrationGuide() {
               </Callout>
             </section>
 
+            <section id="choose-integration" className="scroll-mt-24 border-b border-[#292e42] py-14">
+              <SectionEyebrow>Architecture</SectionEyebrow>
+              <h2 className={headingClass}>Choose who owns the application session</h2>
+              <p className={leadClass}>
+                SkyCanvas always owns central identity and upstream OAuth callbacks. Your integration choice decides
+                how the consuming application proves authentication on later requests.
+              </p>
+              <div className="mt-8 overflow-x-auto rounded-xl border border-[#292e42]">
+                <table className="min-w-[760px] w-full border-collapse text-left text-sm">
+                  <thead className="bg-[#161822] text-xs text-[#7f849c]">
+                    <tr>
+                      <TableHead>Integration</TableHead>
+                      <TableHead>Best for</TableHead>
+                      <TableHead>Session owner</TableHead>
+                      <TableHead>App credential</TableHead>
+                      <TableHead>New auth server?</TableHead>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {integrationComparison.map((row) => (
+                      <tr key={row.mode} className="border-t border-[#292e42] bg-[#111522] align-top">
+                        <TableCell strong>{row.mode}</TableCell>
+                        <TableCell>{row.chooseWhen}</TableCell>
+                        <TableCell>{row.sessionOwner}</TableCell>
+                        <TableCell>{row.credential}</TableCell>
+                        <TableCell>{row.appAuthServer}</TableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
             <section id="selected-guide" className="scroll-mt-24 border-b border-[#292e42] py-14">
               <SectionEyebrow>Selected guide</SectionEyebrow>
               <h2 className={headingClass}>{activeRecipe.label}</h2>
-              <p className={leadClass}>Complete these steps in order and keep all OAuth tokens on the server.</p>
+              <p className={leadClass}>
+                {authMode === "react"
+                  ? "Complete these steps in order. The SDK uses short-lived, application-scoped browser tokens; your API must verify them before returning protected data."
+                  : "Complete these steps in order. OAuth tokens and session secrets stay on the server for this integration."}
+              </p>
 
               {authMode === "better" ? <BetterAuthPrerequisites /> : null}
 
@@ -170,6 +216,35 @@ export function IntegrationGuide() {
               </ol>
             </section>
 
+            <section id="sdk-reference" className="scroll-mt-24 border-b border-[#292e42] py-14">
+              <SectionEyebrow>React SDK</SectionEyebrow>
+              <h2 className={headingClass}>Components and hooks at a glance</h2>
+              <p className={leadClass}>
+                These APIs are available below <InlineCode>SkyCanvasProvider</InlineCode> in standalone integrations.
+                Better Auth integrations use the typed provider and hooks returned by
+                <InlineCode>createSsoBetterAuthReact()</InlineCode>.
+              </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                {[
+                  ["<SignIn /> / <SignUp />", "Hosted sign-in for React-only apps; hosted or embedded methods in full-stack apps."],
+                  ["<SignedIn /> / <SignedOut />", "Conditionally render UI after the provider has resolved authentication state."],
+                  ["useAuth()", "Read isLoaded, isSignedIn, userId, session, getToken, and signOut."],
+                  ["useUser()", "Read the verified SkyCanvas user and loading/authentication state."],
+                  ["<SsoUserMenu />", "Ready-made account menu, profile summary, custom links, and logout."],
+                  ["createSsoAccessTokenVerifier()", "Cache public metadata/JWKS and verify React-only Bearer tokens in an application API."],
+                ].map(([name, description]) => (
+                  <div key={name} className="rounded-xl border border-[#292e42] bg-[#111522] p-4">
+                    <code className="font-mono text-sm text-[#7dcfff]">{name}</code>
+                    <p className="mt-2 text-sm leading-6 text-[#a9b1d6]">{description}</p>
+                  </div>
+                ))}
+              </div>
+              <Callout>
+                <InlineCode>SignedIn</InlineCode> protects presentation, not data. Always enforce authentication again
+                in the server loader, route handler, or API that returns protected information.
+              </Callout>
+            </section>
+
             <section id="agent-guide" className="scroll-mt-24 border-b border-[#292e42] py-14">
               <SectionEyebrow>Agent handoff</SectionEyebrow>
               <h2 className={headingClass}>Give any coding agent the complete context</h2>
@@ -184,6 +259,23 @@ export function IntegrationGuide() {
                     code: ssoAgentGuide,
                   }}
                 />
+              </div>
+            </section>
+
+            <section id="troubleshooting" className="scroll-mt-24 border-b border-[#292e42] py-14">
+              <SectionEyebrow>Common problems</SectionEyebrow>
+              <h2 className={headingClass}>Troubleshooting</h2>
+              <div className="mt-7 space-y-3">
+                {troubleshootingItems.map((item) => (
+                  <details key={item.problem} className="group rounded-xl border border-[#292e42] bg-[#111522] p-4">
+                    <summary className="flex cursor-pointer list-none items-center gap-3 text-sm font-medium text-[#f4f6ff]">
+                      <TriangleAlert className="size-4 shrink-0 text-[#e0af68]" />
+                      {item.problem}
+                      <ChevronRight className="ml-auto size-4 transition group-open:rotate-90" />
+                    </summary>
+                    <p className="ml-7 mt-3 text-sm leading-6 text-[#a9b1d6]">{item.fix}</p>
+                  </details>
+                ))}
               </div>
             </section>
 
@@ -219,6 +311,14 @@ export function IntegrationGuide() {
       </div>
     </div>
   );
+}
+
+function TableHead({ children }: { children: ReactNode }) {
+  return <th className="px-4 py-3 font-medium">{children}</th>;
+}
+
+function TableCell({ children, strong = false }: { children: ReactNode; strong?: boolean }) {
+  return <td className={`px-4 py-4 leading-6 ${strong ? "font-medium text-[#f4f6ff]" : "text-[#a9b1d6]"}`}>{children}</td>;
 }
 
 function BetterAuthPrerequisites() {
@@ -298,7 +398,7 @@ function GuidePicker({
             ["react", "React-only app"],
             ["better", "Existing Better Auth"],
             ["other", "Another auth library"],
-            ["manual", "No auth library"],
+            ["manual", "Full-stack standalone"],
             ["language", "Non-JavaScript backend"],
           ]}
         />

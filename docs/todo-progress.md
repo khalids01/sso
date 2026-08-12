@@ -116,6 +116,11 @@ deferred.
 
 ## Latest Verification
 
+- The public documentation now starts with a session-ownership comparison and
+  provides end-to-end React-only, full-stack standalone, Better Auth, generic
+  OAuth/OIDC, and non-JavaScript paths. It includes protected-API examples,
+  React SDK reference, exact callback/origin guidance, production security,
+  troubleshooting, and an updated coding-agent handoff.
 - `@skycanvasstudio/sso` 0.9 adds `SkyCanvasProvider` public-client props for
   React-only apps, automatic popup callback completion, PKCE, JWKS verification,
   session restoration, and backend `verifySsoAccessToken()` support. The

@@ -6,22 +6,51 @@ into the application.
 
 ## First choose one session owner
 
-1. **Better Auth**: Better Auth owns users, accounts, callback handling, cookies,
+1. **React-only public client**: the SkyCanvas browser SDK owns the local
+   short-lived token session; the application API verifies Bearer tokens.
+2. **Better Auth**: Better Auth owns users, accounts, callback handling, cookies,
    and sessions.
-2. **Another auth library**: that library owns the callback and session; use
+3. **Another auth library**: that library owns the callback and session; use
    SkyCanvas provider metadata only.
-3. **No auth library**: `createSsoServer` owns the OAuth flow and encrypted local
+4. **Full-stack without an auth library**: `createSsoServer` owns the OAuth flow and encrypted local
    application session.
-4. **Non-JavaScript backend**: use a maintained OAuth 2.0/OIDC library; do not
+5. **Non-JavaScript backend**: use a maintained OAuth 2.0/OIDC library; do not
    install the npm package.
 
 Never combine Better Auth session hooks with the standalone `SsoProvider`.
 
 ## Environment rule
 
-Read and validate environment values in the application's server-only env
-module. Pass explicit values to SkyCanvas exactly once. Never pass the complete
-environment object and never create `VITE_SSO_*` or `NEXT_PUBLIC_SSO_*` copies.
+Session secrets and full-stack configuration belong in the application's
+server-only env module. Pass explicit values to SkyCanvas exactly once and never
+pass the complete environment object. A React-only public client intentionally
+uses `VITE_SKYCANVAS_PUBLISHABLE_KEY` and `VITE_SKYCANVAS_SSO_URL`; the
+publishable key is an identifier, not a secret.
+
+## React-only path
+
+Use this for a Vite/SPA application that should not run an auth callback server.
+Register the exact frontend origin and `{APP_ORIGIN}/auth/callback`. The host
+must serve the SPA entry at `/auth/callback`.
+
+```tsx
+import { SkyCanvasProvider } from "@skycanvasstudio/sso/react"
+import "@skycanvasstudio/sso/styles.css"
+
+<SkyCanvasProvider
+  publishableKey={import.meta.env.VITE_SKYCANVAS_PUBLISHABLE_KEY}
+  ssoUrl={import.meta.env.VITE_SKYCANVAS_SSO_URL}
+>
+  <App />
+</SkyCanvasProvider>
+```
+
+Use `SignIn`, `SignedIn`, `SignedOut`, `useAuth`, and `useUser`. Send the result
+of `useAuth().getToken()` as a Bearer token only to the intended application
+API. Create one `createSsoAccessTokenVerifier()` in that API process and verify
+each protected request. Treat `SignedIn` as presentation control, not backend
+authorization. Do not add `createSsoServer`, Elysia, a client secret, or a second
+callback to this path.
 
 ## Better Auth path
 
@@ -163,4 +192,8 @@ Register `sso.callbackUrl`, normally `{APP_URL}/auth/callback`.
   local/global logout, and safe local return paths work.
 - TanStack never imports or returns the SSO server object through a server
   function; only the bootstrap crosses the boundary.
-- OAuth tokens, flow state, nonce, verifier, and session secrets remain server-only.
+- Better Auth, generic-library, and full-stack standalone flows keep OAuth
+  tokens, flow state, nonce, verifier, and session secrets server-only.
+- The React-only flow keeps PKCE state and the short-lived application token in
+  the SDK-managed browser session; protected APIs verify every Bearer token and
+  no session secret exists in the frontend.

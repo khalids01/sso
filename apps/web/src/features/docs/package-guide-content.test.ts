@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
+import {
+  integrationComparison,
+  securityChecklist,
+  troubleshootingItems,
+} from "./integration-guide-content";
 import { packageRecipes } from "./package-guide-content";
 
 const frameworkTabs = ["TanStack Start", "Next.js", "Elysia", "Express", "NestJS"];
@@ -27,6 +32,9 @@ describe("SSO integration guide", () => {
     expect(better).toContain("<SsoProvider bootstrap={bootstrap}>");
     expect(react).toContain("publishableKey={import.meta.env.VITE_SKYCANVAS_PUBLISHABLE_KEY}");
     expect(react).toContain("createSsoAccessTokenVerifier");
+    expect(react).toContain("Bearer ");
+    expect(react).toContain("wrong-audience tokens");
+    expect(react).toContain("/auth/callback");
     expect(react).not.toContain("createSsoServer");
     expect(standalone).toContain("<SkyCanvasProvider>");
     expect(standalone).toContain("createTanStackSso");
@@ -35,5 +43,14 @@ describe("SSO integration guide", () => {
     expect(better).not.toContain("Add the React session provider");
     expect(standalone).not.toContain("Add SsoProvider for React");
     for (const framework of frameworkTabs) expect(better).toContain(framework);
+  });
+
+  test("explains session ownership, API enforcement, and common failures", () => {
+    expect(integrationComparison).toHaveLength(4);
+    expect(integrationComparison.some((row) => row.mode === "React-only" && row.appAuthServer === "No")).toBe(true);
+    expect(integrationComparison.some((row) => row.credential.includes("HttpOnly"))).toBe(true);
+    expect(securityChecklist.join(" ")).toContain("issuer, audience, signature, expiry, and subject");
+    expect(troubleshootingItems.some((item) => item.problem.includes("Protected UI"))).toBe(true);
+    expect(troubleshootingItems.some((item) => item.fix.includes("/auth/callback"))).toBe(true);
   });
 });
