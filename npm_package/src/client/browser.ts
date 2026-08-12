@@ -426,6 +426,24 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
         input.intent === "signup" ? "signup" : "signin",
       );
     },
+    async requestPasswordReset(input) {
+      if (typeof window === "undefined") throw new Error("SkyCanvas password reset requires a browser");
+      const response = await request(new URL("/auth/sdk/password/request-reset", ssoOrigin), {
+        method: "POST",
+        credentials: "include",
+        headers: { accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({
+          clientId: options.publishableKey,
+          redirectUri: getRedirectUri(),
+          origin: window.location.origin,
+          email: input.email,
+        }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { message?: string } | null;
+        throw new Error(result?.message ?? "Could not request a password reset");
+      }
+    },
     async getSession() {
       return await completeRedirect() ?? await restoreSession();
     },

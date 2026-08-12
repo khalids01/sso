@@ -65,6 +65,13 @@ export const EmbeddedPasswordSignupDto = t.Composite([
   }),
 ]);
 
+export const EmbeddedPasswordResetRequestDto = t.Object({
+  clientId: t.String({ minLength: 1 }),
+  redirectUri: t.String({ format: "uri" }),
+  origin: t.String({ format: "uri" }),
+  email: t.String({ format: "email", maxLength: 320 }),
+});
+
 export const EmbeddedMagicLinkDto = t.Composite([
   EmbeddedAuthorizationDto,
   t.Object({

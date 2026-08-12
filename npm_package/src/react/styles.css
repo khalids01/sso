@@ -104,6 +104,12 @@
 @media (prefers-reduced-motion: reduce) { .sso-auth-spinner, .sso-auth-skeleton-line, .sso-auth-skeleton-divider { animation: none; } }
 .sso-auth-switch { margin: 1.25rem 0 0; color: var(--sso-muted-foreground); font-size: .8125rem; text-align: center; }
 .sso-auth-switch button { border: 0; padding: 0; background: none; color: var(--sso-foreground); font: inherit; font-weight: 600; cursor: pointer; }
+.sso-auth-text-button { justify-self: start; border: 0; padding: 0; background: none; color: var(--sso-muted-foreground); font: inherit; font-size: .8125rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.sso-auth-text-button:hover:not(:disabled) { color: var(--sso-foreground); }
+.sso-profile-password { display: grid; gap: .75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--sso-border); }
+.sso-profile-password > div { display: grid; gap: .2rem; }
+.sso-profile-password strong { font-size: .875rem; }
+.sso-profile-password span, .sso-profile-password-message { margin: 0; color: var(--sso-muted-foreground); font-size: .8125rem; line-height: 1.4; }
 .sso-auth-dialog { padding: 0; border: 0; background: transparent; box-shadow: none; }
 .sso-auth-dialog .sso-auth-card { max-width: none; }
 .sso-auth-close { position: absolute; z-index: 1; top: .75rem; right: .75rem; font-size: 1.25rem; }

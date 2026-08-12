@@ -99,6 +99,7 @@ export function SsoUserMenu({
   const user = suppliedUser === undefined ? sso?.session?.user : suppliedUser;
   const [profileOpen, setProfileOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [passwordResetMessage, setPasswordResetMessage] = useState<string | null>(null);
 
   if (!user) return null;
 
@@ -115,6 +116,17 @@ export function SsoUserMenu({
   const logout = onLogout ?? (() => sso?.logout({
     returnTo: logoutReturnTo,
   }));
+  const requestPasswordReset = async () => {
+    if (!sso) return;
+    setBusy(true);
+    setPasswordResetMessage(null);
+    try {
+      await sso.requestPasswordReset({ email: user.email });
+      setPasswordResetMessage("If this account has a password, we sent a secure reset link to your email.");
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <Dialog.Root open={profileOpen} onOpenChange={setProfileOpen}>
       <Menu.Root>
@@ -209,6 +221,13 @@ export function SsoUserMenu({
               <ProfileField label="Email status" value={user.emailVerified ? "Verified" : "Not verified"} />
             ) : null}
           </dl>
+          {sso ? <div className="sso-profile-password">
+            <div><strong>Password</strong><span>Manage your password securely by email.</span></div>
+            <button className="sso-auth-provider" type="button" disabled={busy} onClick={() => void requestPasswordReset()}>
+              {busy ? <SpinnerIcon /> : null}{busy ? "Sending reset link…" : "Reset password"}
+            </button>
+            {passwordResetMessage ? <p className="sso-profile-password-message" role="status">{passwordResetMessage}</p> : null}
+          </div> : null}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

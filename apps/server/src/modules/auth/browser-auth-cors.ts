@@ -6,6 +6,7 @@ const browserAuthPaths = [
   "/auth/sdk/magic-link",
   "/auth/sdk/password/login",
   "/auth/sdk/password/signup",
+  "/auth/sdk/password/request-reset",
 ] as const;
 
 const corsHeaders = (origin: string) => ({

@@ -346,6 +346,38 @@ test("React-only client completes embedded password auth without opening a popup
   }
 });
 
+test("React-only client requests a password reset through the central registered-origin endpoint", async () => {
+  const browser = installPopupBrowser("https://frontend.example.com");
+  const captured: { requestBody?: Record<string, string> } = {};
+  try {
+    const request = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/auth/sdk/password/request-reset") {
+        captured.requestBody = JSON.parse(String(init?.body));
+        return Response.json({ success: true });
+      }
+      return new Response(null, { status: 404 });
+    }) as typeof fetch;
+    const client = createBrowserSsoClient({
+      publishableKey: "client_password",
+      ssoUrl: "https://sso.example.com",
+      redirectUrl: "https://frontend.example.com/auth/callback",
+      fetch: request,
+    });
+
+    await client.requestPasswordReset({ email: "user@example.com" });
+
+    expect(captured.requestBody).toEqual({
+      clientId: "client_password",
+      redirectUri: "https://frontend.example.com/auth/callback",
+      origin: "https://frontend.example.com",
+      email: "user@example.com",
+    });
+  } finally {
+    browser.restore();
+  }
+});
+
 async function browserToken(
   privateKey: CryptoKey,
   input: { audience: string; claims?: Record<string, unknown> },

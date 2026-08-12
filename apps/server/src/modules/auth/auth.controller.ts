@@ -11,6 +11,7 @@ import {
   CheckEmailDto,
   EmbeddedPasswordLoginDto,
   EmbeddedPasswordSignupDto,
+  EmbeddedPasswordResetRequestDto,
   EmbeddedMagicLinkDto,
   MagicLinkLoginDto,
   MagicLinkSignupDto,
@@ -24,6 +25,7 @@ import {
   consumeEmbeddedMagicLinkTransaction,
   OAuthTokenError,
   validateEmbeddedAuthorizationRequest,
+  validateEmbeddedPasswordResetRequest,
 } from "../oauth/oauth-token.service";
 import {
   getApplicationSocialProviderConnection,
@@ -209,6 +211,30 @@ export const authController = new Elysia({ prefix: "/auth" })
       }
     },
     { query: t.Object({ transaction: t.String({ minLength: 20, maxLength: 256 }) }) },
+  )
+  .post(
+    "/sdk/password/request-reset",
+    async ({ body, request, set }) => {
+      try {
+        await validateEmbeddedPasswordResetRequest({
+          clientId: body.clientId,
+          redirectUri: body.redirectUri,
+          origin: new URL(body.origin).origin,
+        });
+        allowEmbeddedBrowserOrigin({ request, claimedOrigin: body.origin, set });
+        const resetPage = new URL("/reset-password", env.CORS_ORIGIN);
+        resetPage.searchParams.set("client_id", body.clientId);
+        await auth.api.requestPasswordReset({
+          body: { email: body.email, redirectTo: resetPage.toString() },
+          headers: getCentralAuthHeaders(request),
+        });
+        // Do not disclose whether this email owns a password account.
+        return { success: true };
+      } catch (error) {
+        return embeddedAuthError(set, error);
+      }
+    },
+    { body: EmbeddedPasswordResetRequestDto },
   )
   .post(
     "/sdk/password/login",

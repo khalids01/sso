@@ -36,6 +36,7 @@ export interface SsoClient<TUser extends SsoUser = SsoUser> {
   signInWithPassword: (input: { email: string; password: string; returnTo?: string }) => Promise<SsoSession<TUser> | null>;
   signUpWithPassword: (input: { name: string; email: string; password: string; returnTo?: string }) => Promise<{ session: SsoSession<TUser> | null; requiresEmailVerification: boolean }>;
   sendMagicLink: (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => Promise<void>;
+  requestPasswordReset: (input: { email: string }) => Promise<void>;
   getSession: () => Promise<SsoSession<TUser> | null>;
   getToken: () => Promise<string | null>;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
@@ -55,6 +56,7 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
   const passwordLoginPath = options.passwordLoginPath ?? "/auth/password/login";
   const passwordSignupPath = options.passwordSignupPath ?? "/auth/password/signup";
   const magicLinkPath = options.magicLinkPath ?? "/auth/magic-link";
+  const passwordResetPath = "/auth/password/request-reset";
   const profilePath = options.profilePath ?? "/auth/profile";
   const logoutPath = options.logoutPath ?? "/auth/logout";
 
@@ -183,6 +185,15 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
         }),
       });
       if (!response.ok) throw await responseError(response, "magic-link request");
+    },
+    async requestPasswordReset(input) {
+      const response = await getFetch(options.fetch)(resolveRequestUrl(passwordResetPath, baseUrl), {
+        method: "POST",
+        credentials: "include",
+        headers: { accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({ email: input.email }),
+      });
+      if (!response.ok) throw await responseError(response, "password-reset request");
     },
     getSession,
     async getToken() {

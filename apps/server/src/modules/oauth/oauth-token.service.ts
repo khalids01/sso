@@ -233,6 +233,27 @@ export async function validateEmbeddedAuthorizationRequest(input: {
   return client;
 }
 
+export async function validateEmbeddedPasswordResetRequest(input: {
+  clientId: string;
+  redirectUri: string;
+  origin: string;
+}) {
+  const client = await prisma.applicationClient.findFirst({
+    where: {
+      clientId: input.clientId,
+      public: true,
+      status: "active",
+      oauthDisabled: false,
+      redirectUris: { has: input.redirectUri },
+      allowedOrigins: { has: input.origin },
+      application: { status: "active", signInMethods: { has: "password" } },
+    },
+    select: { id: true },
+  });
+  if (!client) throw new OAuthTokenError("invalid_client", 403, "password_reset_not_allowed");
+  return client;
+}
+
 export async function issueEmbeddedAuthorizationCode(
   input: EmbeddedAuthorizationInput,
 ) {

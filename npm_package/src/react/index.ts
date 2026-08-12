@@ -60,6 +60,7 @@ export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
   signInWithPassword: (input: { email: string; password: string; returnTo?: string }) => Promise<SsoSession<TUser> | null>;
   signUpWithPassword: (input: { name: string; email: string; password: string; returnTo?: string }) => Promise<{ session: SsoSession<TUser> | null; requiresEmailVerification: boolean }>;
   sendMagicLink: (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => Promise<void>;
+  requestPasswordReset: (input: { email: string }) => Promise<void>;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
   refresh: () => Promise<SsoSession<TUser> | null>;
   getToken: () => Promise<string | null>;
@@ -250,6 +251,20 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     }
   }, [client]);
 
+  const requestPasswordReset = useCallback(async (input: { email: string }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await client.requestPasswordReset(input);
+    } catch (cause) {
+      const nextError = cause instanceof Error ? cause : new Error("Password-reset request failed");
+      setError(nextError);
+      throw nextError;
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
   const value = useMemo<SsoContextValue<TUser>>(() => ({
     session,
     status: loading ? "loading" : error ? "error" : session ? "authenticated" : "unauthenticated",
@@ -262,10 +277,11 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     signInWithPassword,
     signUpWithPassword,
     sendMagicLink,
+    requestPasswordReset,
     logout,
     refresh,
     getToken: client.getToken,
-  }), [client.getToken, client.login, error, interactionMode, loading, logout, metadata, oauthMode, refresh, sendMagicLink, session, signIn, signInWithPassword, signUpWithPassword]);
+  }), [client.getToken, client.login, error, interactionMode, loading, logout, metadata, oauthMode, refresh, requestPasswordReset, sendMagicLink, session, signIn, signInWithPassword, signUpWithPassword]);
 
   return createElement(
     SsoContext.Provider,
