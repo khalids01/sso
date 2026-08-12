@@ -73,6 +73,24 @@ function tokenHeaders(origin?: string) {
   };
 }
 
+function setClientMetadataCorsHeaders(
+  headers: Record<string, string | number | undefined>,
+  requestOrigin: string | null,
+) {
+  // The central SSO app asks for this endpoint with its Better Auth session
+  // cookie. A credentialed CORS response must echo that trusted origin; `*`
+  // is only safe for the SDK's credential-free public metadata request.
+  const origin = normalizeOrigin(requestOrigin);
+  if (origin === new URL(env.CORS_ORIGIN).origin) {
+    headers["access-control-allow-origin"] = origin;
+    headers["access-control-allow-credentials"] = "true";
+    headers.vary = "Origin";
+    return;
+  }
+
+  headers["access-control-allow-origin"] = "*";
+}
+
 function errorResponse(error: OAuthTokenError, requestId: string, origin?: string) {
   return new Response(JSON.stringify({ error: error.code }), {
     status: error.status,
@@ -89,7 +107,8 @@ function readSingle(params: URLSearchParams, key: string) {
 }
 
 export const oauthTokenController = new Elysia({ name: "oauth-token" })
-  .get(CLIENT_METADATA_PATH, async ({ query, set, status }) => {
+  .get(CLIENT_METADATA_PATH, async ({ query, request, set, status }) => {
+    setClientMetadataCorsHeaders(set.headers, request.headers.get("origin"));
     const clientId = query.client_id;
     const metadata = await getPublicClientMetadata(clientId);
     if (!metadata) {
@@ -97,9 +116,6 @@ export const oauthTokenController = new Elysia({ name: "oauth-token" })
     }
     set.headers["cache-control"] = "public, max-age=300";
     set.headers["x-content-type-options"] = "nosniff";
-    // This document contains only public OAuth client configuration. Allowing
-    // browser reads is what lets a React-only app bootstrap without an auth BFF.
-    set.headers["access-control-allow-origin"] = "*";
     return metadata;
   }, {
     query: t.Object({ client_id: t.String({ minLength: 1 }) }),
