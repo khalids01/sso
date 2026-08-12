@@ -233,7 +233,7 @@ test("React-only client completes PKCE in a popup and exposes an app access toke
   }
 });
 
-test("React-only social buttons request the selected provider in a fresh popup flow", async () => {
+test("React-only social buttons carry the selected provider through the signed OIDC nonce", async () => {
   const browser = installPopupBrowser("https://frontend.example.com");
   try {
     const client = createBrowserSsoClient({
@@ -246,7 +246,8 @@ test("React-only social buttons request the selected provider in a fresh popup f
     await waitFor(() => Boolean(browser.openedUrl));
     const authorization = new URL(browser.openedUrl);
 
-    expect(authorization.searchParams.get("provider")).toBe("google");
+    expect(authorization.searchParams.get("provider")).toBeNull();
+    expect(authorization.searchParams.get("nonce")).toMatch(/^skycanvas-provider-google-[A-Za-z0-9_-]{16,}$/);
     expect(authorization.searchParams.get("prompt")).toBe("login");
     browser.complete("https://frontend.example.com", {
       type: "skycanvas:sso:oauth-callback",

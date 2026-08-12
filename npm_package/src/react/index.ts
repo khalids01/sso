@@ -153,18 +153,27 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
 
   useEffect(() => {
     let active = true;
-    void Promise.all([client.getSession(), client.getConfig()])
-      .then(([nextSession, config]) => {
+    // Method metadata drives the visible auth form. Do not make it wait for a
+    // potentially slower token/JWKS session restoration request.
+    void client.getConfig()
+      .then((config) => {
         if (!active) return;
-        setSession(nextSession);
         setMetadata(config.metadata);
         setInteractionMode(config.client?.interactionMode ?? "embedded");
         setOauthMode(config.client?.oauthMode ?? "popup");
-        setError(null);
       })
       .catch((cause) => {
         if (!active) return;
         setError(cause instanceof Error ? cause : new Error("SSO initialization failed"));
+      });
+    void client.getSession()
+      .then((nextSession) => {
+        if (!active) return;
+        setSession(nextSession);
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setError(cause instanceof Error ? cause : new Error("SSO session restoration failed"));
       })
       .finally(() => {
         if (active) setLoading(false);

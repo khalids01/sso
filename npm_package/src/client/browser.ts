@@ -194,9 +194,15 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
 
   const makeAuthorization = async (loginOptions: SsoLoginOptions) => {
     const verifier = randomBase64Url(48);
+    // Better Auth signs and forwards the standard OIDC nonce but drops unknown
+    // authorization parameters. Encode a selected provider in the nonce so the
+    // central login page can safely start that provider after the redirect.
+    const nonce = loginOptions.provider
+      ? `skycanvas-provider-${loginOptions.provider}-${randomBase64Url(24)}`
+      : randomBase64Url(24);
     const flow: BrowserFlow = {
       state: randomBase64Url(24),
-      nonce: randomBase64Url(24),
+      nonce,
       verifier,
       redirectUri: getRedirectUri(),
       returnTo: safeReturnTo(loginOptions.returnTo),
@@ -219,7 +225,6 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
             ? { prompt: "create" }
             : {}
       ),
-      ...(loginOptions.provider ? { provider: loginOptions.provider } : {}),
     }).toString();
     storeFlow(flow);
     return { flow, url, challenge: url.searchParams.get("code_challenge")! };

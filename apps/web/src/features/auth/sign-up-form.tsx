@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getApplicationAuthPath, getAuthCallbackURL } from "./auth-callback";
 import type { ApplicationAuthPolicy } from "./application-auth-shell";
+import { getRequestedApplicationSocialProvider } from "./application-social-provider";
 import { AuthMethodDivider } from "./auth-method-divider";
 import { PasswordSignUpForm } from "./password-sign-up-form";
 import {
@@ -49,7 +50,7 @@ export default function SignUpForm({
       method === "linkedin" ||
       method === "github",
   );
-  const requestedProvider = new URLSearchParams(search).get("provider");
+  const requestedProvider = getRequestedApplicationSocialProvider(search);
   const autoStartProvider = socialMethods.find((method) => method === requestedProvider);
   const signupAvailable =
     showMagicSignup || showPasswordSignup || socialMethods.length > 0;
