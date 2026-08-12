@@ -160,8 +160,8 @@ export const packageRecipes: Record<GuideMode, PackageRecipe> = {
       {
         title: "Install",
         filename: "Terminal",
-        description: "Add the React SDK and its peer form dependency.",
-        code: `bun add @skycanvasstudio/sso react-hook-form`,
+        description: "Add the React SDK. Its built-in auth forms include their own form dependency.",
+        code: `bun add @skycanvasstudio/sso`,
       },
       {
         title: "Add public configuration",

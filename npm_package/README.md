@@ -7,8 +7,11 @@ HttpOnly application sessions, React UI/hooks, and server adapters.
 ## Install
 
 ```bash
-bun add @skycanvasstudio/sso react-hook-form
+bun add @skycanvasstudio/sso
 ```
+
+`react-hook-form` is used internally by the packaged `<SignIn />` and
+`<SignUp />` components, so application projects do not need to install it.
 
 Import the packaged styles once:
 
