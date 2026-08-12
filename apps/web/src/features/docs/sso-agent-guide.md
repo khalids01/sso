@@ -52,6 +52,12 @@ each protected request. Treat `SignedIn` as presentation control, not backend
 authorization. Do not add `createSsoServer`, Elysia, a client secret, or a second
 callback to this path.
 
+`SignIn` must remain embedded and show the password, magic-link, and social
+methods returned by the application's public metadata. Password and magic-link
+forms call central SkyCanvas directly. Only social provider buttons open a
+popup, with the selected provider passed so the popup continues into that
+provider rather than showing a second generic SkyCanvas login page.
+
 ## Better Auth path
 
 Before SkyCanvas work, verify Better Auth installation, database adapter,

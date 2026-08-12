@@ -34,6 +34,11 @@ import {
   getPlatformAuthSettings,
   getPlatformOAuthConnection,
 } from "./platform-auth-settings.service";
+import {
+  allowEmbeddedBrowserOrigin,
+  forwardCentralAuthCookies,
+  getCentralAuthHeaders,
+} from "./browser-auth-cors";
 
 const socialProviderScopes = {
   google: ["openid", "profile", "email"],
@@ -141,6 +146,7 @@ export const authController = new Elysia({ prefix: "/auth" })
           method: "magic_link",
           intent: body.intent,
         });
+        allowEmbeddedBrowserOrigin({ request, claimedOrigin: body.origin, set });
         if (body.intent === "signup" && !body.name) {
           set.status = 400;
           return { error: "invalid_request", message: "Name is required" };
@@ -173,7 +179,7 @@ export const authController = new Elysia({ prefix: "/auth" })
             ...(body.name ? { name: body.name } : {}),
             callbackURL: callbackURL.toString(),
           },
-          headers: request.headers,
+          headers: getCentralAuthHeaders(request),
         });
         return { success: true };
       } catch (error) {
@@ -215,9 +221,10 @@ export const authController = new Elysia({ prefix: "/auth" })
           method: "password",
           intent: "signin",
         });
+        allowEmbeddedBrowserOrigin({ request, claimedOrigin: body.origin, set });
         const response = await auth.api.signInEmail({
           body: { email: body.email, password: body.password },
-          headers: request.headers,
+          headers: getCentralAuthHeaders(request),
           asResponse: true,
         });
         if (!response.ok) {
@@ -244,6 +251,7 @@ export const authController = new Elysia({ prefix: "/auth" })
           set.status = 500;
           return { error: "session_creation_failed", message: "Could not create session" };
         }
+        forwardCentralAuthCookies(response, set);
         const redirectUrl = await issueEmbeddedAuthorizationCode({
           clientId: body.clientId,
           redirectUri: body.redirectUri,
@@ -272,6 +280,7 @@ export const authController = new Elysia({ prefix: "/auth" })
           method: "password",
           intent: "signup",
         });
+        allowEmbeddedBrowserOrigin({ request, claimedOrigin: body.origin, set });
         const signup = await auth.api.signUpEmail({
           body: {
             name: body.name,
@@ -279,7 +288,7 @@ export const authController = new Elysia({ prefix: "/auth" })
             password: body.password,
             onboardingComplete: false,
           },
-          headers: request.headers,
+          headers: getCentralAuthHeaders(request),
           asResponse: true,
         });
         if (!signup.ok) {
@@ -289,13 +298,13 @@ export const authController = new Elysia({ prefix: "/auth" })
         if (client.application.passwordEmailVerificationRequired) {
           await auth.api.sendVerificationEmail({
             body: { email: body.email, callbackURL: body.origin },
-            headers: request.headers,
+            headers: getCentralAuthHeaders(request),
           });
           return { requiresEmailVerification: true };
         }
         const signin = await auth.api.signInEmail({
           body: { email: body.email, password: body.password },
-          headers: request.headers,
+          headers: getCentralAuthHeaders(request),
           asResponse: true,
         });
         const result = await signin.json() as {
@@ -307,6 +316,7 @@ export const authController = new Elysia({ prefix: "/auth" })
           set.status = 500;
           return { error: "session_creation_failed", message: "Could not create session" };
         }
+        forwardCentralAuthCookies(signin, set);
         const redirectUrl = await issueEmbeddedAuthorizationCode({
           clientId: body.clientId,
           redirectUri: body.redirectUri,

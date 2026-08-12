@@ -94,11 +94,12 @@ const auth = await skycanvas.verify(
 console.log(auth.subject)
 ```
 
-In a React-only app, `SignIn` and `SignUp` open the application-branded hosted
-page in a centered popup by default and fall back to a redirect when popups are
-blocked. Popup denial, closure, and timeout are surfaced as errors. In a
-full-stack integration, they can additionally render enabled password,
-magic-link, and social methods inside the application.
+In a React-only app, `SignIn` and `SignUp` fetch the application's public auth
+policy and render its enabled password, magic-link, and social methods directly
+inside the application. Password and magic-link requests go to the central
+SkyCanvas backend without an app auth server. Only a selected social provider
+opens a centered popup (or redirects when configured/blocked), and that popup
+continues directly into the chosen provider such as Google or GitHub.
 
 ## TanStack Start
 

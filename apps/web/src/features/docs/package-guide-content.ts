@@ -189,7 +189,7 @@ createRoot(document.getElementById("root")!).render(
       {
         title: "Use Clerk-like components and hooks",
         filename: "src/App.tsx",
-        description: "The SDK handles state, nonce, PKCE, popup completion, token verification, restoration, and logout.",
+        description: "SignIn renders every method enabled for this application. Password and magic link stay embedded; clicking Google, GitHub, Facebook, or LinkedIn opens only that provider flow in a popup.",
         code: `import { SignIn, SignedIn, SignedOut, useAuth, useUser } from "@skycanvasstudio/sso/react"
 
 export function App() {
@@ -245,9 +245,15 @@ export async function requireSkyCanvasUser(request: Request) {
       {
         title: "Register the browser client",
         filename: "SkyCanvas dashboard (not a project file)",
-        description: "Both values are exact. Provider credentials such as Google continue to point only at central SkyCanvas.",
+        description: "Both URLs are exact. Enable the sign-in/sign-up methods that SignIn should render. Provider credentials such as Google continue to point only at central SkyCanvas.",
         code: `Allowed origin: http://localhost:5173
-Callback URL:  http://localhost:5173/auth/callback`,
+Callback URL:  http://localhost:5173/auth/callback
+
+Sign-in methods: password, magic_link, google
+Sign-up methods: password, magic_link, google
+Registration:    open
+
+# Only enabled and fully configured methods appear in <SignIn />.`,
       },
       {
         title: "Verify the complete flow",

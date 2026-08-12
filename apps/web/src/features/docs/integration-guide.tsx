@@ -226,7 +226,7 @@ export function IntegrationGuide() {
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 {[
-                  ["<SignIn /> / <SignUp />", "Hosted sign-in for React-only apps; hosted or embedded methods in full-stack apps."],
+                  ["<SignIn /> / <SignUp />", "Render configured password, magic-link, and OAuth methods in the app; only OAuth buttons open provider popups."],
                   ["<SignedIn /> / <SignedOut />", "Conditionally render UI after the provider has resolved authentication state."],
                   ["useAuth()", "Read isLoaded, isSignedIn, userId, session, getToken, and signOut."],
                   ["useUser()", "Read the verified SkyCanvas user and loading/authentication state."],

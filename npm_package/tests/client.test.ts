@@ -211,11 +211,14 @@ test("React-only client completes PKCE in a popup and exposes an app access toke
       popupTimeoutMs: 1_000,
     });
 
+    expect((await client.getConfig()).client?.interactionMode).toBe("embedded");
+
     const pending = client.signIn({ returnTo: "/protected" });
     await waitFor(() => Boolean(browser.openedUrl));
     const authorization = new URL(browser.openedUrl);
     expect(authorization.origin).toBe("https://sso.example.com");
     expect(authorization.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(authorization.searchParams.get("prompt")).toBeNull();
     browser.complete("https://frontend.example.com", {
       type: "skycanvas:sso:oauth-callback",
       code: "browser_authorization_code",
@@ -225,6 +228,118 @@ test("React-only client completes PKCE in a popup and exposes an app access toke
 
     expect((await client.getSession())?.user.email).toBe("browser@example.com");
     expect(await client.getToken()).toBe(issuedAccessToken);
+  } finally {
+    browser.restore();
+  }
+});
+
+test("React-only social buttons request the selected provider in a fresh popup flow", async () => {
+  const browser = installPopupBrowser("https://frontend.example.com");
+  try {
+    const client = createBrowserSsoClient({
+      publishableKey: "client_social",
+      ssoUrl: "https://sso.example.com",
+      redirectUrl: "https://frontend.example.com/auth/callback",
+      popupTimeoutMs: 1_000,
+    });
+    const pending = client.signIn({ provider: "google" });
+    await waitFor(() => Boolean(browser.openedUrl));
+    const authorization = new URL(browser.openedUrl);
+
+    expect(authorization.searchParams.get("provider")).toBe("google");
+    expect(authorization.searchParams.get("prompt")).toBe("login");
+    browser.complete("https://frontend.example.com", {
+      type: "skycanvas:sso:oauth-callback",
+      state: authorization.searchParams.get("state"),
+      error: "access_denied",
+      message: "Test completed",
+    });
+    await expect(pending).rejects.toThrow("Test completed");
+  } finally {
+    browser.restore();
+  }
+});
+
+test("React-only client completes embedded password auth without opening a popup", async () => {
+  const browser = installPopupBrowser("https://frontend.example.com");
+  const { privateKey, publicKey } = await generateKeyPair("RS256");
+  const jwk = { ...(await exportJWK(publicKey)), alg: "RS256", use: "sig", kid: "password-key" };
+  const captured: { body: Record<string, string> | null; init?: RequestInit } = { body: null };
+  try {
+    const request = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/api/oauth/client-metadata") {
+        return Response.json({
+          client_id: "client_password",
+          application_id: "app_password",
+          audience: "urn:sso:application:app_password",
+          issuer: "https://sso.example.com",
+          sign_in_methods: ["password", "magic_link", "google"],
+          sign_up_methods: ["password"],
+        });
+      }
+      if (url.pathname === "/auth/sdk/password/login") {
+        if (init) captured.init = init;
+        const body = JSON.parse(String(init?.body)) as Record<string, string>;
+        captured.body = body;
+        const callback = new URL(body.redirectUri!);
+        callback.searchParams.set("code", "password_authorization_code");
+        callback.searchParams.set("state", body.state!);
+        return Response.json({ redirectUrl: callback.toString() });
+      }
+      if (url.pathname === "/api/auth/jwks") return Response.json({ keys: [jwk] });
+      if (url.pathname === "/api/auth/oauth2/token") {
+        const embeddedBody = captured.body;
+        if (!embeddedBody) return new Response(null, { status: 500 });
+        const accessToken = await new SignJWT({ scope: "openid" })
+          .setProtectedHeader({ alg: "RS256", kid: "password-key" })
+          .setIssuer("https://sso.example.com")
+          .setAudience("urn:sso:application:app_password")
+          .setSubject("password_user")
+          .setIssuedAt()
+          .setExpirationTime("10m")
+          .sign(privateKey);
+        const idToken = await new SignJWT({
+          nonce: embeddedBody.nonce,
+          name: "Password User",
+          email: "password@example.com",
+          email_verified: true,
+        })
+          .setProtectedHeader({ alg: "RS256", kid: "password-key" })
+          .setIssuer("https://sso.example.com")
+          .setAudience("client_password")
+          .setSubject("password_user")
+          .setIssuedAt()
+          .setExpirationTime("10m")
+          .sign(privateKey);
+        return Response.json({
+          access_token: accessToken,
+          id_token: idToken,
+          token_type: "Bearer",
+          expires_in: 600,
+          scope: "openid",
+        });
+      }
+      return new Response(null, { status: 404 });
+    }) as typeof fetch;
+    const client = createBrowserSsoClient({
+      publishableKey: "client_password",
+      ssoUrl: "https://sso.example.com",
+      redirectUrl: "https://frontend.example.com/auth/callback",
+      fetch: request,
+    });
+
+    const session = await client.signInWithPassword({
+      email: "password@example.com",
+      password: "correct horse battery staple",
+      returnTo: "/protected",
+    });
+
+    expect(session?.user.email).toBe("password@example.com");
+    expect(captured.body?.origin).toBe("https://frontend.example.com");
+    expect(captured.body?.codeChallenge).toHaveLength(43);
+    expect(captured.init?.credentials).toBe("include");
+    expect(browser.openedUrl).toBe("");
   } finally {
     browser.restore();
   }
@@ -260,13 +375,15 @@ function installPopupBrowser(frontendOrigin: string) {
     close() { this.closed = true; },
   };
   let openedUrl = "";
+  const storage = createMemoryStorage();
   const fakeWindow = {
     location: {
       origin: frontendOrigin,
       href: `${frontendOrigin}/`,
       assign() {},
     },
-    sessionStorage: createMemoryStorage(),
+    sessionStorage: storage,
+    localStorage: createMemoryStorage(),
     screenX: 0,
     screenY: 0,
     outerWidth: 1440,

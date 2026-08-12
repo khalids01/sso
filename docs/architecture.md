@@ -100,10 +100,14 @@ session. OAuth tokens are not exposed to React, browser storage, or callback
 URLs. The reference session follows the ten-minute issued-token lifetime and
 supports both application-local and global sign-out.
 
-React-only clients are a deliberate second session model. They send users to
-the same central authorization endpoint in a popup or redirect, exchange the
-returned code with PKCE at the SSO-owned token endpoint, verify both tokens
-against JWKS, and expose the application-audienced access token through
+React-only clients are a deliberate second session model. `<SignIn />` fetches
+the application's public auth policy and renders enabled password, magic-link,
+and social methods inside the consumer app. Password and magic-link submissions
+go directly to origin-bound central SDK endpoints; only a selected social
+provider opens the central authorization flow in a popup or redirect. Every
+method returns an authorization code bound to browser-generated PKCE. The SDK
+exchanges it at the SSO-owned token endpoint, verifies both tokens against JWKS,
+and exposes the application-audienced access token through
 `useAuth().getToken()`. The app's API verifies that token locally. Tokens default
 to memory plus `sessionStorage` for reload continuity and never use a client
 secret. This mode cannot provide an app-domain `HttpOnly` cookie because an

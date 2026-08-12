@@ -6,7 +6,8 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Run a real browser pass of the React-only popup and redirect integrations using
+Run a real browser pass of React-only embedded password/magic-link and
+OAuth-only popup/redirect integrations using
 an application client with `/auth/callback` registered, then capture only the
 profile, role, scope, and branding requirements that the first production
 application actually needs.
@@ -125,9 +126,10 @@ deferred.
   React-only apps, automatic popup callback completion, PKCE, JWKS verification,
   session restoration, and backend `verifySsoAccessToken()` support. The
   standalone React demo no longer contains an Elysia auth bridge.
-- Package checks pass with 42 tests covering the browser popup exchange and
-  application-backend access-token verification. No schema or migration was
-  added.
+- Package checks pass with 44 tests covering embedded password auth, selected
+  provider popup behavior, browser code exchange, and application-backend
+  access-token verification. Central embedded-auth CORS is restricted to
+  registered active application origins. No schema or migration was added.
 
 - `apps/sso-demo` now completes the public-client authorization-code flow with
   server-side PKCE, state and nonce validation, JWKS verification, an encrypted
@@ -136,7 +138,7 @@ deferred.
   password-only application login and signup without email verification,
   protocol checks, and run-owned cleanup.
 
-- Server tests: `220 pass`, `0 fail` across 51 files.
+- Server tests: `238 pass`, `0 fail` across 55 files.
 - OAuth Provider runtime initialization succeeded.
 - Better Auth's built-in token endpoint and generic session-JWT endpoint return
   `404`; the SSO token endpoint also returns `404` while its deployment flag is off.

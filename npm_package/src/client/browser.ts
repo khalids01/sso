@@ -60,12 +60,16 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
 ): SsoClient<TUser> {
   if (!options.publishableKey.trim()) throw new Error("SkyCanvas publishableKey is required");
   const endpoints = getSsoEndpoints(options.ssoUrl);
+  const ssoOrigin = new URL(options.ssoUrl ?? endpoints.authorization).origin;
   const request = options.fetch ?? globalThis.fetch;
   if (!request) throw new Error("SkyCanvas browser auth requires fetch");
   const cacheKey = `skycanvas:${options.publishableKey}:session`;
   const flowKey = `skycanvas:${options.publishableKey}:flow`;
   let current: BrowserSession<TUser> | null = null;
   let metadata: SsoClientMetadata | null = null;
+  const syncChannel = typeof window !== "undefined" && typeof window.BroadcastChannel === "function"
+    ? new window.BroadcastChannel(`skycanvas:${options.publishableKey}:auth`)
+    : null;
 
   const getRedirectUri = () => {
     if (options.redirectUrl) return new URL(options.redirectUrl).toString();
@@ -75,8 +79,8 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
     return new URL("/auth/callback", window.location.origin).toString();
   };
 
-  const storeFlow = (flow: BrowserFlow | null) => writeSessionValue(flowKey, flow);
-  const readFlow = () => readSessionValue<BrowserFlow>(flowKey);
+  const storeFlow = (flow: BrowserFlow | null) => writeFlowValue(flowKey, flow);
+  const readFlow = () => readFlowValue<BrowserFlow>(flowKey);
   const storeSession = (value: BrowserSession<TUser> | null) => {
     current = value;
     if ((options.tokenCache ?? "session") === "session") {
@@ -159,8 +163,34 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
     const next = await verifyTokens(tokens, flow.nonce);
     storeSession(next);
     storeFlow(null);
+    syncChannel?.postMessage({
+      type: "skycanvas:sso:session",
+      accessToken: next.accessToken,
+      idToken: next.idToken,
+    });
     return next.session;
   };
+
+  if (syncChannel) {
+    syncChannel.onmessage = (event: MessageEvent<{
+      type?: string;
+      accessToken?: string;
+      idToken?: string;
+    }>) => {
+      if (
+        event.data?.type !== "skycanvas:sso:session" ||
+        typeof event.data.accessToken !== "string" ||
+        typeof event.data.idToken !== "string"
+      ) return;
+      void verifyTokens({
+        access_token: event.data.accessToken,
+        id_token: event.data.idToken,
+      }).then((next) => {
+        storeSession(next);
+        window.dispatchEvent(new Event("skycanvas:sso:session"));
+      }).catch(() => undefined);
+    };
+  }
 
   const makeAuthorization = async (loginOptions: SsoLoginOptions) => {
     const verifier = randomBase64Url(48);
@@ -182,11 +212,69 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
       nonce: flow.nonce,
       code_challenge_method: "S256",
       code_challenge: await sha256Base64Url(verifier),
-      ...(loginOptions.forceLogin ? { prompt: "login" } : loginOptions.intent === "signup" ? { prompt: "create" } : {}),
+      ...(
+        loginOptions.forceLogin || (loginOptions.provider && loginOptions.intent !== "signup")
+          ? { prompt: "login" }
+          : loginOptions.intent === "signup"
+            ? { prompt: "create" }
+            : {}
+      ),
       ...(loginOptions.provider ? { provider: loginOptions.provider } : {}),
     }).toString();
     storeFlow(flow);
-    return { flow, url };
+    return { flow, url, challenge: url.searchParams.get("code_challenge")! };
+  };
+
+  const embeddedRequest = async (
+    path: string,
+    input: Record<string, string>,
+    intent: "signin" | "signup",
+  ) => {
+    if (typeof window === "undefined") throw new Error("SkyCanvas embedded auth requires a browser");
+    const body = { ...input };
+    delete body.returnTo;
+    const { flow, challenge } = await makeAuthorization({
+      intent,
+      ...(input.returnTo ? { returnTo: input.returnTo } : {}),
+    });
+    const response = await request(new URL(path, ssoOrigin), {
+      method: "POST",
+      credentials: "include",
+      headers: { accept: "application/json", "content-type": "application/json" },
+      body: JSON.stringify({
+        clientId: options.publishableKey,
+        redirectUri: flow.redirectUri,
+        origin: window.location.origin,
+        state: flow.state,
+        nonce: flow.nonce,
+        codeChallenge: challenge,
+        ...body,
+      }),
+    });
+    const result = await response.json().catch(() => null) as {
+      redirectUrl?: string;
+      requiresEmailVerification?: boolean;
+      error?: string;
+      message?: string;
+    } | null;
+    if (!response.ok) {
+      storeFlow(null);
+      throw new Error(result?.message ?? result?.error ?? `SkyCanvas authentication failed (${response.status})`);
+    }
+    return { flow, result };
+  };
+
+  const completeEmbeddedAuthorization = async (redirectUrl: string, flow: BrowserFlow) => {
+    const callback = new URL(redirectUrl);
+    if (callback.origin !== new URL(flow.redirectUri).origin) {
+      throw new Error("SkyCanvas embedded callback returned an unexpected origin");
+    }
+    const state = callback.searchParams.get("state");
+    const code = callback.searchParams.get("code");
+    if (state !== flow.state || !code) {
+      throw new Error("SkyCanvas embedded authorization response is invalid");
+    }
+    return exchange(code, flow);
   };
 
   const completeRedirect = async () => {
@@ -281,24 +369,57 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
     async getConfig() {
       return {
         client: {
-          baseUrl: new URL(options.ssoUrl ?? endpoints.authorization).origin,
+          baseUrl: ssoOrigin,
           loginPath: new URL(endpoints.authorization).pathname,
           profilePath: "",
           logoutPath: new URL(endpoints.globalLogout).pathname,
-          interactionMode: "hosted" as const,
+          interactionMode: "embedded" as const,
           oauthMode: options.oauthMode ?? "popup",
         },
         metadata: await getMetadata(),
       };
     },
-    async signInWithPassword() {
-      throw new Error("Password auth for React-only apps is hosted by SkyCanvas; use signIn()");
+    async signInWithPassword(input) {
+      const { flow, result } = await embeddedRequest(
+        "/auth/sdk/password/login",
+        { email: input.email, password: input.password, returnTo: input.returnTo ?? "/" },
+        "signin",
+      );
+      if (!result?.redirectUrl) throw new Error("SkyCanvas password sign-in did not complete");
+      return completeEmbeddedAuthorization(result.redirectUrl, flow);
     },
-    async signUpWithPassword() {
-      throw new Error("Password signup for React-only apps is hosted by SkyCanvas; use signIn({ intent: 'signup' })");
+    async signUpWithPassword(input) {
+      const { flow, result } = await embeddedRequest(
+        "/auth/sdk/password/signup",
+        {
+          name: input.name,
+          email: input.email,
+          password: input.password,
+          returnTo: input.returnTo ?? "/",
+        },
+        "signup",
+      );
+      if (result?.requiresEmailVerification) {
+        storeFlow(null);
+        return { session: null, requiresEmailVerification: true };
+      }
+      if (!result?.redirectUrl) throw new Error("SkyCanvas password signup did not complete");
+      return {
+        session: await completeEmbeddedAuthorization(result.redirectUrl, flow),
+        requiresEmailVerification: false,
+      };
     },
-    async sendMagicLink() {
-      throw new Error("Magic-link auth for React-only apps is hosted by SkyCanvas; use signIn()");
+    async sendMagicLink(input) {
+      await embeddedRequest(
+        "/auth/sdk/magic-link",
+        {
+          intent: input.intent ?? "signin",
+          email: input.email,
+          returnTo: input.returnTo ?? "/",
+          ...(input.name ? { name: input.name } : {}),
+        },
+        input.intent === "signup" ? "signup" : "signin",
+      );
     },
     async getSession() {
       return await completeRedirect() ?? await restoreSession();
@@ -400,5 +521,26 @@ function writeSessionValue(key: string, value: unknown) {
     else window.sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
     // Storage can be unavailable in privacy modes; memory auth still works.
+  }
+}
+
+function readFlowValue<T>(key: string): T | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = window.localStorage.getItem(key) ?? window.sessionStorage.getItem(key);
+    return value ? JSON.parse(value) as T : null;
+  } catch {
+    return readSessionValue<T>(key);
+  }
+}
+
+function writeFlowValue(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(value));
+    window.sessionStorage.removeItem(key);
+  } catch {
+    writeSessionValue(key, value);
   }
 }

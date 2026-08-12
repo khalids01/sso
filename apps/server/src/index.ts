@@ -182,8 +182,12 @@ const server = new Elysia()
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true,
+      // Dedicated OAuth and embedded-auth controllers validate public client
+      // origins. Keep the global plugin from swallowing their OPTIONS routes.
+      preflight: false,
     }),
   )
+  .options("/*", () => new Response(null, { status: 204 }))
   .use(docsPlugin)
   .onRequest(({ request }) => {
     if (!shouldLogRequests) {
@@ -228,6 +232,7 @@ const server = new Elysia()
       }
       if (pathname === "/api/auth/jwks" && response.ok) {
         response.headers.set("cache-control", "public, max-age=300, stale-while-revalidate=300");
+        response.headers.set("access-control-allow-origin", "*");
       }
       return response;
     }

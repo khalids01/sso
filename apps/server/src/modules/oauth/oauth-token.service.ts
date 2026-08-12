@@ -5,15 +5,11 @@ import {
   isValidPkceVerifier,
   securelyMatchesChallenge,
 } from "@sso/auth/server";
-import prisma from "@sso/db/server";
+import prisma, * as database from "@sso/db/server";
 import { env } from "@sso/env/server";
 import { getAvailableApplicationAuthMethodIds } from "@sso/auth/server";
 import { z } from "zod";
 import { recordApplicationUsage } from "../application-usage/application-usage.service";
-import {
-  getApplicationClientAccess,
-  registerApplicationMemberIfAllowed,
-} from "@sso/db/server";
 
 const TOKEN_TTL_SECONDS = 10 * 60;
 const challengePattern = /^[A-Za-z0-9_-]{43}$/;
@@ -240,10 +236,10 @@ export async function validateEmbeddedAuthorizationRequest(input: {
 export async function issueEmbeddedAuthorizationCode(
   input: EmbeddedAuthorizationInput,
 ) {
-  let access = await getApplicationClientAccess(input.userId, input.clientId);
+  let access = await database.getApplicationClientAccess(input.userId, input.clientId);
   if (access.allowed === false && access.reason === "membership_missing") {
-    if (await registerApplicationMemberIfAllowed(input.userId, input.clientId)) {
-      access = await getApplicationClientAccess(input.userId, input.clientId);
+    if (await database.registerApplicationMemberIfAllowed(input.userId, input.clientId)) {
+      access = await database.getApplicationClientAccess(input.userId, input.clientId);
     }
   }
   if (!access.allowed) {

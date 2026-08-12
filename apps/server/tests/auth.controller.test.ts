@@ -102,6 +102,59 @@ afterEach(() => {
 });
 
 describe("authController", () => {
+  it("allows embedded password requests only from the registered browser origin", async () => {
+    applicationClientFindFirstMock.mockResolvedValue({
+      id: "application-client-1",
+      applicationId: "application-1",
+      application: {
+        signInMethods: ["password"],
+        signUpMethods: ["password"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: false,
+      },
+    });
+    authApi.signInEmail.mockResolvedValue(new Response(null, { status: 401 }));
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const response = await authController.handle(new Request(
+      "http://localhost/auth/sdk/password/login",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://app.example.com",
+        },
+        body: JSON.stringify({
+          clientId: "sso_client_1",
+          redirectUri: "https://app.example.com/auth/callback",
+          origin: "https://app.example.com",
+          state: "state_value_that_is_long_enough",
+          nonce: "nonce_value_that_is_long_enough",
+          codeChallenge: "a".repeat(43),
+          email: "user@example.com",
+          password: "wrong-password",
+        }),
+      },
+    ));
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://app.example.com");
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+  });
+
+  it("handles embedded-auth preflight for a registered application origin", async () => {
+    applicationClientFindFirstMock.mockResolvedValue({ id: "application-client-1" });
+    const { browserAuthCorsController } = await import(
+      "../src/modules/auth/browser-auth-cors"
+    );
+    const response = await browserAuthCorsController.handle(new Request(
+      "http://localhost/auth/sdk/password/login",
+      { method: "OPTIONS", headers: { origin: "https://app.example.com" } },
+    ));
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://app.example.com");
+  });
+
   it("starts social authentication with the application's assigned connection", async () => {
     authApi.getOAuthClientPublicPrelogin.mockResolvedValue({
       client_id: "sso_client_1",

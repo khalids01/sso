@@ -145,6 +145,13 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
   }, [client]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onSession = () => { void refresh(); };
+    window.addEventListener("skycanvas:sso:session", onSession);
+    return () => window.removeEventListener("skycanvas:sso:session", onSession);
+  }, [refresh]);
+
+  useEffect(() => {
     let active = true;
     void Promise.all([client.getSession(), client.getConfig()])
       .then(([nextSession, config]) => {
