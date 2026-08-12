@@ -35,7 +35,7 @@ export const CreateEmailConnectionDto = t.Union([
     smtpPort: t.Numeric({ minimum: 1, maximum: 65_535 }),
     smtpSecure: t.Boolean(),
     smtpUsername: t.Optional(t.String({ maxLength: 500 })),
-    smtpPassword: t.String({ maxLength: 2_000 }),
+    smtpPassword: t.String({ minLength: 1, maxLength: 100 }),
   }),
 ]);
 

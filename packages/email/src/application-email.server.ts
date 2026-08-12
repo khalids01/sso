@@ -74,6 +74,16 @@ function fromValue(connection: Connection) {
     : connection.fromAddress;
 }
 
+function smtpAuth(connection: Connection, password: string) {
+  // SMTP providers commonly use the sender's email address as the login. Keep
+  // the username override for providers that require a different account, but
+  // do not disable authentication when that optional field is blank.
+  return {
+    user: connection.smtpUsername || connection.fromAddress,
+    pass: password,
+  };
+}
+
 async function deliver(connection: Connection, message: Message) {
   const secret = decryptEmailProviderSecret(connection.encryptedSecret);
   if (connection.provider === "resend") {
@@ -96,9 +106,7 @@ async function deliver(connection: Connection, message: Message) {
       host: connection.smtpHost,
       port: connection.smtpPort,
       secure: connection.smtpSecure ?? false,
-      auth: connection.smtpUsername
-        ? { user: connection.smtpUsername, pass: secret }
-        : undefined,
+      auth: smtpAuth(connection, secret),
     })
     .sendMail({
       from: fromValue(connection),
