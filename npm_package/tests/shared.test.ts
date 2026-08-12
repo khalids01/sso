@@ -38,11 +38,11 @@ describe("shared helpers", () => {
     }).provider.prompt).toBeUndefined();
   });
 
-  test("requires an explicit Better Auth SSO base URL", () => {
+  test("requires an explicit Better Auth SSO URL", () => {
     expect(() => createSsoBetterAuthIntegration({
       clientId: "client_123",
       baseUrl: "",
-    })).toThrow("baseUrl is required");
+    })).toThrow("ssoUrl is required");
   });
 
   test("creates a serializable Better Auth bootstrap without server functions", () => {
@@ -72,7 +72,29 @@ describe("shared helpers", () => {
     expect(() => createSsoBetterAuthIntegration({
       clientId: "client_123",
       baseUrl: "not-a-url",
-    })).toThrow("SSO baseUrl must be a valid absolute URL");
+    })).toThrow("SSO ssoUrl must be a valid absolute URL");
+  });
+
+  test("accepts the minimal Better Auth option names", () => {
+    const integration = createSsoBetterAuthIntegration({
+      publishableKey: "client_123",
+      ssoUrl: "http://localhost:5001",
+    });
+
+    expect(integration.provider.clientId).toBe("client_123");
+    expect(integration.config.baseUrl).toBe("http://localhost:5001");
+  });
+
+  test("provides a one-call Better Auth plugin", async () => {
+    const { skycanvas } = await import("../src/better-auth/index.js");
+    const plugin = skycanvas({
+      publishableKey: "client_123",
+      ssoUrl: "https://sso.example.com",
+    });
+
+    expect(plugin.id).toBe("generic-oauth");
+    expect(plugin.provider.providerId).toBe("skycanvas");
+    expect(plugin.createBootstrap(null).config.clientId).toBe("client_123");
   });
 });
 

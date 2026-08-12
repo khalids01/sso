@@ -58,10 +58,9 @@ export const skycanvas = createTanStackSso({
 import { env } from "./env.server"
 
 export const skycanvas = createNextSso({
-  clientId: env.SKYCANVAS_PUBLISHABLE_KEY,
-  sessionSecret: env.SKYCANVAS_SECRET_KEY,
-  baseUrl: env.SKYCANVAS_SSO_URL,
-  appUrl: env.APP_URL,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  secretKey: env.SKYCANVAS_SECRET_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
   interactionMode: "embedded",
   oauthMode: "popup",
 })`,
@@ -223,8 +222,8 @@ export function App() {
         code: `import { createSsoAccessTokenVerifier } from "@skycanvasstudio/sso/server"
 
 export const skycanvas = createSsoAccessTokenVerifier({
-  clientId: env.SKYCANVAS_PUBLISHABLE_KEY,
-  baseUrl: env.SKYCANVAS_SSO_URL,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
 })
 
 export async function requireSkyCanvasUser(request: Request) {
@@ -319,15 +318,13 @@ SSO_URL=https://api-sso.skycanvasstudio.com`,
         title: "Add the provider to Better Auth",
         filename: "src/lib/auth.ts",
         description: "Merge this plugin into your existing Better Auth instance. Preserve its database, plugins, and other sign-in methods. On TanStack Start, keep tanstackStartCookies() as the final plugin in the array.",
-        code: `import { createSsoBetterAuthIntegration } from "@skycanvasstudio/sso/better-auth"
+        code: `import { skycanvas } from "@skycanvasstudio/sso/better-auth"
 import { betterAuth } from "better-auth"
-import { genericOAuth } from "better-auth/plugins"
 import { env } from "./env.server"
 
-export const skycanvas = createSsoBetterAuthIntegration({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
-  // forceLogin: true, // optional explicit reauthentication
+export const skycanvasAuth = skycanvas({
+  publishableKey: env.SSO_CLIENT_ID,
+  ssoUrl: env.SSO_URL,
 })
 
 export const auth = betterAuth({
@@ -335,7 +332,7 @@ export const auth = betterAuth({
   account: { encryptOAuthTokens: true },
   plugins: [
     // Keep your existing plugins here.
-    genericOAuth({ config: [skycanvas.provider] }),
+    skycanvasAuth,
   ],
 })`,
       },
@@ -411,11 +408,11 @@ export class AppModule {}
         filename: "src/lib/auth-client.ts",
         description: "Create Better Auth's browser client and the typed SSO React integration. It receives safe configuration later from the server bootstrap, so no browser environment variables are needed.",
         code: `import { createAuthClient } from "better-auth/react"
-import { genericOAuthClient } from "better-auth/client/plugins"
+import { skycanvasClient } from "@skycanvasstudio/sso/better-auth"
 import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
 
 export const authClient = createAuthClient({
-  plugins: [genericOAuthClient()],
+  plugins: [skycanvasClient()],
 })
 
 export const { SsoProvider, useSso, useSsoSession } =
@@ -427,11 +424,11 @@ export const { SsoProvider, useSso, useSsoSession } =
             code: `"use client"
 
 import { createAuthClient } from "better-auth/react"
-import { genericOAuthClient } from "better-auth/client/plugins"
+import { skycanvasClient } from "@skycanvasstudio/sso/better-auth"
 import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
 
 export const authClient = createAuthClient({
-  plugins: [genericOAuthClient()],
+  plugins: [skycanvasClient()],
 })
 
 export const { SsoProvider, useSso, useSsoSession } =
@@ -449,8 +446,8 @@ import { getTanStackBetterAuthSsoBootstrap } from "@skycanvasstudio/sso/tanstack
 
 export const getInitialAuthSession = createServerFn({ method: "GET" }).handler(
   () => getTanStackBetterAuthSsoBootstrap(async () => {
-    const { auth, skycanvas } = await import("./auth")
-    return { auth, skycanvas }
+    const { auth, skycanvasAuth } = await import("./auth")
+    return { auth, skycanvas: skycanvasAuth }
   }),
 )`,
         alternatives: [
@@ -459,10 +456,10 @@ export const getInitialAuthSession = createServerFn({ method: "GET" }).handler(
             filename: "src/lib/auth-session.server.ts",
             code: `import "server-only"
 import { getNextBetterAuthSsoBootstrap } from "@skycanvasstudio/sso/next"
-import { auth, skycanvas } from "@/lib/auth"
+import { auth, skycanvasAuth } from "@/lib/auth"
 
 export async function getInitialAuthSession() {
-  return getNextBetterAuthSsoBootstrap({ auth, skycanvas })
+  return getNextBetterAuthSsoBootstrap({ auth, skycanvas: skycanvasAuth })
 }`,
           },
         ],
@@ -646,7 +643,7 @@ https://your-domain.example/your-auth-library/callback/skycanvas`,
     label: "Use SSO in a full-stack TypeScript app",
     shortLabel: "Full-stack standalone",
     description:
-      "Choose this when the application has no auth system. Register {APP_URL}/auth/callback, not the Better Auth callback. The server helper owns OAuth, encrypted cookies, and the local session; the optional browser and React entries consume those local routes.",
+      "Choose this when the application has no auth system. Register the application's /auth/callback URL, not the Better Auth callback. The SDK infers that URL from requests and owns OAuth, encrypted cookies, and the local session.",
     callbackPath: "/auth/callback",
     samples: [
       {
@@ -658,11 +655,10 @@ https://your-domain.example/your-auth-library/callback/skycanvas`,
       {
         title: "Configure the server environment",
         filename: ".env",
-        description: "All four values are required. APP_URL is the public origin receiving the callback; generate SESSION_SECRET with openssl rand -base64 32.",
-        code: `SSO_CLIENT_ID=your_skycanvas_client_id
-SSO_URL=https://api-sso.skycanvasstudio.com
-APP_URL=http://localhost:3000
-SESSION_SECRET=replace_with_at_least_32_random_characters`,
+        description: "Only three values are required. The SDK infers the application origin and callback from each request.",
+        code: `SKYCANVAS_PUBLISHABLE_KEY=your_skycanvas_client_id
+SKYCANVAS_SECRET_KEY=replace_with_at_least_32_random_characters
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
       },
       {
         title: "Create one SSO server",
@@ -672,13 +668,11 @@ SESSION_SECRET=replace_with_at_least_32_random_characters`,
 import { env } from "./env.server"
 
 export const sso = createSsoServer({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
-  appUrl: env.APP_URL,
-  sessionSecret: env.SESSION_SECRET,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  secretKey: env.SKYCANVAS_SECRET_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
 })
-
-console.log(sso.callbackUrl) // register this exact URL`,
+`,
       },
       {
         title: "Mount the SSO routes",

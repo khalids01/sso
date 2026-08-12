@@ -66,16 +66,17 @@ export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
   getToken: () => Promise<string | null>;
 }
 
-export interface SsoProviderProps<TUser extends SsoUser = SsoUser> {
+export type SsoProviderProps<TUser extends SsoUser = SsoUser> = {
   bootstrap?: StandaloneSsoBootstrap<TUser>;
-  publishableKey?: string;
-  ssoUrl?: string;
   redirectUrl?: string;
   oauthMode?: "redirect" | "popup";
   tokenCache?: "memory" | "session";
   baseUrl?: string;
   children?: ReactNode;
-}
+} & (
+  | { publishableKey: string; ssoUrl: string }
+  | { publishableKey?: never; ssoUrl?: never }
+);
 
 const SsoContext = createContext<SsoContextValue<SsoUser> | null>(null);
 
@@ -86,7 +87,7 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     () => props.publishableKey
       ? createBrowserSsoClient<TUser>({
           publishableKey: props.publishableKey,
-          ...(props.ssoUrl ? { ssoUrl: props.ssoUrl } : {}),
+          ssoUrl: props.ssoUrl,
           ...(props.redirectUrl ? { redirectUrl: props.redirectUrl } : {}),
           ...(props.oauthMode ? { oauthMode: props.oauthMode } : {}),
           ...(props.tokenCache ? { tokenCache: props.tokenCache } : {}),

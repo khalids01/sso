@@ -281,6 +281,7 @@ describe("framework-independent SSO server", () => {
     expect(() => createSsoServer({
       clientId,
       appUrl: "http://localhost:3000",
+      baseUrl: issuer,
       sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
       cookies: { sameSite: "none" },
     })).toThrow("must be Secure");
@@ -388,13 +389,32 @@ describe("framework-independent SSO server", () => {
     expect(() => createSsoServer({
       clientId,
       appUrl: "not-a-url",
+      baseUrl: issuer,
       sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
     })).toThrow("SSO appUrl must be a valid absolute URL");
     expect(() => createSsoServer({
       clientId,
       appUrl: "https://app.example.com",
+      baseUrl: issuer,
       sessionSecret: undefined as unknown as string,
-    })).toThrow("SSO sessionSecret is required");
+    })).toThrow("SSO secretKey is required");
+  });
+
+  test("infers the application and callback URL from the request", async () => {
+    const sso = createSsoServer({
+      publishableKey: clientId,
+      secretKey: "test-session-secret-that-is-at-least-32-bytes",
+      ssoUrl: issuer,
+    });
+
+    const login = await sso.handle(new Request(
+      "https://inferred.example.com/auth/login?returnTo=/dashboard",
+    ));
+    const authorization = new URL(requiredHeader(login, "location"));
+
+    expect(authorization.searchParams.get("redirect_uri")).toBe(
+      "https://inferred.example.com/auth/callback",
+    );
   });
 });
 

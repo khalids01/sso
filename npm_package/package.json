@@ -126,12 +126,16 @@
   },
   "peerDependencies": {
     "@tanstack/react-start": ">=1.160.0",
+    "better-auth": ">=1.6.23",
     "elysia": ">=1.4.0",
     "next": ">=14",
     "react": ">=18"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-start": {
+      "optional": true
+    },
+    "better-auth": {
       "optional": true
     },
     "elysia": {

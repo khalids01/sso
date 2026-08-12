@@ -21,7 +21,8 @@ describe("SSO integration guide", () => {
     expect(guide).not.toContain("createSsoBetterAuthProvider");
     expect(guide).not.toContain("createSsoBetterAuthClient");
     expect(guide).not.toContain("initialSession");
-    expect(guide).toContain("createSsoBetterAuthIntegration");
+    expect(guide).toContain("skycanvasAuth");
+    expect(guide).toContain("skycanvasClient");
     expect(guide).toContain("createSsoBetterAuthReact");
   });
 

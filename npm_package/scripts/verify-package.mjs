@@ -92,12 +92,11 @@ import { SsoProvider, useAuth } from "@skycanvasstudio/sso/react";
 import { createSsoServer } from "@skycanvasstudio/sso/server";
 
 const sso = createSsoServer({
-  clientId: "client_123",
-  baseUrl: "https://api-sso.skycanvasstudio.com",
-  appUrl: "https://app.example.com",
-  sessionSecret: "a-test-session-secret-that-is-at-least-32-bytes",
+  publishableKey: "client_123",
+  ssoUrl: "https://api-sso.skycanvasstudio.com",
+  secretKey: "a-test-session-secret-that-is-at-least-32-bytes",
 });
-const bootstrap = await sso.getBootstrap(new Headers());
+const bootstrap = await sso.getBootstrap(new Headers({ host: "app.example.com" }));
 createElement(SsoProvider, { bootstrap }, "Demo application");
 createElement(SsoProvider, {
   publishableKey: "client_123",
@@ -141,6 +140,7 @@ import { createTanStackSso, createTanStackSsoMiddleware, type TanStackSsoAuth } 
 const standalone = createTanStackSso({
   publishableKey: "client_123",
   secretKey: "a-test-session-secret-that-is-at-least-32-bytes",
+  ssoUrl: "https://api-sso.skycanvasstudio.com",
   interactionMode: "embedded",
   oauthMode: "popup",
 });

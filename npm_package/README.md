@@ -87,8 +87,8 @@ Verify it in that API without calling SkyCanvas on every request:
 import { createSsoAccessTokenVerifier } from "@skycanvasstudio/sso/server"
 
 const skycanvas = createSsoAccessTokenVerifier({
-  clientId: process.env.SKYCANVAS_PUBLISHABLE_KEY!,
-  baseUrl: process.env.SKYCANVAS_SSO_URL,
+  publishableKey: process.env.SKYCANVAS_PUBLISHABLE_KEY!,
+  ssoUrl: process.env.SKYCANVAS_SSO_URL!,
 })
 const auth = await skycanvas.verify(
   request.headers.get("authorization")!.slice(7),
@@ -123,10 +123,9 @@ the immediate popup shell covers that unavoidable network transition.
 import { createTanStackSso } from "@skycanvasstudio/sso/tanstack-start"
 
 export const skycanvas = createTanStackSso({
-  publishableKey: process.env.SSO_CLIENT_ID!,
-  secretKey: process.env.SESSION_SECRET!,
-  appUrl: process.env.APP_URL!,
-  ssoUrl: process.env.SSO_URL!,
+  publishableKey: process.env.SKYCANVAS_PUBLISHABLE_KEY!,
+  secretKey: process.env.SKYCANVAS_SECRET_KEY!,
+  ssoUrl: process.env.SKYCANVAS_SSO_URL!,
   interactionMode: "embedded",
   oauthMode: "popup",
 })
@@ -157,10 +156,9 @@ Load `skycanvas.getBootstrap()` in a server loader and pass it to
 import { createNextSso } from "@skycanvasstudio/sso/next"
 
 export const skycanvas = createNextSso({
-  clientId: process.env.SSO_CLIENT_ID!,
-  sessionSecret: process.env.SESSION_SECRET!,
-  appUrl: process.env.APP_URL!,
-  baseUrl: process.env.SSO_URL!,
+  publishableKey: process.env.SKYCANVAS_PUBLISHABLE_KEY!,
+  secretKey: process.env.SKYCANVAS_SECRET_KEY!,
+  ssoUrl: process.env.SKYCANVAS_SSO_URL!,
   oauthMode: "popup",
 })
 ```
@@ -185,9 +183,9 @@ import { createElysiaSso } from "@skycanvasstudio/sso/elysia"
 import { createSsoServer } from "@skycanvasstudio/sso/server"
 
 const sso = createSsoServer({
-  clientId: process.env.SSO_CLIENT_ID!,
-  sessionSecret: process.env.SESSION_SECRET!,
-  baseUrl: process.env.SSO_URL!,
+  publishableKey: process.env.SKYCANVAS_PUBLISHABLE_KEY!,
+  secretKey: process.env.SKYCANVAS_SECRET_KEY!,
+  ssoUrl: process.env.SKYCANVAS_SSO_URL!,
   appUrl: "https://api.example.com",
   redirectOrigin: "https://app.example.com",
   trustedOrigins: ["https://app.example.com"],
@@ -215,6 +213,27 @@ normally same-site.
 `createSsoServer()` uses standard Web `Request` and `Response` objects. Mount
 `sso.handle(request)` for `/auth/*`. Node/Express-like servers can use
 `createNodeSsoHandler()` from `@skycanvasstudio/sso/node`.
+
+Only `publishableKey`, `secretKey`, and `ssoUrl` are required. The application
+origin and `/auth/callback` URL are inferred from the request. Set `appUrl` only
+behind a proxy that does not forward the original host and protocol.
+
+## Existing Better Auth app
+
+```ts
+import { skycanvas } from "@skycanvasstudio/sso/better-auth"
+
+export const auth = betterAuth({
+  // Keep your existing database, providers, and options.
+  plugins: [skycanvas({
+    publishableKey: process.env.SKYCANVAS_PUBLISHABLE_KEY!,
+    ssoUrl: process.env.SKYCANVAS_SSO_URL!,
+  })],
+})
+```
+
+Use `skycanvasClient()` in the existing Better Auth browser client. Better Auth
+continues to own that application's session and callback route.
 
 The package owns these routes by default:
 
@@ -254,6 +273,3 @@ bun test
 bun run build
 bun run verify:package
 ```
-
-Reference applications live in `apps/sso-demo`, `apps/sso-demo-elysia`, and
-`apps/sso-demo-next` in the source repository.

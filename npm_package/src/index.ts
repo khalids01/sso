@@ -30,11 +30,15 @@ interface BetterAuthTokenSet {
   idToken?: string | undefined;
 }
 
-export interface SsoBetterAuthIntegrationOptions extends CreateSsoProviderOptions {
-  baseUrl: string;
+type SsoBetterAuthIntegrationAdvancedOptions = {
   fetch?: typeof fetch;
   forceLogin?: boolean;
-}
+};
+
+export type SsoBetterAuthIntegrationOptions = SsoBetterAuthIntegrationAdvancedOptions & (
+  | { publishableKey: string; ssoUrl: string; clientId?: string; baseUrl?: string }
+  | { clientId: string; baseUrl: string; publishableKey?: string; ssoUrl?: string }
+);
 
 export interface SsoPublicConfig {
   providerId: typeof SSO_PROVIDER_ID;
@@ -143,8 +147,11 @@ export function createSsoProvider(options: CreateSsoProviderOptions): SsoProvide
 }
 
 function createBetterAuthProvider(options: SsoBetterAuthIntegrationOptions) {
-  requireValue(options.baseUrl, "baseUrl");
-  const provider = createSsoProvider(options);
+  const clientId = options.publishableKey ?? options.clientId;
+  const baseUrl = options.ssoUrl ?? options.baseUrl;
+  requireValue(clientId, "publishableKey");
+  requireValue(baseUrl, "ssoUrl");
+  const provider = createSsoProvider({ clientId, baseUrl });
   return {
     providerId: provider.providerId,
     clientId: provider.clientId,
@@ -158,9 +165,9 @@ function createBetterAuthProvider(options: SsoBetterAuthIntegrationOptions) {
       try {
         const { verifySsoIdToken } = await import("./server/index.js");
         const identity = await verifySsoIdToken({
-          clientId: options.clientId,
+          clientId,
           idToken: tokens.idToken,
-          baseUrl: options.baseUrl,
+          baseUrl,
           ...(options.fetch ? { fetch: options.fetch } : {}),
         });
         return { ...identity.user, image: identity.user.image ?? undefined };
@@ -174,12 +181,14 @@ function createBetterAuthProvider(options: SsoBetterAuthIntegrationOptions) {
 export function createSsoBetterAuthIntegration(
   options: SsoBetterAuthIntegrationOptions,
 ): SsoBetterAuthIntegration {
-  requireValue(options.clientId, "clientId");
-  const baseUrl = requireOrigin(options.baseUrl, "baseUrl");
-  const provider = createBetterAuthProvider({ ...options, baseUrl });
+  const clientId = options.publishableKey ?? options.clientId;
+  const configuredSsoUrl = options.ssoUrl ?? options.baseUrl;
+  requireValue(clientId, "publishableKey");
+  const baseUrl = requireOrigin(configuredSsoUrl, "ssoUrl");
+  const provider = createBetterAuthProvider({ ...options, clientId, baseUrl });
   const config: SsoPublicConfig = {
     providerId: SSO_PROVIDER_ID,
-    clientId: options.clientId,
+    clientId,
     baseUrl,
   };
 

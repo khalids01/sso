@@ -50,6 +50,23 @@ describe("framework bootstrap adapters", () => {
     expect(integration.sso.callbackUrl).toBe("https://next.example.com/auth/callback");
   });
 
+  test("creates Next.js handlers with only keys and the SSO URL", async () => {
+    const { createNextSso } = await import("../src/next/index.js");
+    const integration = createNextSso({
+      publishableKey: "client_next",
+      secretKey: "test-session-secret-that-is-at-least-32-bytes",
+      ssoUrl: "http://localhost:5001",
+    });
+
+    const response = await integration.handlers.GET(new Request(
+      "https://next.example.com/auth/login",
+    ));
+    const authorization = new URL(response.headers.get("location")!);
+    expect(authorization.searchParams.get("redirect_uri")).toBe(
+      "https://next.example.com/auth/callback",
+    );
+  });
+
   test("creates an Elysia plugin for native Web requests", async () => {
     const { createElysiaSso } = await import("../src/elysia/index.js");
     const plugin = createElysiaSso({

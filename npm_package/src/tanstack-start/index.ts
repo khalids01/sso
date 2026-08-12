@@ -12,17 +12,30 @@ import type {
 } from "../server/index.js";
 import { createSsoServer } from "../server/index.js";
 
-export interface CreateTanStackSsoOptions<TUser extends SsoUser = SsoUser> {
-  publishableKey?: string;
-  clientId?: string;
-  secretKey?: string;
-  sessionSecret?: string;
-  ssoUrl?: string;
+interface TanStackSsoAdvancedOptions<TUser extends SsoUser> {
   appUrl?: string;
   interactionMode?: "hosted" | "embedded";
   oauthMode?: "redirect" | "popup";
   onSignIn?: Parameters<typeof createSsoServer<TUser>>[0]["onSignIn"];
 }
+
+export type CreateTanStackSsoOptions<TUser extends SsoUser = SsoUser> =
+  TanStackSsoAdvancedOptions<TUser> & (
+    | {
+        publishableKey: string;
+        secretKey: string;
+        ssoUrl: string;
+        clientId?: string;
+        sessionSecret?: string;
+      }
+    | {
+        clientId: string;
+        sessionSecret: string;
+        ssoUrl: string;
+        publishableKey?: string;
+        secretKey?: string;
+      }
+  );
 
 export interface TanStackSsoAuth<TUser extends SsoUser = SsoUser> {
   isAuthenticated: boolean;
@@ -63,8 +76,10 @@ export function createTanStackSso<TUser extends SsoUser = SsoUser>(
 ) {
   const clientId = options.publishableKey ?? options.clientId;
   const sessionSecret = options.secretKey ?? options.sessionSecret;
+  const ssoUrl = options.ssoUrl;
   if (!clientId) throw new Error("SkyCanvas publishableKey is required");
   if (!sessionSecret) throw new Error("SkyCanvas secretKey is required");
+  if (!ssoUrl) throw new Error("SkyCanvas ssoUrl is required");
   const servers = new Map<string, SsoServer<TUser>>();
 
   const getServer = (origin: string) => {
@@ -75,7 +90,7 @@ export function createTanStackSso<TUser extends SsoUser = SsoUser>(
       clientId,
       appUrl,
       sessionSecret,
-      ...(options.ssoUrl ? { baseUrl: options.ssoUrl } : {}),
+      baseUrl: ssoUrl,
       ...(options.interactionMode ? { interactionMode: options.interactionMode } : {}),
       ...(options.oauthMode ? { oauthMode: options.oauthMode } : {}),
       ...(options.onSignIn ? { onSignIn: options.onSignIn } : {}),

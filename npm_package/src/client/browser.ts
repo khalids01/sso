@@ -18,7 +18,8 @@ import { openPopupShell } from "./popup-shell.js";
 
 export interface BrowserSsoClientOptions<TUser extends SsoUser = SsoUser> {
   publishableKey: string;
-  ssoUrl?: string;
+  /** Managed, local, or self-hosted SSO origin. */
+  ssoUrl: string;
   redirectUrl?: string;
   oauthMode?: "redirect" | "popup";
   fetch?: typeof fetch;
@@ -60,8 +61,9 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
   options: BrowserSsoClientOptions<TUser>,
 ): SsoClient<TUser> {
   if (!options.publishableKey.trim()) throw new Error("SkyCanvas publishableKey is required");
+  if (!options.ssoUrl.trim()) throw new Error("SkyCanvas ssoUrl is required");
   const endpoints = getSsoEndpoints(options.ssoUrl);
-  const ssoOrigin = new URL(options.ssoUrl ?? endpoints.authorization).origin;
+  const ssoOrigin = new URL(options.ssoUrl).origin;
   const request = options.fetch ?? globalThis.fetch;
   if (!request) throw new Error("SkyCanvas browser auth requires fetch");
   const cacheKey = `skycanvas:${options.publishableKey}:session`;

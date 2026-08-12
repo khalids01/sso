@@ -56,16 +56,20 @@ export interface FinishSsoAuthorizationOptions {
 }
 
 export interface VerifySsoIdTokenOptions {
-  clientId: string;
+  publishableKey?: string;
+  clientId?: string;
   idToken: string;
+  ssoUrl?: string;
   baseUrl?: string;
   fetch?: typeof fetch;
   nonce?: string;
 }
 
 export interface VerifySsoAccessTokenOptions {
-  clientId: string;
+  publishableKey?: string;
+  clientId?: string;
   accessToken: string;
+  ssoUrl?: string;
   baseUrl?: string;
   fetch?: typeof fetch;
 }
@@ -122,11 +126,9 @@ export interface SsoSignInContext {
   request: Request;
 }
 
-export interface CreateSsoServerOptions<TUser extends SsoUser = SsoUser> {
-  clientId: string;
-  appUrl: string;
-  sessionSecret: string | Uint8Array;
-  baseUrl?: string;
+interface SsoServerAdvancedOptions<TUser extends SsoUser> {
+  /** Usually inferred from each request. Set only when host inference is unavailable. */
+  appUrl?: string;
   redirectOrigin?: string;
   trustedOrigins?: string[];
   paths?: Partial<SsoServerPaths>;
@@ -139,6 +141,26 @@ export interface CreateSsoServerOptions<TUser extends SsoUser = SsoUser> {
   onSignIn?: (context: SsoSignInContext) => TUser | Promise<TUser>;
   onError?: (error: unknown, request: Request) => void;
 }
+
+export type CreateSsoServerOptions<TUser extends SsoUser = SsoUser> =
+  SsoServerAdvancedOptions<TUser> & (
+    | {
+        publishableKey: string;
+        secretKey: string | Uint8Array;
+        ssoUrl: string;
+        clientId?: string;
+        sessionSecret?: string | Uint8Array;
+        baseUrl?: string;
+      }
+    | {
+        clientId: string;
+        sessionSecret: string | Uint8Array;
+        baseUrl: string;
+        publishableKey?: string;
+        secretKey?: string | Uint8Array;
+        ssoUrl?: string;
+      }
+  );
 
 export interface SsoServer<TUser extends SsoUser = SsoUser> {
   paths: SsoServerPaths;
@@ -260,15 +282,16 @@ export async function finishSsoAuthorization(
 }
 
 export async function verifySsoIdToken(options: VerifySsoIdTokenOptions): Promise<VerifiedSsoIdentity> {
+  const { clientId, baseUrl } = normalizePublicConnectionOptions(options);
   const request = getFetch(options.fetch);
-  const endpoints = getSsoEndpoints(options.baseUrl);
+  const endpoints = getSsoEndpoints(baseUrl);
   const [metadata, jwks] = await Promise.all([
-    fetchSsoClientMetadata(options.clientId, options.baseUrl, request),
+    fetchSsoClientMetadata(clientId, baseUrl, request),
     fetchSsoJwks(endpoints.jwks, request),
   ]);
   const { payload } = await jwtVerify(options.idToken, createLocalJWKSet(jwks), {
     issuer: metadata.issuer,
-    audience: options.clientId,
+    audience: clientId,
   });
   if (options.nonce !== undefined && payload.nonce !== options.nonce) throw new Error("SSO nonce mismatch");
   return { user: claimsToSsoUser(payload), claims: payload, metadata };
@@ -278,10 +301,11 @@ export async function verifySsoIdToken(options: VerifySsoIdTokenOptions): Promis
 export async function verifySsoAccessToken(
   options: VerifySsoAccessTokenOptions,
 ): Promise<VerifiedSsoAccessToken> {
+  const { clientId, baseUrl } = normalizePublicConnectionOptions(options);
   const request = getFetch(options.fetch);
-  const endpoints = getSsoEndpoints(options.baseUrl);
+  const endpoints = getSsoEndpoints(baseUrl);
   const [metadata, jwks] = await Promise.all([
-    fetchSsoClientMetadata(options.clientId, options.baseUrl, request),
+    fetchSsoClientMetadata(clientId, baseUrl, request),
     fetchSsoJwks(endpoints.jwks, request),
   ]);
   const { payload } = await jwtVerify(
@@ -302,6 +326,7 @@ export function createSsoAccessTokenVerifier(
     cacheTtlSeconds?: number;
   },
 ): SsoAccessTokenVerifier {
+  const { clientId, baseUrl } = normalizePublicConnectionOptions(options);
   const cacheTtl = positiveInteger(options.cacheTtlSeconds ?? 300, "cacheTtlSeconds") * 1_000;
   let cached: Promise<{
     metadata: SsoClientMetadata;
@@ -313,9 +338,9 @@ export function createSsoAccessTokenVerifier(
     if (cached && Date.now() - cachedAt < cacheTtl) return cached;
     cachedAt = Date.now();
     const request = getFetch(options.fetch);
-    const endpoints = getSsoEndpoints(options.baseUrl);
+    const endpoints = getSsoEndpoints(baseUrl);
     cached = Promise.all([
-      fetchSsoClientMetadata(options.clientId, options.baseUrl, request),
+      fetchSsoClientMetadata(clientId, baseUrl, request),
       fetchSsoJwks(endpoints.jwks, request),
     ]).then(([metadata, jwks]) => ({
       metadata,
@@ -344,6 +369,21 @@ export function createSsoAccessTokenVerifier(
   };
 }
 
+function normalizePublicConnectionOptions(options: {
+  publishableKey?: string;
+  clientId?: string;
+  ssoUrl?: string;
+  baseUrl?: string;
+}) {
+  const clientId = options.publishableKey ?? options.clientId;
+  const ssoUrl = options.ssoUrl ?? options.baseUrl;
+  requireValue(clientId, "publishableKey");
+  return {
+    clientId,
+    baseUrl: requireOrigin(ssoUrl, "ssoUrl"),
+  };
+}
+
 export async function fetchSsoClientMetadata(
   clientId: string,
   baseUrl?: string,
@@ -369,21 +409,36 @@ export async function fetchSsoClientMetadata(
 export function createSsoServer<TUser extends SsoUser = SsoUser>(
   options: CreateSsoServerOptions<TUser>,
 ): SsoServer<TUser> {
-  requireValue(options.clientId, "clientId");
+  const clientId = options.publishableKey ?? options.clientId;
+  const sessionSecret = options.secretKey ?? options.sessionSecret;
+  const configuredSsoUrl = options.ssoUrl ?? options.baseUrl;
+  requireValue(clientId, "publishableKey");
+  requireValue(configuredSsoUrl, "ssoUrl");
+  if (!sessionSecret) throw new Error("SSO secretKey is required");
+  const normalizedClientId = clientId;
+  const normalizedSsoUrl = configuredSsoUrl;
+  if (!options.appUrl) {
+    return createRequestAwareSsoServer({
+      ...options,
+      clientId: normalizedClientId,
+      sessionSecret,
+      baseUrl: normalizedSsoUrl,
+    });
+  }
   const appOrigin = requireOrigin(options.appUrl, "appUrl");
-  const baseUrl = options.baseUrl === undefined ? undefined : requireOrigin(options.baseUrl, "baseUrl");
+  const baseUrl = requireOrigin(normalizedSsoUrl, "ssoUrl");
   const redirectOrigin = requireOrigin(options.redirectOrigin ?? appOrigin, "redirectOrigin");
   const paths = normalizePaths(options.paths);
   const callbackUrl = new URL(paths.callback, appOrigin).toString();
   const flowTtl = positiveInteger(options.flowTtlSeconds ?? 600, "flowTtlSeconds");
   const sessionTtl = positiveInteger(options.sessionTtlSeconds ?? 600, "sessionTtlSeconds");
-  const cookieConfig = normalizeCookieOptions(options.cookies, appOrigin, options.clientId);
+  const cookieConfig = normalizeCookieOptions(options.cookies, appOrigin, normalizedClientId);
   const trustedOrigins = new Set([
     appOrigin,
     redirectOrigin,
     ...(options.trustedOrigins ?? []).map((origin) => new URL(origin).origin),
   ]);
-  const key = createSessionKey(options.sessionSecret);
+  const key = createSessionKey(sessionSecret);
   const clientConfig: StandaloneSsoClientConfig = {
     baseUrl: appOrigin,
     loginPath: paths.login,
@@ -405,7 +460,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     const provider = parseSocialProvider(requestUrl.searchParams.get("provider"));
     const intent = requestUrl.searchParams.get("intent") === "signup" ? "signup" : "signin";
     const authorization = await createSsoAuthorization({
-      clientId: options.clientId,
+      clientId: normalizedClientId,
       redirectUri: callbackUrl,
       returnTo,
       forceLogin,
@@ -432,13 +487,13 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       const code = url.searchParams.get("code");
       if (!code) throw new Error("SSO callback is missing code");
 
-      const callbackKey = `${options.clientId}:${state}`;
+      const callbackKey = `${normalizedClientId}:${state}`;
       const existing = pendingCallbacks.get(callbackKey);
       if (existing) return (await existing).clone();
 
       const pending = (async () => {
         const authorization = await finishSsoAuthorization({
-          clientId: options.clientId,
+          clientId: normalizedClientId,
           code,
           state,
           flow,
@@ -530,7 +585,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
   async function config(): Promise<Response> {
     try {
       const metadata = await fetchSsoClientMetadata(
-        options.clientId,
+        normalizedClientId,
         baseUrl,
         options.fetch,
       );
@@ -562,7 +617,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       return Response.json({ error: "invalid_request" }, { status: 400 });
     }
     const authorization = await createSsoAuthorization({
-      clientId: options.clientId,
+      clientId: normalizedClientId,
       redirectUri: callbackUrl,
       returnTo,
       ...(baseUrl ? { baseUrl } : {}),
@@ -575,7 +630,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({
-        clientId: options.clientId,
+        clientId: normalizedClientId,
         redirectUri: callbackUrl,
         origin: redirectOrigin,
         state: authorization.flow.state,
@@ -631,7 +686,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       return Response.json({ error: "invalid_request" }, { status: 400 });
     }
     const authorization = await createSsoAuthorization({
-      clientId: options.clientId,
+      clientId: normalizedClientId,
       redirectUri: callbackUrl,
       returnTo,
       ...(baseUrl ? { baseUrl } : {}),
@@ -641,7 +696,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({
-        clientId: options.clientId,
+        clientId: normalizedClientId,
         redirectUri: callbackUrl,
         origin: redirectOrigin,
         state: authorization.flow.state,
@@ -694,7 +749,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     const global = requestUrl.searchParams.get("global") === "true";
     const returnTo = safeReturnTo(requestUrl.searchParams.get("returnTo"));
     const globalLogoutUrl = new URL(getSsoEndpoints(baseUrl).globalLogout);
-    globalLogoutUrl.searchParams.set("client_id", options.clientId);
+    globalLogoutUrl.searchParams.set("client_id", normalizedClientId);
     globalLogoutUrl.searchParams.set(
       "return_to",
       new URL(returnTo, redirectOrigin).toString(),
@@ -770,6 +825,59 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     getBootstrap,
     handle,
   };
+}
+
+function createRequestAwareSsoServer<TUser extends SsoUser>(
+  options: CreateSsoServerOptions<TUser> & {
+    clientId: string;
+    sessionSecret: string | Uint8Array;
+    baseUrl: string;
+  },
+): SsoServer<TUser> {
+  const paths = normalizePaths(options.paths);
+  const servers = new Map<string, SsoServer<TUser>>();
+  const serverFor = (request: SsoSessionRequest) => {
+    const appUrl = inferRequestOrigin(request);
+    const cached = servers.get(appUrl);
+    if (cached) return cached;
+    const server = createSsoServer<TUser>({ ...options, appUrl });
+    servers.set(appUrl, server);
+    return server;
+  };
+
+  return {
+    paths,
+    // The absolute callback is request-dependent; adapters register this path
+    // on the inferred application origin.
+    callbackUrl: paths.callback,
+    login: (request) => serverFor(request).login(request),
+    callback: (request) => serverFor(request).callback(request),
+    config: async () => Response.json(
+      { error: "request_required" },
+      { status: 400 },
+    ),
+    passwordLogin: (request) => serverFor(request).passwordLogin(request),
+    passwordSignup: (request) => serverFor(request).passwordSignup(request),
+    magicLink: (request) => serverFor(request).magicLink(request),
+    profile: (request) => serverFor(request).profile(request),
+    logout: (request) => serverFor(request).logout(request),
+    getSession: (request) => serverFor(request).getSession(request),
+    getBootstrap: (request) => serverFor(request).getBootstrap(request),
+    handle: (request) => serverFor(request).handle(request),
+  };
+}
+
+function inferRequestOrigin(request: SsoSessionRequest): string {
+  if (request instanceof Request) return new URL(request.url).origin;
+  const host = request.get("x-forwarded-host")?.split(",")[0]?.trim()
+    ?? request.get("host")?.split(",")[0]?.trim();
+  if (!host) {
+    throw new Error("SSO could not infer the application URL; pass appUrl explicitly");
+  }
+  const forwardedProto = request.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProto
+    ?? (/^(localhost|127\.0\.0\.1)(:|$)/.test(host) ? "http" : "https");
+  return new URL(`${protocol}://${host}`).origin;
 }
 
 function parseSocialProvider(value: string | null) {
