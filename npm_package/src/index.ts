@@ -21,10 +21,9 @@ export interface SsoProvider {
   pkce: true;
 }
 
-export interface CreateSsoProviderOptions {
-  clientId: string;
-  baseUrl?: string;
-}
+export type CreateSsoProviderOptions =
+  | { publishableKey: string; ssoUrl: string; clientId?: string; baseUrl?: string }
+  | { clientId: string; baseUrl?: string; publishableKey?: string; ssoUrl?: string };
 
 interface BetterAuthTokenSet {
   idToken?: string | undefined;
@@ -132,15 +131,17 @@ export function getSsoEndpoints(baseUrl = SSO_DEFAULT_URL): SsoEndpoints {
 }
 
 export function createSsoProvider(options: CreateSsoProviderOptions): SsoProvider {
-  requireValue(options.clientId, "clientId");
-  const endpoints = getSsoEndpoints(options.baseUrl);
+  const clientId = options.publishableKey ?? options.clientId;
+  const baseUrl = options.ssoUrl ?? options.baseUrl;
+  requireValue(clientId, "publishableKey");
+  const endpoints = getSsoEndpoints(baseUrl);
   return {
     providerId: SSO_PROVIDER_ID,
-    clientId: options.clientId,
+    clientId,
     authorizationUrl: endpoints.authorization,
     tokenUrl: endpoints.token,
     jwksUrl: endpoints.jwks,
-    metadataUrl: endpoints.clientMetadata(options.clientId),
+    metadataUrl: endpoints.clientMetadata(clientId),
     scopes: [SSO_SCOPE],
     pkce: true,
   };

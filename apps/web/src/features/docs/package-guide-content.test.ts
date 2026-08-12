@@ -7,8 +7,6 @@ import {
 } from "./integration-guide-content";
 import { packageRecipes } from "./package-guide-content";
 
-const frameworkTabs = ["TanStack Start", "Next.js", "Elysia", "Express", "NestJS"];
-
 describe("SSO integration guide", () => {
   test("documents server configuration once without browser env copies", () => {
     const guide = JSON.stringify(packageRecipes);
@@ -23,14 +21,15 @@ describe("SSO integration guide", () => {
     expect(guide).not.toContain("initialSession");
     expect(guide).toContain("skycanvasAuth");
     expect(guide).toContain("skycanvasClient");
-    expect(guide).toContain("createSsoBetterAuthReact");
+    expect(guide).not.toContain("createSsoBetterAuthReact");
+    expect(guide).toContain("signInWithSkyCanvas");
   });
 
   test("shows the required providers and every supported framework", () => {
     const react = JSON.stringify(packageRecipes.react);
     const better = JSON.stringify(packageRecipes.better);
     const standalone = JSON.stringify(packageRecipes.manual);
-    expect(better).toContain("<SsoProvider bootstrap={bootstrap}>");
+    expect(better).not.toContain("<SsoProvider bootstrap={bootstrap}>");
     expect(react).toContain("publishableKey={import.meta.env.VITE_SKYCANVAS_PUBLISHABLE_KEY}");
     expect(react).toContain("createSsoAccessTokenVerifier");
     expect(react).toContain("Bearer ");
@@ -38,7 +37,7 @@ describe("SSO integration guide", () => {
     expect(react).toContain("/auth/callback");
     expect(react).toContain("immediately opens a small secure loading screen");
     expect(react).toContain("No custom popup loading page is needed");
-    expect(better).toContain("avoids the client-only initial session flash");
+    expect(better).toContain("signInWithSkyCanvas");
     expect(standalone).toContain("immediate popup loading screen");
     expect(react).not.toContain("createSsoServer");
     expect(standalone).toContain("<SkyCanvasProvider>");
@@ -47,7 +46,8 @@ describe("SSO integration guide", () => {
     expect(standalone).not.toContain("better-auth");
     expect(better).not.toContain("Add the React session provider");
     expect(standalone).not.toContain("Add SsoProvider for React");
-    for (const framework of frameworkTabs) expect(better).toContain(framework);
+    expect(better).toContain("TanStack Start");
+    expect(better).toContain("Next.js");
   });
 
   test("explains session ownership, API enforcement, and common failures", () => {

@@ -67,20 +67,17 @@ sign-in/session behavior using Better Auth's official documentation.
 Server configuration (`src/lib/auth.ts`):
 
 ```ts
-import { createSsoBetterAuthIntegration } from "@skycanvasstudio/sso/better-auth"
+import { skycanvas } from "@skycanvasstudio/sso/better-auth"
 import { betterAuth } from "better-auth"
-import { genericOAuth } from "better-auth/plugins"
 import { env } from "./env.server"
-
-export const skycanvas = createSsoBetterAuthIntegration({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
-})
 
 export const auth = betterAuth({
   // Preserve the existing database, plugins, and options.
   account: { encryptOAuthTokens: true },
-  plugins: [genericOAuth({ config: [skycanvas.provider] })],
+  plugins: [skycanvas({
+    publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+    ssoUrl: env.SKYCANVAS_SSO_URL,
+  })],
 })
 ```
 
@@ -96,41 +93,22 @@ second callback or standalone `createSsoServer` instance.
 Browser integration (`src/lib/auth-client.ts`):
 
 ```ts
-import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
-import { genericOAuthClient } from "better-auth/client/plugins"
+import { skycanvasClient } from "@skycanvasstudio/sso/better-auth"
 import { createAuthClient } from "better-auth/react"
 
-export const authClient = createAuthClient({ plugins: [genericOAuthClient()] })
-export const { SsoProvider, useSso, useSsoSession } =
-  createSsoBetterAuthReact(authClient)
+export const authClient = createAuthClient({ plugins: [skycanvasClient()] })
+
+export const signInWithSkyCanvas = (callbackURL = "/dashboard") =>
+  authClient.signIn.oauth2({ providerId: "skycanvas", callbackURL })
 ```
 
-For TanStack Start, keep `createServerFn` in application source and use a lazy
-server import:
-
-```ts
-import { createServerFn } from "@tanstack/react-start"
-import { getTanStackBetterAuthSsoBootstrap } from "@skycanvasstudio/sso/tanstack-start"
-
-export const getInitialAuthSession = createServerFn({ method: "GET" }).handler(
-  () => getTanStackBetterAuthSsoBootstrap(async () => {
-    const { auth, skycanvas } = await import("./auth")
-    return { auth, skycanvas }
-  }),
-)
-```
-
-For Next.js, call `getNextBetterAuthSsoBootstrap({ auth, skycanvas })` from the
-server layout. Mount the `SsoProvider` returned by `createSsoBetterAuthReact`
-with `bootstrap={bootstrap}` above all SSO hooks.
-
-Use `useSso()` for `user`, `session`, `isPending`, `error`, `signIn`, and
-`signOut`. Types are inferred from the configured Better Auth client, including
-custom user fields. `SsoUser` is not a replacement for Better Auth's user type.
+Keep using Better Auth's existing session hooks, provider, user types, route,
+and sign-out behavior. Do not add a second SkyCanvas provider or bootstrap
+layer to the React tree.
 
 ## Another auth library
 
-Call `createSsoProvider({ clientId: env.SSO_CLIENT_ID, baseUrl: env.SSO_URL })`
+Call `createSsoProvider({ publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY, ssoUrl: env.SKYCANVAS_SSO_URL })`
 on the server and map its endpoints into the existing library. The library must
 use Authorization Code, PKCE S256, state, nonce, server-side token exchange,
 JWKS signature verification, issuer, audience, expiry, and subject validation.
@@ -138,55 +116,42 @@ Keep its own callback, session, user types, and logout behavior.
 
 ## Standalone path
 
-Create only one server configuration module:
+For TanStack Start, configure the adapter once:
 
 ```ts
-// src/lib/sso.server.ts
-import { createSsoServer } from "@skycanvasstudio/sso/server"
+import { createTanStackSso } from "@skycanvasstudio/sso/tanstack-start"
 import { env } from "./env.server"
 
-export const sso = createSsoServer({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
-  appUrl: env.APP_URL,
-  sessionSecret: env.SESSION_SECRET,
+export const skycanvas = createTanStackSso({
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  secretKey: env.SKYCANVAS_SECRET_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
 })
 ```
 
-Mount `sso.handle(request)` for `/auth/*`. TanStack Start, Next.js, and Elysia
-already expose Web requests. For Express and NestJS, use
-`createNodeSsoHandler(sso)` from `@skycanvasstudio/sso/node` and use
-`nodeRequestHeaders(request)` when only session/bootstrap data is required.
-
-TanStack SSR:
+Mount its middleware once:
 
 ```ts
-import { createServerFn } from "@tanstack/react-start"
-import { getTanStackStandaloneSsoBootstrap } from "@skycanvasstudio/sso/tanstack-start"
+import { createServerOnlyFn, createStart } from "@tanstack/react-start"
+import { createTanStackSsoMiddleware } from "@skycanvasstudio/sso/tanstack-start"
 
-export const getSsoBootstrap = createServerFn({ method: "GET" }).handler(
-  () => getTanStackStandaloneSsoBootstrap(
-    () => import("./sso.server").then(({ sso }) => sso),
-  ),
+const load = createServerOnlyFn(() =>
+  import("./lib/skycanvas.server").then(({ skycanvas }) => skycanvas),
 )
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [createTanStackSsoMiddleware(load)],
+}))
 ```
 
-Next.js SSR uses `getNextStandaloneSsoBootstrap({ sso })`. Elysia can call
-`sso.getBootstrap(request)`. Express and NestJS can call
-`sso.getBootstrap(nodeRequestHeaders(request))`.
+For Next.js use `createNextSso()` with the same three values and export its
+`GET`, `POST`, and `OPTIONS` handlers from `app/auth/[...sso]/route.ts`. The SDK
+infers the public app origin and `/auth/callback` URL from the request. Set
+`appUrl` only when a proxy does not forward the original host and protocol.
 
-Mount the package React provider directly. `SsoSignInButton` and `SsoUserMenu`
-read its session internally; do not import standalone `useSso()` or
-`useSsoSession()` hooks from `/react`.
-
-```tsx
-import { SsoProvider } from "@skycanvasstudio/sso/react"
-
-<SsoProvider bootstrap={bootstrap}>{children}</SsoProvider>
-```
-
-Do not create `sso-client.ts` or an application session-provider wrapper.
-Register `sso.callbackUrl`, normally `{APP_URL}/auth/callback`.
+Mount `SkyCanvasProvider` once and use the packaged `SignIn`, `SignedIn`,
+`SignedOut`, `useAuth`, and `SsoUserMenu` APIs. Register
+`{APP_ORIGIN}/auth/callback` in SkyCanvas.
 
 ## Required verification
 

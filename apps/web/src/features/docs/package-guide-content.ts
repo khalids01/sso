@@ -298,19 +298,19 @@ if (!isLoaded) return <p>Loading session…</p>
         title: "Configure the server environment",
         tabLabel: "TanStack Start",
         filename: ".env",
-        description: "Define the SSO values once on the server. Validate them in your application's server-only env module; do not create VITE_SSO_* or NEXT_PUBLIC_SSO_* copies.",
+        description: "Keep the two SkyCanvas values beside your existing Better Auth server values. Do not create browser copies; the Better Auth client receives what it needs through its normal route.",
         code: `BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace_with_at_least_32_random_characters
-SSO_CLIENT_ID=your_skycanvas_client_id
-SSO_URL=https://api-sso.skycanvasstudio.com`,
+SKYCANVAS_PUBLISHABLE_KEY=your_skycanvas_client_id
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
         alternatives: [
           {
             tabLabel: "Next.js",
             filename: ".env.local",
             code: `BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace_with_at_least_32_random_characters
-SSO_CLIENT_ID=your_skycanvas_client_id
-SSO_URL=https://api-sso.skycanvasstudio.com`,
+SKYCANVAS_PUBLISHABLE_KEY=your_skycanvas_client_id
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
           },
         ],
       },
@@ -323,8 +323,8 @@ import { betterAuth } from "better-auth"
 import { env } from "./env.server"
 
 export const skycanvasAuth = skycanvas({
-  publishableKey: env.SSO_CLIENT_ID,
-  ssoUrl: env.SSO_URL,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
 })
 
 export const auth = betterAuth({
@@ -406,17 +406,17 @@ export class AppModule {}
         title: "Create the browser client",
         tabLabel: "TanStack Start",
         filename: "src/lib/auth-client.ts",
-        description: "Create Better Auth's browser client and the typed SSO React integration. It receives safe configuration later from the server bootstrap, so no browser environment variables are needed.",
+        description: "Add the matching client plugin to your existing Better Auth client. Keep using Better Auth's normal session hook and UI; no second provider or bootstrap layer is required.",
         code: `import { createAuthClient } from "better-auth/react"
 import { skycanvasClient } from "@skycanvasstudio/sso/better-auth"
-import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
 
 export const authClient = createAuthClient({
   plugins: [skycanvasClient()],
 })
 
-export const { SsoProvider, useSso, useSsoSession } =
-  createSsoBetterAuthReact(authClient)`,
+export function signInWithSkyCanvas(callbackURL = "/dashboard") {
+  return authClient.signIn.oauth2({ providerId: "skycanvas", callbackURL })
+}`,
         alternatives: [
           {
             tabLabel: "Next.js",
@@ -425,14 +425,14 @@ export const { SsoProvider, useSso, useSsoSession } =
 
 import { createAuthClient } from "better-auth/react"
 import { skycanvasClient } from "@skycanvasstudio/sso/better-auth"
-import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
 
 export const authClient = createAuthClient({
   plugins: [skycanvasClient()],
 })
 
-export const { SsoProvider, useSso, useSsoSession } =
-  createSsoBetterAuthReact(authClient)`,
+export function signInWithSkyCanvas(callbackURL = "/dashboard") {
+  return authClient.signIn.oauth2({ providerId: "skycanvas", callbackURL })
+}`,
           },
         ],
       },
@@ -564,7 +564,13 @@ export function AccountMenu() {
         code: `http://localhost:3000/api/auth/oauth2/callback/skycanvas
 https://your-domain.example/api/auth/oauth2/callback/skycanvas`,
       },
-    ],
+    ].filter((sample) => new Set([
+      "Install",
+      "Configure the server environment",
+      "Add the provider to Better Auth",
+      "Create the browser client",
+      "Register the callback URL",
+    ]).has(sample.title ?? sample.filename)),
   },
 
   other: {
@@ -586,8 +592,8 @@ https://your-domain.example/api/auth/oauth2/callback/skycanvas`,
 import { env } from "./env.server"
 
 const sso = createSsoProvider({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
 })
 
 // Map these into your auth library:
@@ -620,8 +626,8 @@ sso.pkce             // true`,
 import { env } from "./env.server"
 
 const identity = await verifySsoIdToken({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
   idToken: tokens.id_token,
   nonce: expectedNonce,
 })
@@ -631,7 +637,7 @@ identity.user // { id, name, email, emailVerified, image }`,
       {
         filename: "Register and test the callback",
         description: "Inspect the redirect_uri produced by your auth library and register that exact URL. Keep using that library for sessions, hooks, and logout.",
-        code: `SSO_CLIENT_ID=your_skycanvas_client_id
+        code: `SKYCANVAS_PUBLISHABLE_KEY=your_skycanvas_client_id
 
 # Example only — copy the exact redirect_uri from your authorization request:
 https://your-domain.example/your-auth-library/callback/skycanvas`,
