@@ -25,7 +25,7 @@ const leadClass = "mt-3 max-w-2xl text-[0.95rem] leading-7 text-[#7f849c]";
 
 export function IntegrationGuide() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<GuideMode>("better");
+  const [authMode, setAuthMode] = useState<GuideMode>("react");
   const activeRecipe = packageRecipes[authMode];
   const navigation = [
     {
@@ -110,12 +110,17 @@ export function IntegrationGuide() {
 
               <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-[#292e42] bg-[#292e42] sm:grid-cols-3">
                 <FlowStep number="01" icon={Code2} title="Install" text="Add the SSO package" />
-                <FlowStep number="02" icon={Server} title="Connect server" text="Configure and mount auth" />
+                <FlowStep number="02" icon={Server} title={authMode === "react" ? "Connect SSO" : "Connect server"} text={authMode === "react" ? "Add the provider" : "Configure and mount auth"} />
                 <FlowStep number="03" icon={KeyRound} title="Use session" text="Sign in, protect, sign out" />
               </div>
 
               <Callout>
-                {authMode === "better" ? (
+                {authMode === "react" ? (
+                  <span>
+                    Register the exact <InlineCode>/auth/callback</InlineCode> URL and app origin. The browser uses
+                    PKCE and a publishable client key; there is no app auth server or client secret.
+                  </span>
+                ) : authMode === "better" ? (
                   <span>
                     Better Auth generates <InlineCode>/api/auth/oauth2/callback/skycanvas</InlineCode>. Register that
                     exact path in SkyCanvas. <InlineCode>/api/auth/callback</InlineCode> is wrong for this setup, and
@@ -290,6 +295,7 @@ function GuidePicker({
           value={authMode}
           onChange={setAuthMode}
           options={[
+            ["react", "React-only app"],
             ["better", "Existing Better Auth"],
             ["other", "Another auth library"],
             ["manual", "No auth library"],

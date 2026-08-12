@@ -21,9 +21,13 @@ describe("SSO integration guide", () => {
   });
 
   test("shows the required providers and every supported framework", () => {
+    const react = JSON.stringify(packageRecipes.react);
     const better = JSON.stringify(packageRecipes.better);
     const standalone = JSON.stringify(packageRecipes.manual);
     expect(better).toContain("<SsoProvider bootstrap={bootstrap}>");
+    expect(react).toContain("publishableKey={import.meta.env.VITE_SKYCANVAS_PUBLISHABLE_KEY}");
+    expect(react).toContain("createSsoAccessTokenVerifier");
+    expect(react).not.toContain("createSsoServer");
     expect(standalone).toContain("<SkyCanvasProvider>");
     expect(standalone).toContain("createTanStackSso");
     expect(standalone).toContain("interactionMode");

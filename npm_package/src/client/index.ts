@@ -37,8 +37,14 @@ export interface SsoClient<TUser extends SsoUser = SsoUser> {
   signUpWithPassword: (input: { name: string; email: string; password: string; returnTo?: string }) => Promise<{ session: SsoSession<TUser> | null; requiresEmailVerification: boolean }>;
   sendMagicLink: (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => Promise<void>;
   getSession: () => Promise<SsoSession<TUser> | null>;
+  getToken: () => Promise<string | null>;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
 }
+
+export {
+  createBrowserSsoClient,
+  type BrowserSsoClientOptions,
+} from "./browser.js";
 
 export function createSsoClient<TUser extends SsoUser = SsoUser>(
   options: SsoClientOptions<TUser> = {},
@@ -179,6 +185,9 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
       if (!response.ok) throw await responseError(response, "magic-link request");
     },
     getSession,
+    async getToken() {
+      return null;
+    },
     async logout(logoutOptions = {}) {
       if (logoutOptions.global !== false) {
         const target = resolveUrl(logoutPath, baseUrl);

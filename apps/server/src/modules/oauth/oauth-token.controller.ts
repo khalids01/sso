@@ -97,6 +97,9 @@ export const oauthTokenController = new Elysia({ name: "oauth-token" })
     }
     set.headers["cache-control"] = "public, max-age=300";
     set.headers["x-content-type-options"] = "nosniff";
+    // This document contains only public OAuth client configuration. Allowing
+    // browser reads is what lets a React-only app bootstrap without an auth BFF.
+    set.headers["access-control-allow-origin"] = "*";
     return metadata;
   }, {
     query: t.Object({ client_id: t.String({ minLength: 1 }) }),

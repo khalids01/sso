@@ -18,6 +18,7 @@ export type {
 export type {
   SsoClient,
   SsoClientOptions,
+  BrowserSsoClientOptions,
   SsoLoginOptions,
   SsoLogoutOptions,
 } from "../client/index.js";
@@ -35,7 +36,10 @@ export type {
   StandaloneSsoBootstrap,
   StandaloneSsoClientConfig,
   VerifiedSsoAuthorization,
+  VerifiedSsoAccessToken,
   VerifiedSsoIdentity,
+  SsoAccessTokenVerifier,
+  VerifySsoAccessTokenOptions,
   VerifySsoIdTokenOptions,
 } from "../server/index.js";
 

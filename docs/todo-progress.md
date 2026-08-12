@@ -6,8 +6,10 @@ Always update this file when meaningful SSO work is completed or when the recomm
 
 ## Current Next Step
 
-Use the completed `sso-demo` reference client to capture only the profile, role,
-scope, and branding requirements that the first production application actually needs.
+Run a real browser pass of the React-only popup and redirect integrations using
+an application client with `/auth/callback` registered, then capture only the
+profile, role, scope, and branding requirements that the first production
+application actually needs.
 Local automated and browser validation is the current acceptance gate; staging
 verification is deferred. Do not access or mutate the old production SSO. It is
 only a behavioral reference, and no pilot or compatibility migration is
@@ -89,6 +91,10 @@ deferred.
 - [x] Create a separate TanStack Start reference application and use it to test
   login, callback, PKCE exchange, local session creation, and sign-out as the
   first real client contract.
+- [x] Add a React-only package integration using authorization code + PKCE,
+  verified short-lived browser tokens, `useAuth().getToken()`, and no per-app
+  Elysia auth server.
+- [x] Add application-backend access-token verification to the npm package.
 - [ ] Add pushed revocation handling to the reference application's local session.
 - [ ] Capture app-specific profile, role, scope, and revocation requirements before
   extending the initial protocol.
@@ -109,6 +115,14 @@ deferred.
 - [x] Complete real local Playwright runs with dedicated allowlisted admin and user identities.
 
 ## Latest Verification
+
+- `@skycanvasstudio/sso` 0.9 adds `SkyCanvasProvider` public-client props for
+  React-only apps, automatic popup callback completion, PKCE, JWKS verification,
+  session restoration, and backend `verifySsoAccessToken()` support. The
+  standalone React demo no longer contains an Elysia auth bridge.
+- Package checks pass with 42 tests covering the browser popup exchange and
+  application-backend access-token verification. No schema or migration was
+  added.
 
 - `apps/sso-demo` now completes the public-client authorization-code flow with
   server-side PKCE, state and nonce validation, JWKS verification, an encrypted

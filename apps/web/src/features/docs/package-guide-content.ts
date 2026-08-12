@@ -1,6 +1,6 @@
 import type { CodeSample } from "./integration-guide-content";
 
-export type GuideMode = "better" | "other" | "manual" | "language";
+export type GuideMode = "react" | "better" | "other" | "manual" | "language";
 
 export type PackageRecipe = {
   label: string;
@@ -94,6 +94,85 @@ Callback URL:  http://localhost:3000/auth/callback`,
 };
 
 export const packageRecipes: Record<GuideMode, PackageRecipe> = {
+  react: {
+    label: "Use SSO in a React-only app",
+    shortLabel: "React-only app",
+    description:
+      "The Clerk-like path for Vite and other client-rendered React apps. SkyCanvas hosts sign-in and owns OAuth provider callbacks, the central SSO session, code validation, and token issuance. Your app does not run an Elysia auth server.",
+    callbackPath: "/auth/callback",
+    samples: [
+      {
+        title: "Install",
+        filename: "Terminal",
+        description: "Add the React SDK and its peer form dependency.",
+        code: `bun add @skycanvasstudio/sso react-hook-form`,
+      },
+      {
+        title: "Add public configuration",
+        filename: ".env",
+        description: "A publishable key identifies a public PKCE client; it is safe to include in a browser build and is not a secret.",
+        code: `VITE_SKYCANVAS_PUBLISHABLE_KEY=your_client_id
+VITE_SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
+      },
+      {
+        title: "Wrap the app once",
+        filename: "src/main.tsx",
+        description: "Popup is the default. Set oauthMode=\"redirect\" when top-level navigation is preferred.",
+        code: `import { SkyCanvasProvider } from "@skycanvasstudio/sso/react"
+import "@skycanvasstudio/sso/styles.css"
+
+createRoot(document.getElementById("root")!).render(
+  <SkyCanvasProvider
+    publishableKey={import.meta.env.VITE_SKYCANVAS_PUBLISHABLE_KEY}
+    ssoUrl={import.meta.env.VITE_SKYCANVAS_SSO_URL}
+  >
+    <App />
+  </SkyCanvasProvider>,
+)`,
+      },
+      {
+        title: "Use Clerk-like components and hooks",
+        filename: "src/App.tsx",
+        description: "The SDK handles state, nonce, PKCE, popup completion, token verification, restoration, and logout.",
+        code: `import { SignIn, SignedIn, SignedOut, useAuth, useUser } from "@skycanvasstudio/sso/react"
+
+export function App() {
+  const { isLoaded, isSignedIn, getToken, signOut } = useAuth()
+  const { user } = useUser()
+
+  return <>
+    <SignedOut><SignIn returnTo="/protected" /></SignedOut>
+    <SignedIn>
+      <p>{user?.email}</p>
+      <button onClick={() => void signOut()}>Sign out</button>
+    </SignedIn>
+  </>
+}`,
+      },
+      {
+        title: "Protect your application API",
+        filename: "src/auth/skycanvas.server.ts",
+        description: "Create one cached verifier per backend process, then verify the Bearer token returned by getToken(). No client secret or per-request SSO call is required.",
+        code: `import { createSsoAccessTokenVerifier } from "@skycanvasstudio/sso/server"
+
+export const skycanvas = createSsoAccessTokenVerifier({
+  clientId: env.SKYCANVAS_PUBLISHABLE_KEY,
+  baseUrl: env.SKYCANVAS_SSO_URL,
+})
+
+const token = request.headers.get("authorization")?.replace(/^Bearer /, "")
+const auth = token ? await skycanvas.verify(token) : null
+if (!auth) return new Response("Unauthorized", { status: 401 })`,
+      },
+      {
+        title: "Register the browser client",
+        filename: "SkyCanvas dashboard (not a project file)",
+        description: "Both values are exact. Provider credentials such as Google continue to point only at central SkyCanvas.",
+        code: `Allowed origin: http://localhost:5173
+Callback URL:  http://localhost:5173/auth/callback`,
+      },
+    ],
+  },
   better: {
     label: "Use SSO with Better Auth",
     shortLabel: "Existing Better Auth",

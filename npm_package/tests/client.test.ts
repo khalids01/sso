@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { createSsoClient } from "../src/client/index.js";
+import { exportJWK, generateKeyPair, SignJWT } from "jose";
+import { createBrowserSsoClient, createSsoClient } from "../src/client/index.js";
 
 test("browser client uses local session endpoints with credentials", async () => {
   const requests: Array<{ input: string; init?: RequestInit }> = [];
@@ -156,6 +157,101 @@ test("popup sign-in surfaces callback errors", async () => {
   }
 });
 
+test("React-only client completes PKCE in a popup and exposes an app access token", async () => {
+  const browser = installPopupBrowser("https://frontend.example.com");
+  const { privateKey, publicKey } = await generateKeyPair("RS256");
+  const jwk = { ...(await exportJWK(publicKey)), alg: "RS256", use: "sig", kid: "browser-key" };
+  let issuedAccessToken = "";
+  try {
+    const request = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/api/oauth/client-metadata") {
+        return Response.json({
+          client_id: "client_browser",
+          application_id: "app_browser",
+          audience: "urn:sso:application:app_browser",
+          issuer: "https://sso.example.com",
+          sign_in_methods: ["password"],
+          sign_up_methods: [],
+        });
+      }
+      if (url.pathname === "/api/auth/jwks") return Response.json({ keys: [jwk] });
+      if (url.pathname === "/api/auth/oauth2/token") {
+        const params = new URLSearchParams(String(init?.body));
+        expect(params.get("code_verifier")?.length).toBeGreaterThanOrEqual(43);
+        const authorization = new URL(browser.openedUrl);
+        const nonce = authorization.searchParams.get("nonce")!;
+        issuedAccessToken = await browserToken(privateKey, {
+          audience: "urn:sso:application:app_browser",
+        });
+        const idToken = await browserToken(privateKey, {
+          audience: "client_browser",
+          claims: {
+            nonce,
+            name: "Browser User",
+            email: "browser@example.com",
+            email_verified: true,
+          },
+        });
+        return Response.json({
+          access_token: issuedAccessToken,
+          id_token: idToken,
+          token_type: "Bearer",
+          expires_in: 600,
+          scope: "openid",
+        });
+      }
+      return new Response(null, { status: 404 });
+    }) as typeof fetch;
+    const client = createBrowserSsoClient({
+      publishableKey: "client_browser",
+      ssoUrl: "https://sso.example.com",
+      redirectUrl: "https://frontend.example.com/auth/callback",
+      fetch: request,
+      popupTimeoutMs: 1_000,
+    });
+
+    const pending = client.signIn({ returnTo: "/protected" });
+    await waitFor(() => Boolean(browser.openedUrl));
+    const authorization = new URL(browser.openedUrl);
+    expect(authorization.origin).toBe("https://sso.example.com");
+    expect(authorization.searchParams.get("code_challenge_method")).toBe("S256");
+    browser.complete("https://frontend.example.com", {
+      type: "skycanvas:sso:oauth-callback",
+      code: "browser_authorization_code",
+      state: authorization.searchParams.get("state"),
+    });
+    await pending;
+
+    expect((await client.getSession())?.user.email).toBe("browser@example.com");
+    expect(await client.getToken()).toBe(issuedAccessToken);
+  } finally {
+    browser.restore();
+  }
+});
+
+async function browserToken(
+  privateKey: CryptoKey,
+  input: { audience: string; claims?: Record<string, unknown> },
+) {
+  return new SignJWT(input.claims ?? {})
+    .setProtectedHeader({ alg: "RS256", kid: "browser-key" })
+    .setIssuer("https://sso.example.com")
+    .setAudience(input.audience)
+    .setSubject("pairwise_user")
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(privateKey);
+}
+
+async function waitFor(predicate: () => boolean) {
+  for (let index = 0; index < 50; index += 1) {
+    if (predicate()) return;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  throw new Error("Timed out waiting for browser state");
+}
+
 function installPopupBrowser(frontendOrigin: string) {
   const originalWindow = globalThis.window;
   const listeners = new Set<(event: MessageEvent) => void>();
@@ -170,6 +266,7 @@ function installPopupBrowser(frontendOrigin: string) {
       href: `${frontendOrigin}/`,
       assign() {},
     },
+    sessionStorage: createMemoryStorage(),
     screenX: 0,
     screenY: 0,
     outerWidth: 1440,
@@ -208,5 +305,14 @@ function installPopupBrowser(frontendOrigin: string) {
         value: originalWindow,
       });
     },
+  };
+}
+
+function createMemoryStorage() {
+  const values = new Map<string, string>();
+  return {
+    getItem(key: string) { return values.get(key) ?? null; },
+    setItem(key: string, value: string) { values.set(key, value); },
+    removeItem(key: string) { values.delete(key); },
   };
 }

@@ -88,7 +88,7 @@ void user;
 `);
   writeFileSync(join(temporaryRoot, "demo.tsx"), `
 import { createElement } from "react";
-import { SsoProvider } from "@skycanvasstudio/sso/react";
+import { SsoProvider, useAuth } from "@skycanvasstudio/sso/react";
 import { createSsoServer } from "@skycanvasstudio/sso/server";
 
 const sso = createSsoServer({
@@ -99,6 +99,11 @@ const sso = createSsoServer({
 });
 const bootstrap = await sso.getBootstrap(new Headers());
 createElement(SsoProvider, { bootstrap }, "Demo application");
+createElement(SsoProvider, {
+  publishableKey: "client_123",
+  ssoUrl: "https://api-sso.skycanvasstudio.com",
+}, "React-only application");
+void useAuth;
 `);
   writeFileSync(join(temporaryRoot, "tsconfig.json"), JSON.stringify({
     compilerOptions: {

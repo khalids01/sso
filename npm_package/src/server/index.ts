@@ -63,6 +63,24 @@ export interface VerifySsoIdTokenOptions {
   nonce?: string;
 }
 
+export interface VerifySsoAccessTokenOptions {
+  clientId: string;
+  accessToken: string;
+  baseUrl?: string;
+  fetch?: typeof fetch;
+}
+
+export interface VerifiedSsoAccessToken {
+  subject: string;
+  claims: JWTPayload;
+  metadata: SsoClientMetadata;
+}
+
+export interface SsoAccessTokenVerifier {
+  verify: (accessToken: string) => Promise<VerifiedSsoAccessToken>;
+  clearCache: () => void;
+}
+
 export interface VerifiedSsoIdentity {
   user: SsoUser;
   claims: JWTPayload;
@@ -254,6 +272,76 @@ export async function verifySsoIdToken(options: VerifySsoIdTokenOptions): Promis
   });
   if (options.nonce !== undefined && payload.nonce !== options.nonce) throw new Error("SSO nonce mismatch");
   return { user: claimsToSsoUser(payload), claims: payload, metadata };
+}
+
+/** Verify a token returned by `useAuth().getToken()` in an application's API. */
+export async function verifySsoAccessToken(
+  options: VerifySsoAccessTokenOptions,
+): Promise<VerifiedSsoAccessToken> {
+  const request = getFetch(options.fetch);
+  const endpoints = getSsoEndpoints(options.baseUrl);
+  const [metadata, jwks] = await Promise.all([
+    fetchSsoClientMetadata(options.clientId, options.baseUrl, request),
+    fetchSsoJwks(endpoints.jwks, request),
+  ]);
+  const { payload } = await jwtVerify(
+    options.accessToken,
+    createLocalJWKSet(jwks),
+    { issuer: metadata.issuer, audience: metadata.audience },
+  );
+  if (!payload.sub) throw new Error("SSO access token is missing a subject");
+  return { subject: payload.sub, claims: payload, metadata };
+}
+
+/**
+ * Create one verifier per API process. Public metadata and JWKS are reused for
+ * five minutes so normal protected requests do not call the SSO service.
+ */
+export function createSsoAccessTokenVerifier(
+  options: Omit<VerifySsoAccessTokenOptions, "accessToken"> & {
+    cacheTtlSeconds?: number;
+  },
+): SsoAccessTokenVerifier {
+  const cacheTtl = positiveInteger(options.cacheTtlSeconds ?? 300, "cacheTtlSeconds") * 1_000;
+  let cached: Promise<{
+    metadata: SsoClientMetadata;
+    keySet: ReturnType<typeof createLocalJWKSet>;
+  }> | null = null;
+  let cachedAt = 0;
+
+  const load = () => {
+    if (cached && Date.now() - cachedAt < cacheTtl) return cached;
+    cachedAt = Date.now();
+    const request = getFetch(options.fetch);
+    const endpoints = getSsoEndpoints(options.baseUrl);
+    cached = Promise.all([
+      fetchSsoClientMetadata(options.clientId, options.baseUrl, request),
+      fetchSsoJwks(endpoints.jwks, request),
+    ]).then(([metadata, jwks]) => ({
+      metadata,
+      keySet: createLocalJWKSet(jwks),
+    })).catch((error) => {
+      cached = null;
+      throw error;
+    });
+    return cached;
+  };
+
+  return {
+    async verify(accessToken) {
+      const { metadata, keySet } = await load();
+      const { payload } = await jwtVerify(accessToken, keySet, {
+        issuer: metadata.issuer,
+        audience: metadata.audience,
+      });
+      if (!payload.sub) throw new Error("SSO access token is missing a subject");
+      return { subject: payload.sub, claims: payload, metadata };
+    },
+    clearCache() {
+      cached = null;
+      cachedAt = 0;
+    },
+  };
 }
 
 export async function fetchSsoClientMetadata(

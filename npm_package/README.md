@@ -20,6 +20,28 @@ Register the exact callback URL shown for your framework and the browser app
 origin in the SSO application client. Clients are public OAuth clients using
 `authorization_code`, `openid`, PKCE `S256`, and token auth method `none`.
 
+## React-only app (no auth server)
+
+Register `https://app.example.com/auth/callback` as an exact redirect URI and
+`https://app.example.com` as an allowed origin. Then wrap the app once:
+
+```tsx
+import { SkyCanvasProvider } from "@skycanvasstudio/sso/react"
+import "@skycanvasstudio/sso/styles.css"
+
+<SkyCanvasProvider
+  publishableKey={import.meta.env.VITE_SKYCANVAS_PUBLISHABLE_KEY}
+  ssoUrl="https://api-sso.skycanvasstudio.com"
+>
+  <App />
+</SkyCanvasProvider>
+```
+
+This public-client mode uses authorization code + PKCE. The central SkyCanvas
+deployment owns upstream OAuth callbacks, its SSO cookie, authorization-code
+validation, token issuance, and JWKS. The React app does not run Elysia or keep
+a client secret.
+
 ## React API
 
 ```tsx
@@ -33,7 +55,7 @@ import {
 } from "@skycanvasstudio/sso/react"
 
 function Account() {
-  const { isLoaded, isSignedIn, session, signOut } = useAuth()
+  const { isLoaded, isSignedIn, session, getToken, signOut } = useAuth()
   const { user } = useUser()
 
   return <>
@@ -47,10 +69,36 @@ function Account() {
 }
 ```
 
-`SignIn` and `SignUp` render application-enabled password, magic-link, and
-social methods. Social/hosted auth uses a centered popup by default and falls
-back to a redirect when popups are blocked. Popup denial, closure, and timeout
-are surfaced as errors.
+Call an application API with the short-lived app-scoped access token:
+
+```ts
+const token = await getToken()
+await fetch("/api/orders", {
+  headers: { authorization: `Bearer ${token}` },
+})
+```
+
+Verify it in that API without calling SkyCanvas on every request:
+
+```ts
+import { createSsoAccessTokenVerifier } from "@skycanvasstudio/sso/server"
+
+const skycanvas = createSsoAccessTokenVerifier({
+  clientId: process.env.SKYCANVAS_PUBLISHABLE_KEY!,
+  baseUrl: process.env.SKYCANVAS_SSO_URL,
+})
+const auth = await skycanvas.verify(
+  request.headers.get("authorization")!.slice(7),
+)
+
+console.log(auth.subject)
+```
+
+In a React-only app, `SignIn` and `SignUp` open the application-branded hosted
+page in a centered popup by default and fall back to a redirect when popups are
+blocked. Popup denial, closure, and timeout are surfaced as errors. In a
+full-stack integration, they can additionally render enabled password,
+magic-link, and social methods inside the application.
 
 ## TanStack Start
 
@@ -174,6 +222,13 @@ The package owns these routes by default:
 - OAuth tokens are never returned to React, URLs, localStorage, or sessionStorage.
 - Local sessions are encrypted, HttpOnly, and cannot outlive issued tokens.
 - Return paths are restricted to local application paths.
+
+React-only mode cannot receive a first-party `HttpOnly` cookie from an unrelated
+SkyCanvas domain. It therefore keeps the verified ten-minute token in memory and,
+by default, `sessionStorage` for reload continuity. Use `tokenCache="memory"` for
+the smallest XSS exposure window. Apps that require first-party cookie sessions
+should use the Next.js/TanStack/server adapter above; the login UI and OAuth
+provider callbacks still remain centralized.
 
 ## Verification
 

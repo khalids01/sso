@@ -2,8 +2,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import {
   createSsoAuthorization,
+  createSsoAccessTokenVerifier,
   createSsoServer,
   finishSsoAuthorization,
+  verifySsoAccessToken,
   type SsoAuthorizationFlow,
 } from "../src/server/index.js";
 
@@ -133,6 +135,36 @@ describe("authorization callback verification", () => {
       flow,
       baseUrl: issuer,
     })).rejects.toThrow("nonce mismatch");
+  });
+
+  test("verifies browser access tokens for an application backend", async () => {
+    const accessToken = await sign({ scope: "openid" }, audience);
+    const result = await verifySsoAccessToken({
+      clientId,
+      accessToken,
+      baseUrl: issuer,
+    });
+
+    expect(result.subject).toBe(subject);
+    expect(result.metadata.audience).toBe(audience);
+  });
+
+  test("reuses metadata and JWKS in a long-lived backend verifier", async () => {
+    let requests = 0;
+    const verifier = createSsoAccessTokenVerifier({
+      clientId,
+      baseUrl: issuer,
+      fetch: (async (input, init) => {
+        requests += 1;
+        return fetch(input, init);
+      }) as typeof fetch,
+    });
+    const accessToken = await sign({ scope: "openid" }, audience);
+
+    await verifier.verify(accessToken);
+    await verifier.verify(accessToken);
+
+    expect(requests).toBe(2);
   });
 });
 

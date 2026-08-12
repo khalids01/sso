@@ -1,7 +1,7 @@
 {
   "name": "@skycanvasstudio/sso",
-  "version": "0.8.0",
-  "description": "Clerk-style embedded and popup authentication for React, TanStack Start, Next.js, and Elysia applications",
+  "version": "0.9.0",
+  "description": "Open-source Clerk-style authentication for React, TanStack Start, Next.js, Better Auth, and Elysia applications",
   "homepage": "https://sso.skycanvasstudio.com/docs",
   "repository": {
     "type": "git",

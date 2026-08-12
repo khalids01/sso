@@ -21,6 +21,7 @@ import {
   safeReturnTo,
 } from "../index.js";
 import {
+  createBrowserSsoClient,
   createSsoClient,
   type SsoLoginOptions,
   type SsoLogoutOptions,
@@ -61,10 +62,16 @@ export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
   sendMagicLink: (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => Promise<void>;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
   refresh: () => Promise<SsoSession<TUser> | null>;
+  getToken: () => Promise<string | null>;
 }
 
 export interface SsoProviderProps<TUser extends SsoUser = SsoUser> {
   bootstrap?: StandaloneSsoBootstrap<TUser>;
+  publishableKey?: string;
+  ssoUrl?: string;
+  redirectUrl?: string;
+  oauthMode?: "redirect" | "popup";
+  tokenCache?: "memory" | "session";
   baseUrl?: string;
   children?: ReactNode;
 }
@@ -75,7 +82,15 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
   const bootstrap = props.bootstrap ? requireStandaloneBootstrap(props.bootstrap) : undefined;
   const clientOptions = bootstrap?.client;
   const client = useMemo(
-    () => createSsoClient<TUser>({
+    () => props.publishableKey
+      ? createBrowserSsoClient<TUser>({
+          publishableKey: props.publishableKey,
+          ...(props.ssoUrl ? { ssoUrl: props.ssoUrl } : {}),
+          ...(props.redirectUrl ? { redirectUrl: props.redirectUrl } : {}),
+          ...(props.oauthMode ? { oauthMode: props.oauthMode } : {}),
+          ...(props.tokenCache ? { tokenCache: props.tokenCache } : {}),
+        })
+      : createSsoClient<TUser>({
       ...(props.baseUrl ? { baseUrl: props.baseUrl } : clientOptions?.baseUrl ? { baseUrl: clientOptions.baseUrl } : {}),
       ...(clientOptions ? {
         loginPath: clientOptions.loginPath,
@@ -99,6 +114,11 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
       clientOptions?.profilePath,
       clientOptions?.oauthMode,
       props.baseUrl,
+      props.oauthMode,
+      props.publishableKey,
+      props.redirectUrl,
+      props.ssoUrl,
+      props.tokenCache,
     ],
   );
   const [session, setSession] = useState<SsoSession<TUser> | null>(bootstrap?.session ?? null);
@@ -228,7 +248,8 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     sendMagicLink,
     logout,
     refresh,
-  }), [client.login, error, interactionMode, loading, logout, metadata, oauthMode, refresh, sendMagicLink, session, signIn, signInWithPassword, signUpWithPassword]);
+    getToken: client.getToken,
+  }), [client.getToken, client.login, error, interactionMode, loading, logout, metadata, oauthMode, refresh, sendMagicLink, session, signIn, signInWithPassword, signUpWithPassword]);
 
   return createElement(
     SsoContext.Provider,
@@ -255,6 +276,7 @@ export function useAuth<TUser extends SsoUser = SsoUser>() {
     isSignedIn: value.status === "authenticated",
     userId: value.session?.user.id ?? null,
     session: value.session,
+    getToken: value.getToken,
     signOut: value.logout,
   };
 }
