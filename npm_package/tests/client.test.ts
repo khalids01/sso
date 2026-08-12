@@ -122,6 +122,8 @@ test("popup sign-in accepts completion from a separate auth-route origin", async
       popupTimeoutMs: 1_000,
     });
     const pending = client.signIn({ returnTo: "/dashboard" });
+    expect(browser.popupShell).toContain("Connecting securely");
+    await waitFor(() => Boolean(browser.openedUrl));
     browser.complete("https://auth-api.example.com", {
       type: "skycanvas:sso:complete",
       returnTo: "/dashboard",
@@ -145,6 +147,7 @@ test("popup sign-in surfaces callback errors", async () => {
       popupTimeoutMs: 1_000,
     });
     const pending = client.signIn();
+    await waitFor(() => Boolean(browser.openedUrl));
     browser.complete("https://auth-api.example.com", {
       type: "skycanvas:sso:complete",
       error: "authentication_failed",
@@ -243,6 +246,8 @@ test("React-only social buttons carry the selected provider through the signed O
       popupTimeoutMs: 1_000,
     });
     const pending = client.signIn({ provider: "google" });
+    expect(browser.popupShell).toContain("Connecting securely");
+    expect(browser.popupShell).toContain("Opening SkyCanvas sign-in");
     await waitFor(() => Boolean(browser.openedUrl));
     const authorization = new URL(browser.openedUrl);
 
@@ -460,8 +465,17 @@ function installPopupBrowser(frontendOrigin: string) {
   const popup = {
     closed: false,
     close() { this.closed = true; },
+    location: {
+      replace(url: string | URL) { openedUrl = String(url); },
+    },
+    document: {
+      open() {},
+      write(value: string) { popupShell = value; },
+      close() {},
+    },
   };
   let openedUrl = "";
+  let popupShell = "";
   const storage = createMemoryStorage();
   const fakeWindow = {
     location: {
@@ -498,6 +512,7 @@ function installPopupBrowser(frontendOrigin: string) {
   return {
     popup,
     get openedUrl() { return openedUrl; },
+    get popupShell() { return popupShell; },
     complete(origin: string, data: unknown) {
       for (const listener of listeners) {
         listener({ origin, source: popup, data } as unknown as MessageEvent);

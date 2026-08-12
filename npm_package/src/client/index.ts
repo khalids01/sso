@@ -1,5 +1,6 @@
 import type { SsoAuthMethod, SsoClientMetadata, SsoSession, SsoUser } from "../index.js";
 import type { StandaloneSsoClientConfig } from "../server/index.js";
+import { openPopupShell } from "./popup-shell.js";
 
 export interface SsoClientOptions<TUser extends SsoUser = SsoUser> {
   baseUrl?: string;
@@ -224,13 +225,7 @@ async function popupSignIn(url: string, timeoutMs = 10 * 60_000): Promise<void> 
   }
   const popupUrl = new URL(url, window.location.href);
   const expectedMessageOrigin = popupUrl.origin;
-  const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - 520) / 2));
-  const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - 720) / 2));
-  const popup = window.open(
-    popupUrl.toString(),
-    "skycanvas-sso",
-    `popup=yes,width=520,height=720,left=${left},top=${top}`,
-  );
+  const popup = openPopupShell();
   if (!popup) {
     window.location.assign(url.replace(/([?&])popup=true(&|$)/, "$1").replace(/[?&]$/, ""));
     return;
@@ -262,6 +257,13 @@ async function popupSignIn(url: string, timeoutMs = 10 * 60_000): Promise<void> 
       error ? reject(error) : resolve();
     };
     window.addEventListener("message", onMessage);
+    window.setTimeout(() => {
+      try {
+        popup.location.replace(popupUrl.toString());
+      } catch {
+        finish(new Error("SSO could not navigate the sign-in popup"));
+      }
+    }, 0);
   });
 }
 

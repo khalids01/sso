@@ -35,6 +35,10 @@ describe("SSO integration guide", () => {
     expect(react).toContain("Bearer ");
     expect(react).toContain("wrong-audience tokens");
     expect(react).toContain("/auth/callback");
+    expect(react).toContain("immediately opens a small secure loading screen");
+    expect(react).toContain("No custom popup loading page is needed");
+    expect(better).toContain("avoids the client-only initial session flash");
+    expect(standalone).toContain("immediate popup loading screen");
     expect(react).not.toContain("createSsoServer");
     expect(standalone).toContain("<SkyCanvasProvider>");
     expect(standalone).toContain("createTanStackSso");

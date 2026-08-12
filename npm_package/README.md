@@ -104,6 +104,18 @@ SkyCanvas backend without an app auth server. Only a selected social provider
 opens a centered popup (or redirects when configured/blocked), and that popup
 continues directly into the chosen provider such as Google or GitHub.
 
+The popup is created synchronously when the user clicks a social provider and
+immediately paints a small `Connecting securely` screen. The SDK prepares PKCE
+and loads SkyCanvas in that same window, so applications do not need to build a
+popup loading route or add configuration for this transition.
+
+React-only applications restore their session and public auth policy after the
+browser app starts, so their initial loading state is client-side. Next.js and
+TanStack Start applications can pass the documented server bootstrap into
+`SsoProvider` during SSR, avoiding that initial session-loading flash. OAuth
+navigation still involves SkyCanvas and the upstream provider in every mode;
+the immediate popup shell covers that unavoidable network transition.
+
 ## TanStack Start
 
 ```ts

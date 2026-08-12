@@ -14,6 +14,7 @@ import type {
   SsoLoginOptions,
   SsoLogoutOptions,
 } from "./index.js";
+import { openPopupShell } from "./popup-shell.js";
 
 export interface BrowserSsoClientOptions<TUser extends SsoUser = SsoUser> {
   publishableKey: string;
@@ -341,14 +342,27 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
 
   const startSignIn = async (loginOptions: SsoLoginOptions = {}) => {
     if (typeof window === "undefined") throw new Error("SkyCanvas sign-in requires a browser");
-    const { flow, url } = await makeAuthorization(loginOptions);
     const mode = loginOptions.mode ?? options.oauthMode ?? "popup";
-    if (mode === "redirect") {
-      (options.navigate ?? ((target) => window.location.assign(target)))(url.toString());
-      return;
+    // Open synchronously while the click still has browser user activation.
+    // PKCE preparation can then happen behind a useful, immediate popup shell.
+    const popup = mode === "popup" ? openPopupShell() : null;
+    try {
+      const { flow, url } = await makeAuthorization(loginOptions);
+      if (mode === "redirect") {
+        (options.navigate ?? ((target) => window.location.assign(target)))(url.toString());
+        return;
+      }
+      const result = await popupAuthorization(
+        url.toString(),
+        flow,
+        popup,
+        options.popupTimeoutMs,
+      );
+      await exchange(result.code, flow);
+    } catch (error) {
+      if (popup && !popup.closed) popup.close();
+      throw error;
     }
-    const result = await popupAuthorization(url.toString(), flow, options.popupTimeoutMs);
-    await exchange(result.code, flow);
   };
 
   const signIn = (loginOptions: SsoLoginOptions = {}) => {
@@ -470,11 +484,9 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
 async function popupAuthorization(
   url: string,
   flow: BrowserFlow,
+  popup: Window | null,
   timeoutMs = 10 * 60_000,
 ): Promise<{ code: string }> {
-  const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - 520) / 2));
-  const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - 720) / 2));
-  const popup = window.open(url, "skycanvas-sso", `popup=yes,width=520,height=720,left=${left},top=${top}`);
   if (!popup) {
     window.location.assign(url);
     return new Promise(() => undefined);
@@ -502,6 +514,11 @@ async function popupAuthorization(
       else if (code) resolve({ code });
     };
     window.addEventListener("message", onMessage);
+    try {
+      popup.location.replace(url);
+    } catch {
+      finish(new Error("SkyCanvas could not navigate the sign-in popup"));
+    }
   });
 }
 

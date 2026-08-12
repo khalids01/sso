@@ -39,7 +39,7 @@ SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
       title: "Configure SkyCanvas once",
       tabLabel: "TanStack Start",
       filename: "src/lib/skycanvas.server.ts",
-      description: "Choose embedded forms or the hosted page here. Popup is recommended for social OAuth; redirect remains available.",
+      description: "Choose embedded forms or the hosted page here. Popup is recommended for social OAuth; redirect remains available. The SDK provides an immediate popup loading screen while it prepares and opens SkyCanvas, so no application popup route is needed.",
       code: `import { createTanStackSso } from "@skycanvasstudio/sso/tanstack-start"
 import { env } from "./env.server"
 
@@ -173,7 +173,7 @@ VITE_SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
       {
         title: "Wrap the app once",
         filename: "src/main.tsx",
-        description: "Popup is the default. Set oauthMode=\"redirect\" when top-level navigation is preferred. Your host must serve the SPA entry for /auth/callback as well as /.",
+        description: "Popup is the default. On a social-provider click, the SDK immediately opens a small secure loading screen and navigates that same window to SkyCanvas—no popup route or loading component is required. Set oauthMode=\"redirect\" when top-level navigation is preferred. Your host must serve the SPA entry for /auth/callback as well as /.",
         code: `import { SkyCanvasProvider } from "@skycanvasstudio/sso/react"
 import "@skycanvasstudio/sso/styles.css"
 
@@ -266,6 +266,19 @@ Registration:    open
 ✓ getToken() authorizes the expected API request
 ✓ Local sign-out clears the app session
 ✓ Global sign-out returns only to a registered origin`,
+      },
+      {
+        title: "Understand SPA loading",
+        filename: "Rendering behavior",
+        description: "A React-only app restores its session and public auth policy after the browser app starts. Keep a small isLoaded state in your page; the social popup transition itself is handled automatically by the SDK. Next.js and TanStack Start integrations can provide their initial session during SSR using the bootstrap steps in their guides, but OAuth navigation still has network latency in every framework.",
+        code: `// React-only: client bootstrap
+const { isLoaded } = useAuth()
+if (!isLoaded) return <p>Loading session…</p>
+
+// Next.js / TanStack Start: use the documented SSR bootstrap
+// and pass it to <SsoProvider bootstrap={bootstrap}>.
+
+// No custom popup loading page is needed in either mode.`,
       },
     ],
   },
@@ -458,7 +471,7 @@ export async function getInitialAuthSession() {
         title: "Wrap the app with the initial session",
         tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
-        description: "Load the serializable bootstrap during SSR and mount the package-generated provider above every component that uses the SSO hooks.",
+        description: "Load the serializable bootstrap during SSR and mount the package-generated provider above every component that uses the SSO hooks. This avoids the client-only initial session flash; the SDK still supplies the immediate popup loading screen during social OAuth navigation.",
         code: `import { Outlet, createRootRoute } from "@tanstack/react-router"
 import { SsoProvider } from "@/lib/auth-client"
 import { getInitialAuthSession } from "@/lib/auth-session"
@@ -804,7 +817,7 @@ export class SsoController {
         title: "Wrap the application with initial session data",
         tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
-        description: "Load the bootstrap during SSR and pass it into SsoProvider once above the application. The package controls read the session internally; do not import standalone session hooks.",
+        description: "Load the bootstrap during SSR and pass it into SsoProvider once above the application. This avoids the client-only initial session flash; the SDK supplies the immediate popup loading screen during social OAuth navigation. The package controls read the session internally; do not import standalone session hooks.",
         code: `import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router"
 import { SsoProvider } from "@skycanvasstudio/sso/react"
 import { getSsoBootstrap } from "@/lib/sso-session"
