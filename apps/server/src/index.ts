@@ -89,22 +89,6 @@ async function handleBetterAuthRequest(request: Request) {
         : "provider_callback_rejected",
     request,
   });
-  if (response.ok || response.status === 302) {
-    await recordApplicationUsage({
-      type: context.intent,
-      outcome: "success",
-      applicationId: context.applicationId,
-      applicationClientId: context.applicationClientId,
-      oauthProviderConnectionId: context.oauthProviderConnectionId,
-      authMethod: context.provider,
-      requestId: context.requestId,
-      reason:
-        context.intent === "signup"
-          ? "social_account_created_or_linked"
-          : "social_login_completed",
-      request,
-    });
-  }
   return response;
 }
 

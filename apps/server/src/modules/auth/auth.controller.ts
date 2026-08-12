@@ -9,6 +9,7 @@ import { env } from "@sso/env/server";
 import { randomUUID } from "node:crypto";
 import {
   CheckEmailDto,
+  ApplicationAuthBootstrapDto,
   EmbeddedPasswordLoginDto,
   EmbeddedPasswordSignupDto,
   EmbeddedPasswordResetRequestDto,
@@ -26,6 +27,7 @@ import {
   OAuthTokenError,
   validateEmbeddedAuthorizationRequest,
   validateEmbeddedPasswordResetRequest,
+  getPublicClientMetadata,
 } from "../oauth/oauth-token.service";
 import {
   getApplicationSocialProviderConnection,
@@ -137,6 +139,42 @@ function embeddedAuthError(set: { status?: number | string }, error: unknown) {
 
 export const authController = new Elysia({ prefix: "/auth" })
   .get("/platform-settings", () => getPlatformAuthSettings())
+  .post(
+    "/application/bootstrap",
+    async ({ body, request, set }) => {
+      try {
+        const [prelogin, metadata] = await Promise.all([
+          auth.api.getOAuthClientPublicPrelogin({
+            body: {
+              client_id: body.clientId,
+              oauth_query: body.oauthQuery,
+            },
+            headers: request.headers,
+          }),
+          getPublicClientMetadata(body.clientId),
+        ]);
+        if (!metadata || metadata.client_id !== body.clientId) {
+          set.status = 404;
+          return { error: "client_not_found" as const };
+        }
+        return {
+          name: prelogin.client_name || "application",
+          logoUrl: metadata.application_logo_url,
+          policy: {
+            signInMethods: metadata.sign_in_methods,
+            signUpMethods: metadata.sign_up_methods,
+            registrationMode: metadata.registration_mode,
+            passwordEmailVerificationRequired:
+              metadata.password_email_verification_required,
+          },
+        };
+      } catch {
+        set.status = 403;
+        return { error: "invalid_oauth_request" as const };
+      }
+    },
+    { body: ApplicationAuthBootstrapDto },
+  )
   .post(
     "/sdk/magic-link",
     async ({ body, request, set }) => {

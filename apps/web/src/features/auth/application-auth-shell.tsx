@@ -2,7 +2,6 @@ import { type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 
-import { authClient } from "@/lib/auth-client";
 import { client } from "@/lib/client";
 import { queryKeys } from "@/constants/query-keys";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -43,38 +42,19 @@ export function ApplicationAuthShell({
     queryKey: queryKeys.oauth.prelogin(authRequest?.oauthQuery ?? ""),
     enabled: Boolean(authRequest),
     retry: false,
+    staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
       if (!authRequest) throw new Error("Missing OAuth request");
 
-      const [prelogin, metadataResponse] = await Promise.all([
-        authClient.oauth2.publicClientPrelogin({
-          client_id: authRequest.clientId,
-          oauth_query: authRequest.oauthQuery,
-        }),
-        client.api.oauth["client-metadata"].get({
-          query: { client_id: authRequest.clientId },
-        }),
-      ]);
-
-      if (prelogin.error || !prelogin.data || metadataResponse.error || !metadataResponse.data) {
+      const response = await client.auth.application.bootstrap.post({
+        clientId: authRequest.clientId,
+        oauthQuery: authRequest.oauthQuery,
+      });
+      if (response.error || !response.data || "error" in response.data) {
         throw new Error("Invalid OAuth request");
       }
-      if (metadataResponse.data.client_id !== authRequest.clientId) {
-        throw new Error("Client metadata does not match OAuth request");
-      }
-
-      return {
-        name: prelogin.data.client_name || "application",
-        logoUrl: metadataResponse.data.application_logo_url,
-        policy: {
-          signInMethods: metadataResponse.data.sign_in_methods,
-          signUpMethods: metadataResponse.data.sign_up_methods,
-          registrationMode: metadataResponse.data.registration_mode,
-          passwordEmailVerificationRequired:
-            metadataResponse.data.password_email_verification_required,
-        } satisfies ApplicationAuthPolicy,
-      };
+      return response.data;
     },
   });
 
@@ -82,7 +62,7 @@ export function ApplicationAuthShell({
     <main className="min-h-screen bg-background">
       <section className="mx-auto flex max-w-md flex-col items-center px-6 py-16">
         {!hydrated ? (
-          <LoaderCircle className="mt-12 size-8 animate-spin text-muted-foreground" />
+          <ApplicationAuthLoading />
         ) : !authRequest || applicationQuery.isError ? (
           <div className="mt-10 text-center">
             <h1 className="text-2xl font-semibold">Application unavailable</h1>
@@ -97,9 +77,28 @@ export function ApplicationAuthShell({
             applicationQuery.data.logoUrl,
           )
         ) : (
-          <LoaderCircle className="mt-12 size-8 animate-spin text-muted-foreground" />
+          <ApplicationAuthLoading />
         )}
       </section>
     </main>
+  );
+}
+
+function ApplicationAuthLoading() {
+  return (
+    <div className="mt-10 w-full rounded-xl border bg-card p-6 shadow-sm" aria-busy="true" aria-label="Loading secure sign-in">
+      <div className="mx-auto size-14 animate-pulse rounded-2xl bg-muted" />
+      <div className="mx-auto mt-5 h-7 w-52 animate-pulse rounded-md bg-muted" />
+      <div className="mx-auto mt-3 h-4 w-64 max-w-full animate-pulse rounded bg-muted" />
+      <div className="mt-8 space-y-3">
+        <div className="h-11 animate-pulse rounded-lg bg-muted" />
+        <div className="h-11 animate-pulse rounded-lg bg-muted" />
+        <div className="h-11 animate-pulse rounded-lg bg-muted" />
+      </div>
+      <span className="mt-5 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <LoaderCircle className="size-4 animate-spin" />
+        Loading secure sign-in options…
+      </span>
+    </div>
   );
 }

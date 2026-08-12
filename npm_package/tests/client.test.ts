@@ -248,6 +248,32 @@ test("React-only social buttons carry the selected provider through the signed O
 
     expect(authorization.searchParams.get("provider")).toBeNull();
     expect(authorization.searchParams.get("nonce")).toMatch(/^skycanvas-provider-google-[A-Za-z0-9_-]{16,}$/);
+    expect(authorization.searchParams.get("prompt")).toBeNull();
+    browser.complete("https://frontend.example.com", {
+      type: "skycanvas:sso:oauth-callback",
+      state: authorization.searchParams.get("state"),
+      error: "access_denied",
+      message: "Test completed",
+    });
+    await expect(pending).rejects.toThrow("Test completed");
+  } finally {
+    browser.restore();
+  }
+});
+
+test("React-only client only requests fresh authentication explicitly", async () => {
+  const browser = installPopupBrowser("https://frontend.example.com");
+  try {
+    const client = createBrowserSsoClient({
+      publishableKey: "client_fresh_login",
+      ssoUrl: "https://sso.example.com",
+      redirectUrl: "https://frontend.example.com/auth/callback",
+      popupTimeoutMs: 1_000,
+    });
+    const pending = client.signIn({ provider: "github", forceLogin: true });
+    await waitFor(() => Boolean(browser.openedUrl));
+    const authorization = new URL(browser.openedUrl);
+
     expect(authorization.searchParams.get("prompt")).toBe("login");
     browser.complete("https://frontend.example.com", {
       type: "skycanvas:sso:oauth-callback",
@@ -256,6 +282,34 @@ test("React-only social buttons carry the selected provider through the signed O
       message: "Test completed",
     });
     await expect(pending).rejects.toThrow("Test completed");
+  } finally {
+    browser.restore();
+  }
+});
+
+test("React-only client coalesces concurrent popup starts", async () => {
+  const browser = installPopupBrowser("https://frontend.example.com");
+  try {
+    const client = createBrowserSsoClient({
+      publishableKey: "client_single_popup",
+      ssoUrl: "https://sso.example.com",
+      redirectUrl: "https://frontend.example.com/auth/callback",
+      popupTimeoutMs: 1_000,
+    });
+    const first = client.signIn({ provider: "google" });
+    const second = client.signIn({ provider: "github" });
+    expect(second).toBe(first);
+    await waitFor(() => Boolean(browser.openedUrl));
+    const authorization = new URL(browser.openedUrl);
+    expect(authorization.searchParams.get("nonce")).toContain("skycanvas-provider-google-");
+
+    browser.complete("https://frontend.example.com", {
+      type: "skycanvas:sso:oauth-callback",
+      state: authorization.searchParams.get("state"),
+      error: "access_denied",
+      message: "Test completed",
+    });
+    await expect(first).rejects.toThrow("Test completed");
   } finally {
     browser.restore();
   }

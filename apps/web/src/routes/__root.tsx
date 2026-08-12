@@ -42,10 +42,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
     ],
   }),
-  loader: async () => {
+  beforeLoad: async () => {
     const session = await getRootSession();
     return { session: session ?? null };
   },
+  loader: ({ context }) => ({ session: context.session ?? null }),
   staleTime: Infinity,
   gcTime: Infinity,
   shouldReload: false,

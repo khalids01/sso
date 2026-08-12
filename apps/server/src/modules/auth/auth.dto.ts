@@ -39,6 +39,11 @@ export const SocialLoginDto = t.Object({
   requestSignUp: t.Optional(t.Boolean()),
 });
 
+export const ApplicationAuthBootstrapDto = t.Object({
+  clientId: t.String({ minLength: 1 }),
+  oauthQuery: t.String({ minLength: 1 }),
+});
+
 const EmbeddedAuthorizationDto = t.Object({
   clientId: t.String({ minLength: 1 }),
   redirectUri: t.String({ format: "uri" }),

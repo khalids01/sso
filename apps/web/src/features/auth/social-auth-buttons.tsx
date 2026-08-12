@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { client } from "@/lib/client";
@@ -14,6 +15,44 @@ const labels: Record<SocialAuthMethod, string> = {
   linkedin: "LinkedIn",
   github: "GitHub",
 };
+
+const activeSocialStarts = new Map<string, Promise<unknown>>();
+const fallbackAutoStartClaims = new Map<string, number>();
+const AUTO_START_TTL_MS = 2 * 60_000;
+
+function autoStartKey(provider: SocialAuthMethod) {
+  const state = new URLSearchParams(window.location.search).get("state") ?? "unknown";
+  return `skycanvas:social-auto-start:${state}:${provider}`;
+}
+
+function claimAutoStart(provider: SocialAuthMethod) {
+  const key = autoStartKey(provider);
+  let previous = fallbackAutoStartClaims.get(key) ?? 0;
+  try {
+    previous = Number(window.sessionStorage.getItem(key)) || previous;
+  } catch {
+    // Some privacy modes deny storage access; the in-memory guard still works.
+  }
+  if (Number.isFinite(previous) && Date.now() - previous < AUTO_START_TTL_MS) {
+    return null;
+  }
+  fallbackAutoStartClaims.set(key, Date.now());
+  try {
+    window.sessionStorage.setItem(key, String(Date.now()));
+  } catch {
+    // Keep the in-memory claim.
+  }
+  return key;
+}
+
+function releaseAutoStart(key: string) {
+  fallbackAutoStartClaims.delete(key);
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // The in-memory claim was already released.
+  }
+}
 
 function ProviderIcon({ provider }: { provider: SocialAuthMethod }) {
   if (provider === "google") {
@@ -84,50 +123,99 @@ export function SocialAuthButtons({
 }) {
   const rememberMethod = useAuthMethodStore((state) => state.rememberMethod);
   const autoStarted = useRef(false);
+  const [pendingMethod, setPendingMethod] = useState<SocialAuthMethod | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const startSocial = useCallback(async (method: SocialAuthMethod) => {
-    const { data, error } = await client.auth.social.post({
-      provider: method,
-      callbackURL: getAuthCallbackURL(),
-      requestSignUp,
-    });
-    if (error) {
-      const message =
-        typeof error.value === "object" &&
-        error.value &&
-        "message" in error.value
-          ? String(error.value.message)
-          : `${labels[method]} authentication failed`;
+    if (pendingMethod) return false;
+    setPendingMethod(method);
+    setErrorMessage(null);
+    const callbackURL = getAuthCallbackURL();
+    const requestKey = `${method}:${requestSignUp}:${callbackURL}`;
+    let operation = activeSocialStarts.get(requestKey);
+    if (!operation) {
+      operation = client.auth.social.post({
+        provider: method,
+        callbackURL,
+        requestSignUp,
+      });
+      activeSocialStarts.set(requestKey, operation);
+      const clearOperation = () => activeSocialStarts.delete(requestKey);
+      void operation.then(clearOperation, clearOperation);
+    }
+    try {
+      const { data, error } = await operation as Awaited<ReturnType<typeof client.auth.social.post>>;
+      if (error) {
+        const message =
+          typeof error.value === "object" &&
+          error.value &&
+          "message" in error.value
+            ? String(error.value.message)
+            : `${labels[method]} authentication failed`;
+        setErrorMessage(message);
+        toast.error(message);
+        return false;
+      }
+      if (!(data instanceof Response) && data && "url" in data && typeof data.url === "string") {
+        rememberMethod(method);
+        window.location.assign(data.url);
+        return true;
+      }
+      return false;
+    } catch {
+      const message = `${labels[method]} authentication failed`;
+      setErrorMessage(message);
       toast.error(message);
-      return;
+      return false;
+    } finally {
+      setPendingMethod(null);
     }
-    if (data instanceof Response) return;
-    if (data && "url" in data && typeof data.url === "string") {
-      rememberMethod(method);
-      window.location.assign(data.url);
-    }
-  }, [rememberMethod, requestSignUp]);
+  }, [pendingMethod, rememberMethod, requestSignUp]);
 
   useEffect(() => {
     if (!autoStartProvider || !methods.includes(autoStartProvider) || autoStarted.current) return;
     autoStarted.current = true;
-    void startSocial(autoStartProvider);
+    const claimKey = claimAutoStart(autoStartProvider);
+    if (!claimKey) {
+      setErrorMessage(
+        `We stopped a repeated ${labels[autoStartProvider]} redirect. Close this window and start sign-in again.`,
+      );
+      return;
+    }
+    void startSocial(autoStartProvider).then((started) => {
+      if (!started) releaseAutoStart(claimKey);
+    });
   }, [autoStartProvider, methods, startSocial]);
 
   if (methods.length === 0) return null;
 
   return (
     <div className="grid gap-3">
+      {errorMessage ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
       {methods.map((method) => (
         <Button
           key={method}
           type="button"
           variant="outline"
           className="relative h-11 w-full justify-center rounded-lg bg-background font-medium shadow-xs transition-colors hover:bg-muted/60"
+          disabled={pendingMethod !== null}
+          aria-busy={pendingMethod === method}
           onClick={() => void startSocial(method)}
         >
           <span className="flex items-center justify-center gap-2">
-            <ProviderIcon provider={method} />
-            <span>Continue with {labels[method]}</span>
+            {pendingMethod === method ? (
+              <LoaderCircle className="size-5 animate-spin" />
+            ) : (
+              <ProviderIcon provider={method} />
+            )}
+            <span>
+              {pendingMethod === method
+                ? `Connecting to ${labels[method]}…`
+                : `Continue with ${labels[method]}`}
+            </span>
           </span>
           <span className="absolute right-3">
             <LastUsedBadge method={method} />

@@ -67,6 +67,7 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
   const flowKey = `skycanvas:${options.publishableKey}:flow`;
   let current: BrowserSession<TUser> | null = null;
   let metadata: SsoClientMetadata | null = null;
+  let activeSignIn: Promise<void> | null = null;
   const syncChannel = typeof window !== "undefined" && typeof window.BroadcastChannel === "function"
     ? new window.BroadcastChannel(`skycanvas:${options.publishableKey}:auth`)
     : null;
@@ -219,7 +220,7 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
       code_challenge_method: "S256",
       code_challenge: await sha256Base64Url(verifier),
       ...(
-        loginOptions.forceLogin || (loginOptions.provider && loginOptions.intent !== "signup")
+        loginOptions.forceLogin
           ? { prompt: "login" }
           : loginOptions.intent === "signup"
             ? { prompt: "create" }
@@ -338,7 +339,7 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
     }
   };
 
-  const signIn = async (loginOptions: SsoLoginOptions = {}) => {
+  const startSignIn = async (loginOptions: SsoLoginOptions = {}) => {
     if (typeof window === "undefined") throw new Error("SkyCanvas sign-in requires a browser");
     const { flow, url } = await makeAuthorization(loginOptions);
     const mode = loginOptions.mode ?? options.oauthMode ?? "popup";
@@ -348,6 +349,17 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
     }
     const result = await popupAuthorization(url.toString(), flow, options.popupTimeoutMs);
     await exchange(result.code, flow);
+  };
+
+  const signIn = (loginOptions: SsoLoginOptions = {}) => {
+    if (activeSignIn) return activeSignIn;
+    const operation = startSignIn(loginOptions);
+    activeSignIn = operation;
+    const clearActiveSignIn = () => {
+      if (activeSignIn === operation) activeSignIn = null;
+    };
+    void operation.then(clearActiveSignIn, clearActiveSignIn);
+    return operation;
   };
 
   const logout = async (logoutOptions: SsoLogoutOptions = {}) => {

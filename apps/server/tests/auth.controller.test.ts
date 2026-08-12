@@ -102,6 +102,54 @@ afterEach(() => {
 });
 
 describe("authController", () => {
+  it("bootstraps a signed application login in one browser request", async () => {
+    authApi.getOAuthClientPublicPrelogin.mockResolvedValue({
+      client_id: "sso_client_1",
+      client_name: "Production app",
+    });
+    applicationClientFindFirstMock.mockResolvedValue({
+      clientId: "sso_client_1",
+      applicationId: "application-1",
+      status: "active",
+      oauthDisabled: false,
+      application: {
+        status: "active",
+        logoUrl: "https://app.example.com/logo.png",
+        signInMethods: ["magic_link", "password"],
+        signUpMethods: ["magic_link"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: true,
+        oauthProviderConnections: [],
+      },
+    });
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const response = await authController.handle(new Request(
+      "http://localhost/auth/application/bootstrap",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          clientId: "sso_client_1",
+          oauthQuery: "client_id=sso_client_1&sig=signed",
+        }),
+      },
+    ));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      name: "Production app",
+      logoUrl: "https://app.example.com/logo.png",
+      policy: {
+        signInMethods: ["magic_link", "password"],
+        signUpMethods: ["magic_link"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: true,
+      },
+    });
+    expect(authApi.getOAuthClientPublicPrelogin).toHaveBeenCalledTimes(1);
+    expect(applicationClientFindFirstMock).toHaveBeenCalledTimes(1);
+  });
+
   it("allows embedded password requests only from the registered browser origin", async () => {
     applicationClientFindFirstMock.mockResolvedValue({
       id: "application-client-1",
