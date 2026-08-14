@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ApplicationClient } from "../../types";
 import { StatusBadge } from "../../components/ui-controls";
 
@@ -26,11 +27,25 @@ function getSsoUrl() {
   return new URL(env.VITE_SERVER_URL).origin;
 }
 
-function getRequiredEnvironment(client: ApplicationClient) {
+function getServerEnvironment(client: ApplicationClient) {
   return [
-    `SSO_URL=${getSsoUrl()}`,
-    `SSO_CLIENT_ID=${client.clientId}`,
-    `SSO_CALLBACK_URL=${client.redirectUris[0] ?? ""}`,
+    `SKYCANVAS_PUBLISHABLE_KEY=${client.clientId}`,
+    "SKYCANVAS_SECRET_KEY=replace_with_at_least_32_random_characters",
+    `SKYCANVAS_SSO_URL=${getSsoUrl()}`,
+  ].join("\n");
+}
+
+function getClientEnvironment(client: ApplicationClient) {
+  return [
+    `SKYCANVAS_PUBLISHABLE_KEY=${client.clientId}`,
+    `SKYCANVAS_SSO_URL=${getSsoUrl()}`,
+  ].join("\n");
+}
+
+function getViteEnvironment(client: ApplicationClient) {
+  return [
+    `VITE_SKYCANVAS_PUBLISHABLE_KEY=${client.clientId}`,
+    `VITE_SKYCANVAS_SSO_URL=${getSsoUrl()}`,
   ].join("\n");
 }
 
@@ -109,24 +124,34 @@ export function ClientViewDialog({
             </div>
 
             <section className="space-y-3">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold">Required environment</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Only these three values are required by the reference app.
-                  </p>
-                </div>
-                <CopyButton value={getRequiredEnvironment(client)} label="Copy env" />
-              </div>
-              <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-4 text-xs leading-6">
-                <code>{getRequiredEnvironment(client)}</code>
-              </pre>
-              {client.redirectUris.length > 1 ? (
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  The env block uses the first registered callback. Copy a different
-                  callback below when configuring another deployment.
+              <div>
+                <h3 className="text-sm font-semibold">Required environment</h3>
+                <p className="text-xs text-muted-foreground">
+                  Choose the setup your application uses, then copy its environment block.
                 </p>
-              ) : null}
+              </div>
+              <Tabs defaultValue="server" className="gap-3">
+                <TabsList aria-label="Environment type">
+                  <TabsTrigger value="client">Client-side</TabsTrigger>
+                  <TabsTrigger value="vite">Vite</TabsTrigger>
+                  <TabsTrigger value="server">Server</TabsTrigger>
+                </TabsList>
+                <EnvironmentTab
+                  value="client"
+                  environment={getClientEnvironment(client)}
+                  description="Use this when your client environment exposes variables without a framework prefix. Never put a secret key in browser code."
+                />
+                <EnvironmentTab
+                  value="vite"
+                  environment={getViteEnvironment(client)}
+                  description="Use this for a Vite or React-only application. These public values are safe to include in the browser build."
+                />
+                <EnvironmentTab
+                  value="server"
+                  environment={getServerEnvironment(client)}
+                  description="Use this for the server-side package setup. Keep all three values server-only; do not prefix them with VITE_ or NEXT_PUBLIC_."
+                />
+              </Tabs>
             </section>
 
             <section className="space-y-3">
@@ -213,5 +238,27 @@ export function ClientViewDialog({
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EnvironmentTab({
+  value,
+  environment,
+  description,
+}: {
+  value: string;
+  environment: string;
+  description: string;
+}) {
+  return (
+    <TabsContent value={value} className="space-y-3">
+      <div className="flex items-end justify-between gap-3">
+        <p className="text-xs text-muted-foreground">{description}</p>
+        <CopyButton value={environment} label="Copy env" />
+      </div>
+      <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-4 text-xs leading-6">
+        <code>{environment}</code>
+      </pre>
+    </TabsContent>
   );
 }
