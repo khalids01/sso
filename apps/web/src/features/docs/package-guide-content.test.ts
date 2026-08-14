@@ -37,6 +37,9 @@ describe("SSO integration guide", () => {
     expect(react).toContain("/auth/callback");
     expect(react).toContain("immediately opens a small secure loading screen");
     expect(react).toContain("No custom popup loading page is needed");
+    expect(react).toContain("Add the ready-made user menu and profile");
+    expect(react).toContain("SsoUserMenu");
+    expect(react).toContain("built-in Profile dialog");
     expect(better).toContain("signInWithSkyCanvas");
     expect(standalone).toContain("immediate popup loading screen");
     expect(react).not.toContain("createSsoServer");

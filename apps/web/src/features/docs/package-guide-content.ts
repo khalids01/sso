@@ -242,6 +242,24 @@ export async function requireSkyCanvasUser(request: Request) {
 // auth.claims contains only verified token claims.`,
       },
       {
+        title: "Add the ready-made user menu and profile",
+        filename: "src/components/account-menu.tsx",
+        description: "SsoUserMenu is an optional account control for signed-in users. It opens a built-in Profile dialog with their name, email, and email status, includes a password-reset action when applicable, then shows your custom links and logout.",
+        code: `import { SsoUserMenu } from "@skycanvasstudio/sso/react"
+
+export function AccountMenu() {
+  return (
+    <SsoUserMenu
+      items={[{ label: "Dashboard", href: "/dashboard" }]}
+      logoutReturnTo="/"
+    />
+  )
+}
+
+// The menu reads the signed-in user from <SkyCanvasProvider>.
+// Click Profile in the menu to open the built-in profile dialog.`,
+      },
+      {
         title: "Register the browser client",
         filename: "SkyCanvas dashboard (not a project file)",
         description: "Both URLs are exact. Enable the sign-in/sign-up methods that SignIn should render. Provider credentials such as Google continue to point only at central SkyCanvas.",
@@ -868,7 +886,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       {
         title: "Use session, sign-in, and logout",
         filename: "src/components/account-menu.tsx",
-        description: "Components below the provider can use the standalone hooks and controls. OAuth tokens remain on the server.",
+        description: "Components below the provider can use the standalone hooks and controls. SsoUserMenu includes the account menu and built-in Profile dialog; OAuth tokens remain on the server.",
         code: `import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
 
 export function AccountMenu() {

@@ -153,6 +153,11 @@ Mount `SkyCanvasProvider` once and use the packaged `SignIn`, `SignedIn`,
 `SignedOut`, `useAuth`, and `SsoUserMenu` APIs. Register
 `{APP_ORIGIN}/auth/callback` in SkyCanvas.
 
+`SsoUserMenu` is an optional ready-made account menu. Its Profile item opens a
+built-in dialog showing the user's name, email, and verification state, with a
+password-reset request when applicable. Supply `items` for application links
+and `logoutReturnTo` for the post-logout path.
+
 ## Required verification
 
 - Missing values and invalid URLs produce actionable configuration errors.
