@@ -23,11 +23,12 @@ const clerkLikeManualRecipe: Pick<PackageRecipe, "description" | "samples"> = {
     {
       title: "Server environment (required)",
       filename: ".env — server only",
-      description: "Put all three values in your server-only environment module. Despite its name, SKYCANVAS_PUBLISHABLE_KEY is read only by createTanStackSso on the server; SKYCANVAS_SECRET_KEY must never reach browser code.",
+      description: "Put these values in your server-only environment module. APP_URL is the public origin of this app and prevents a container, proxy, or server bound to 0.0.0.0 from generating an invalid callback. SKYCANVAS_SECRET_KEY must never reach browser code.",
       code: `# Server only — do not prefix these with VITE_ or NEXT_PUBLIC_
 SKYCANVAS_PUBLISHABLE_KEY=your_client_id
 SKYCANVAS_SECRET_KEY=replace_with_at_least_32_random_characters
-SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com
+APP_URL=http://localhost:3000`,
     },
     {
       title: "Client environment (not needed)",
@@ -47,6 +48,7 @@ export const skycanvas = createTanStackSso({
   publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
   secretKey: env.SKYCANVAS_SECRET_KEY,
   ssoUrl: env.SKYCANVAS_SSO_URL,
+  appUrl: env.APP_URL,
   interactionMode: "embedded", // "hosted" redirects to the SSO auth page
   oauthMode: "popup",          // or "redirect"
 })`,
@@ -61,6 +63,7 @@ export const skycanvas = createNextSso({
   publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
   secretKey: env.SKYCANVAS_SECRET_KEY,
   ssoUrl: env.SKYCANVAS_SSO_URL,
+  appUrl: env.APP_URL,
   interactionMode: "embedded",
   oauthMode: "popup",
 })`,
@@ -98,7 +101,7 @@ export const { GET, POST, OPTIONS } = skycanvas.handlers`,
     {
       title: "Use the packaged UI anywhere",
       filename: "src/routes/login.tsx",
-      description: "SignIn, SignUp, SsoAuth, and SsoAuthDialog automatically show only methods enabled for this application and use shadcn-compatible theme variables.",
+      description: "SignIn, SignUp, SsoAuth, and SsoAuthDialog automatically show only enabled methods. After successful password or popup OAuth authentication, returnTo safely navigates the original window. Provide onSuccess when your app should control navigation itself.",
       code: `import "@skycanvasstudio/sso/styles.css"
 import { SignIn, SkyCanvasProvider } from "@skycanvasstudio/sso/react"
 

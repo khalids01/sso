@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 
 import type { SsoAuthMethod, SsoSession } from "../index.js";
+import { completeAuthInteraction } from "./auth-completion.js";
 import { useSkycanvas } from "./index.js";
 
 type SocialMethod = Extract<
@@ -98,7 +99,7 @@ export function SsoAuth({
   const busy = pendingMethod !== null;
 
   const complete = (session: SsoSession | null) => {
-    if (session) onSuccess?.(session);
+    completeAuthInteraction(session, returnTo, onSuccess);
   };
 
   const submitPassword = async (values: AuthFormValues) => {
@@ -534,8 +535,12 @@ export function SsoAuthDialog({
           <SsoAuth
             {...props}
             onSuccess={(session) => {
-              props.onSuccess?.(session);
               onOpenChange(false);
+              completeAuthInteraction(
+                session,
+                props.returnTo ?? "/",
+                props.onSuccess,
+              );
             }}
           />
         </Dialog.Popup>

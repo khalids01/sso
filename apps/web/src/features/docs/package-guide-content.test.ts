@@ -42,6 +42,9 @@ describe("SSO integration guide", () => {
     expect(react).toContain("built-in Profile dialog");
     expect(better).toContain("signInWithSkyCanvas");
     expect(standalone).toContain("immediate popup loading screen");
+    expect(standalone).toContain("appUrl: env.APP_URL");
+    expect(standalone).toContain("bound to 0.0.0.0");
+    expect(standalone).toContain("returnTo safely navigates the original window");
     expect(react).not.toContain("createSsoServer");
     expect(standalone).toContain("<SkyCanvasProvider>");
     expect(standalone).toContain("createTanStackSso");

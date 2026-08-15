@@ -72,6 +72,11 @@ function Account() {
 }
 ```
 
+After password or popup OAuth succeeds, `SignIn` and `SignUp` navigate the
+original window to their safe relative `returnTo` path. Providing `onSuccess`
+instead gives your application control of navigation, which is useful for auth
+dialogs and client routers.
+
 Call an application API with the short-lived app-scoped access token:
 
 ```ts
@@ -159,6 +164,7 @@ export const skycanvas = createNextSso({
   publishableKey: process.env.SKYCANVAS_PUBLISHABLE_KEY!,
   secretKey: process.env.SKYCANVAS_SECRET_KEY!,
   ssoUrl: process.env.SKYCANVAS_SSO_URL!,
+  appUrl: process.env.APP_URL!,
   oauthMode: "popup",
 })
 ```
@@ -174,6 +180,10 @@ In the server layout, call `await skycanvas.getBootstrap()` and wrap children
 with `<SkyCanvasProvider bootstrap={bootstrap}>`. Protect server pages with
 `const auth = await skycanvas.auth()`. Register
 `https://app.example.com/auth/callback`.
+
+Set `APP_URL=http://localhost:3000` locally and the public HTTPS origin in
+production. An explicit application URL prevents servers bound to `0.0.0.0`
+or running behind a proxy from generating an invalid OAuth callback.
 
 ## React frontend + Elysia API
 
@@ -214,9 +224,9 @@ normally same-site.
 `sso.handle(request)` for `/auth/*`. Node/Express-like servers can use
 `createNodeSsoHandler()` from `@skycanvasstudio/sso/node`.
 
-Only `publishableKey`, `secretKey`, and `ssoUrl` are required. The application
-origin and `/auth/callback` URL are inferred from the request. Set `appUrl` only
-behind a proxy that does not forward the original host and protocol.
+The application origin and `/auth/callback` URL can be inferred from the
+request, but setting `appUrl` explicitly is recommended for production,
+containers, proxies, and development servers bound to `0.0.0.0`.
 
 ## Existing Better Auth app
 

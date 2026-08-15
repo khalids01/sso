@@ -2,6 +2,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
 import { Fragment, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 
+import { completeAuthInteraction } from "./auth-completion.js";
 import { useOptionalSso } from "./index.js";
 
 type AsyncAction = () => unknown | Promise<unknown>;
@@ -59,7 +60,10 @@ export function SsoSignInButton({
       if (onSignIn) {
         await onSignIn();
       } else if (sso) {
-        await sso.signIn({ returnTo: callbackURL });
+        completeAuthInteraction(
+          await sso.signIn({ returnTo: callbackURL }),
+          callbackURL,
+        );
       } else {
         throw new Error("SsoSignInButton requires SkyCanvasProvider or onSignIn");
       }

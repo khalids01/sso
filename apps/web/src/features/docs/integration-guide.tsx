@@ -259,18 +259,21 @@ export function IntegrationGuide() {
 
             <section id="sdk-reference" className="order-4 scroll-mt-24 border-b border-[#292e42] py-14">
               <SectionEyebrow>React SDK</SectionEyebrow>
-              <h2 className={headingClass}>Components and hooks at a glance</h2>
+              <h2 className={headingClass}>Components, hooks, and ready-made account UI</h2>
               <p className={leadClass}>
                 These APIs are available below <InlineCode>SkyCanvasProvider</InlineCode> in standalone integrations.
                 Better Auth integrations keep using Better Auth's own session hooks and components.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 {[
-                  ["<SignIn /> / <SignUp />", "Render configured password, magic-link, and OAuth methods in the app; only OAuth buttons open provider popups."],
+                  ["<SkyCanvasProvider />", "Connect a React-only app with its publishable key and SSO URL. Full-stack apps instead give SsoProvider its server bootstrap."],
+                  ["<SignIn /> / <SignUp />", "Ready-made embedded password, magic-link, and OAuth forms. Only OAuth buttons open provider popups."],
+                  ["<SsoAuth /> / <SsoAuthDialog />", "The configurable auth form and its dialog wrapper when you need a custom sign-in or sign-up entry point."],
+                  ["<SsoSignInButton />", "A small ready-made sign-in button for a header, hero, or any place a full auth form does not fit."],
                   ["<SignedIn /> / <SignedOut />", "Conditionally render UI after the provider has resolved authentication state."],
                   ["useAuth()", "Read isLoaded, isSignedIn, userId, session, getToken, and signOut."],
                   ["useUser()", "Read the verified SkyCanvas user and loading/authentication state."],
-                  ["<SsoUserMenu />", "Ready-made account menu, profile summary, custom links, and logout."],
+                  ["<SsoUserMenu />", "Ready-made account menu with a built-in Profile dialog, user details, password reset when applicable, custom links, and logout."],
                   ["createSsoAccessTokenVerifier()", "Cache public metadata/JWKS and verify React-only Bearer tokens in an application API."],
                 ].map(([name, description]) => (
                   <div key={name} className="rounded-xl border border-[#292e42] bg-[#111522] p-4">
@@ -278,6 +281,45 @@ export function IntegrationGuide() {
                     <p className="mt-2 text-sm leading-6 text-[#a9b1d6]">{description}</p>
                   </div>
                 ))}
+              </div>
+              <div className="mt-8 rounded-xl border border-[#3b4261] bg-[#111522] p-5">
+                <h3 className="text-base font-semibold text-[#f4f6ff]">Add a complete account menu and profile</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a9b1d6]">
+                  <InlineCode>SsoUserMenu</InlineCode> is the drop-in account control. Its Profile item opens the
+                  packaged dialog; you do not need to build a separate profile component.
+                </p>
+                <div className="mt-4">
+                  <CopyCodeBlock
+                    sample={{
+                      filename: "src/components/account-menu.tsx",
+                      code: `import {
+  SignIn,
+  SignedIn,
+  SignedOut,
+  SsoUserMenu,
+} from "@skycanvasstudio/sso/react"
+
+export function AccountMenu() {
+  return (
+    <>
+      <SignedOut>
+        <SignIn returnTo="/dashboard" />
+      </SignedOut>
+      <SignedIn>
+        <SsoUserMenu
+          items={[{ label: "Dashboard", href: "/dashboard" }]}
+          logoutReturnTo="/"
+        />
+      </SignedIn>
+    </>
+  )
+}
+
+// The Profile item shows name, email, verification status,
+// and a password-reset action when applicable.`,
+                    }}
+                  />
+                </div>
               </div>
               <Callout>
                 <InlineCode>SignedIn</InlineCode> protects presentation, not data. Always enforce authentication again
