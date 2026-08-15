@@ -87,6 +87,40 @@ export interface SsoSession<TUser extends SsoUser = SsoUser> {
   expiresAt: number;
 }
 
+export interface SsoProfileAccount {
+  id: string;
+  provider: "password" | "google" | "facebook" | "linkedin" | "github";
+  createdAt: string;
+}
+
+export interface SsoProfileSession {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  isCurrent: boolean;
+}
+
+export interface SsoUserProfile {
+  user: SsoUser;
+  capabilities: {
+    email: boolean;
+    password: boolean;
+    passwordSet: boolean;
+  };
+  accounts: SsoProfileAccount[];
+  sessions: SsoProfileSession[];
+}
+
+export type SsoProfileAction =
+  | { action: "update_name"; name: string }
+  | { action: "resend_verification" }
+  | { action: "revoke_session"; sessionId: string }
+  | { action: "revoke_other_sessions" }
+  | { action: "unlink_account"; accountId: string };
+
 export interface SsoClientMetadata {
   client_id: string;
   application_id: string;

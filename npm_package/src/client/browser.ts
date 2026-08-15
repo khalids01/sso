@@ -6,8 +6,10 @@ import {
   safeReturnTo,
   type SsoClientMetadata,
   type SsoSession,
+  type SsoProfileAction,
   type SsoTokenResponse,
   type SsoUser,
+  type SsoUserProfile,
 } from "../index.js";
 import type {
   SsoClient,
@@ -392,6 +394,40 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
     (options.navigate ?? ((target) => window.location.assign(target)))(url.toString());
   };
 
+  const profileRequest = async (action?: SsoProfileAction): Promise<SsoUserProfile> => {
+    const session = await restoreSession();
+    const accessToken = session ? current?.accessToken : null;
+    if (!accessToken) throw new Error("SkyCanvas profile requires authentication");
+    const response = await request(new URL("/auth/sdk/profile", ssoOrigin), {
+      method: action ? "POST" : "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${accessToken}`,
+        ...(action ? { "content-type": "application/json" } : {}),
+      },
+      ...(action ? { body: JSON.stringify(action) } : {}),
+    });
+    const result = await response.json().catch(() => null) as
+      | (SsoUserProfile & { message?: string })
+      | { message?: string }
+      | null;
+    if (!response.ok || !result || !("user" in result)) {
+      throw new Error(result?.message ?? "Could not load SkyCanvas profile");
+    }
+    if (current) {
+      storeSession({
+        ...current,
+        session: {
+          ...current.session,
+          user: (options.mapUser?.(result.user) ?? result.user) as TUser,
+        },
+      });
+    }
+    return result;
+  };
+
   return {
     login(returnToOrOptions: string | SsoLoginOptions = "/") {
       void signIn(typeof returnToOrOptions === "string"
@@ -475,6 +511,8 @@ export function createBrowserSsoClient<TUser extends SsoUser = SsoUser>(
     async getSession() {
       return await completeRedirect() ?? await restoreSession();
     },
+    getUserProfile: () => profileRequest(),
+    updateUserProfile: (action) => profileRequest(action),
     async getToken() {
       const session = await restoreSession();
       return session ? current?.accessToken ?? null : null;

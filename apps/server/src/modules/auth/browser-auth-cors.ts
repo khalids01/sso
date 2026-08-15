@@ -7,12 +7,13 @@ const browserAuthPaths = [
   "/auth/sdk/password/login",
   "/auth/sdk/password/signup",
   "/auth/sdk/password/request-reset",
+  "/auth/sdk/profile",
 ] as const;
 
 const corsHeaders = (origin: string) => ({
   "access-control-allow-origin": origin,
-  "access-control-allow-methods": "POST, OPTIONS",
-  "access-control-allow-headers": "Content-Type",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "Content-Type, Authorization",
   "access-control-max-age": "300",
   "access-control-allow-credentials": "true",
   vary: "Origin",

@@ -11,8 +11,12 @@ export type {
   SsoBetterAuthIntegrationOptions,
   SsoPublicConfig,
   SsoSession,
+  SsoProfileAccount,
+  SsoProfileAction,
+  SsoProfileSession,
   SsoTokenResponse,
   SsoUser,
+  SsoUserProfile,
 } from "../index.js";
 
 export type {
@@ -59,6 +63,7 @@ export type {
   SsoSignInButtonProps,
   SsoStatus,
   SsoUserMenuProps,
+  UserProfileProps,
 } from "../react/index.js";
 
 export type { NextBetterAuthServerLike } from "../next/index.js";

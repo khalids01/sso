@@ -9,6 +9,7 @@
   --sso-muted-foreground: var(--muted-foreground, #737373);
   --sso-border: var(--border, #e5e5e5);
   --sso-destructive: var(--destructive, #dc2626);
+  --sso-success: #15803d;
   --sso-danger-text: #b91c1c;
   --sso-danger-surface: #fef2f2;
   --sso-danger-hover: #fee2e2;
@@ -27,6 +28,7 @@
   --sso-muted-foreground: var(--muted-foreground, #a3a3a3);
   --sso-border: var(--border, #333);
   --sso-destructive: var(--destructive, #f87171);
+  --sso-success: #4ade80;
   --sso-danger-text: #fca5a5;
   --sso-danger-surface: #450a0a;
   --sso-danger-hover: #7f1d1d;
@@ -110,6 +112,34 @@
 .sso-profile-password > div { display: grid; gap: .2rem; }
 .sso-profile-password strong { font-size: .875rem; }
 .sso-profile-password span, .sso-profile-password-message { margin: 0; color: var(--sso-muted-foreground); font-size: .8125rem; line-height: 1.4; }
+.sso-profile-trigger { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 2.5rem; border: 1px solid var(--sso-border); border-radius: var(--sso-radius); padding: .55rem .9rem; background: var(--sso-background); color: var(--sso-foreground); font: inherit; font-weight: 500; cursor: pointer; }
+.sso-profile-trigger:focus-visible { outline: 2px solid var(--sso-ring); outline-offset: 2px; }
+.sso-profile-dialog { width: min(calc(100vw - 2rem), 42rem); max-height: min(88vh, 52rem); overflow: auto; }
+.sso-profile { display: grid; gap: 1rem; color: var(--sso-card-foreground); }
+.sso-profile-dialog .sso-profile { margin-top: 1.25rem; }
+.sso-profile-loading { min-height: 12rem; display: flex; align-items: center; justify-content: center; gap: .6rem; color: var(--sso-muted-foreground); font-size: .875rem; }
+.sso-profile-section { display: grid; gap: .85rem; border: 1px solid var(--sso-border); border-radius: var(--sso-radius); padding: 1rem; background: var(--sso-background); }
+.sso-profile-section .sso-profile-summary { margin: 0; }
+.sso-profile-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.sso-profile-section-heading h3 { margin: 0; font-size: .9375rem; }
+.sso-profile-section-heading p, .sso-profile-empty { margin: .25rem 0 0; color: var(--sso-muted-foreground); font-size: .8125rem; line-height: 1.45; }
+.sso-profile-form { display: grid; gap: .4rem; }
+.sso-profile-form > label, .sso-profile-email > div > span { color: var(--sso-muted-foreground); font-size: .75rem; font-weight: 500; }
+.sso-profile-inline { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+.sso-profile-inline .sso-button { min-width: 5rem; }
+.sso-profile-email { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.sso-profile-email > div { min-width: 0; display: grid; gap: .2rem; }
+.sso-profile-email strong { overflow-wrap: anywhere; font-size: .875rem; }
+.sso-profile-badge { flex: 0 0 auto; display: inline-flex; align-items: center; border: 1px solid color-mix(in srgb, var(--sso-success) 40%, transparent); border-radius: 9999px; padding: .2rem .5rem; background: color-mix(in srgb, var(--sso-success) 10%, transparent); color: var(--sso-success); font-size: .7rem; font-weight: 600; }
+.sso-profile-badge-warning { border-color: color-mix(in srgb, #d97706 40%, transparent); background: color-mix(in srgb, #d97706 10%, transparent); color: #b45309; }
+.sso-profile-warning { border: 1px solid color-mix(in srgb, #d97706 35%, transparent); border-radius: var(--sso-radius); padding: .75rem; background: color-mix(in srgb, #d97706 8%, transparent); color: var(--sso-foreground); font-size: .8rem; line-height: 1.45; }
+.sso-profile-list { display: grid; gap: .5rem; }
+.sso-profile-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; border-top: 1px solid var(--sso-border); padding-top: .65rem; }
+.sso-profile-row:first-child { border-top: 0; padding-top: 0; }
+.sso-profile-row > div { min-width: 0; display: grid; gap: .2rem; }
+.sso-profile-row strong { font-size: .8125rem; }
+.sso-profile-row span { color: var(--sso-muted-foreground); font-size: .72rem; overflow-wrap: anywhere; }
+@media (max-width: 520px) { .sso-profile-inline { grid-template-columns: 1fr; } .sso-profile-section-heading { display: grid; } .sso-profile-row { align-items: flex-start; } }
 .sso-auth-dialog { padding: 0; border: 0; background: transparent; box-shadow: none; }
 .sso-auth-dialog .sso-auth-card { max-width: none; }
 .sso-auth-close { position: absolute; z-index: 1; top: .75rem; right: .75rem; font-size: 1.25rem; }

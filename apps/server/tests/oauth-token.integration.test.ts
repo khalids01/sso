@@ -37,6 +37,7 @@ describe("OAuth authorization-code token exchange", () => {
         applicationId: expect.any(String),
         membershipId: expect.any(String),
         authorizationVersion: 1,
+        sessionId: expect.any(String),
         hasPlatformPermissions: false,
       },
       idClaims: {

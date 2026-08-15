@@ -52,6 +52,23 @@ const issuerServer = Bun.serve({
         scope: "openid",
       });
     }
+    if (url.pathname === "/auth/sdk/profile") {
+      if (!request.headers.get("authorization")?.startsWith("Bearer ")) {
+        return Response.json({ message: "Unauthorized" }, { status: 401 });
+      }
+      return Response.json({
+        user: {
+          id: subject,
+          name: request.method === "POST" ? "Updated User" : "Test User",
+          email: "test@example.com",
+          emailVerified: true,
+          image: "https://example.com/avatar.png",
+        },
+        capabilities: { email: true, password: true, passwordSet: true },
+        accounts: [],
+        sessions: [],
+      });
+    }
     return new Response(null, { status: 404 });
   },
 });
@@ -240,11 +257,31 @@ describe("framework-independent SSO server", () => {
       passwordSignupPath: "/auth/password/signup",
       magicLinkPath: "/auth/magic-link",
       profilePath: "/auth/profile",
+      userProfilePath: "/auth/user-profile",
       logoutPath: "/auth/logout",
       interactionMode: "embedded",
       oauthMode: "popup",
     });
     expect(JSON.stringify(bootstrap)).not.toContain("test-session-secret");
+    expect(JSON.stringify(bootstrap)).not.toContain("accessToken");
+
+    const userProfile = await sso.handle(new Request("https://app.example.com/auth/user-profile", {
+      headers: { cookie: sessionCookie ?? "" },
+    }));
+    expect(userProfile.status).toBe(200);
+    expect((await userProfile.json()).capabilities.email).toBe(true);
+
+    const updatedProfile = await sso.handle(new Request("https://app.example.com/auth/user-profile", {
+      method: "POST",
+      headers: {
+        cookie: sessionCookie ?? "",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ action: "update_name", name: "Updated User" }),
+    }));
+    expect(updatedProfile.status).toBe(200);
+    expect((await updatedProfile.json()).user.name).toBe("Updated User");
+    expect(updatedProfile.headers.getSetCookie().some((cookie) => cookie.startsWith("sso_session_"))).toBe(true);
 
     const rejectedLogout = await sso.handle(new Request("https://app.example.com/auth/logout", {
       method: "POST",

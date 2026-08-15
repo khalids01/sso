@@ -273,7 +273,8 @@ export function IntegrationGuide() {
                   ["<SignedIn /> / <SignedOut />", "Conditionally render UI after the provider has resolved authentication state."],
                   ["useAuth()", "Read isLoaded, isSignedIn, userId, session, getToken, and signOut."],
                   ["useUser()", "Read the verified SkyCanvas user and loading/authentication state."],
-                  ["<SsoUserMenu />", "Ready-made account menu with a built-in Profile dialog, user details, password reset when applicable, custom links, and logout."],
+                  ["<UserProfile />", "One complete profile component with dialog and content modes, read-only OAuth avatar, email capability warnings, connected accounts, and active sessions."],
+                  ["<SsoUserMenu />", "Ready-made account menu that opens UserProfile in dialog mode, supports custom links, and handles logout."],
                   ["createSsoAccessTokenVerifier()", "Cache public metadata/JWKS and verify React-only Bearer tokens in an application API."],
                 ].map(([name, description]) => (
                   <div key={name} className="rounded-xl border border-[#292e42] bg-[#111522] p-4">
@@ -285,8 +286,8 @@ export function IntegrationGuide() {
               <div className="mt-8 rounded-xl border border-[#3b4261] bg-[#111522] p-5">
                 <h3 className="text-base font-semibold text-[#f4f6ff]">Add a complete account menu and profile</h3>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a9b1d6]">
-                  <InlineCode>SsoUserMenu</InlineCode> is the drop-in account control. Its Profile item opens the
-                  packaged dialog; you do not need to build a separate profile component.
+                  <InlineCode>UserProfile</InlineCode> is the single profile implementation. SsoUserMenu opens it
+                  in dialog mode, while a profile route can render the same component in content mode.
                 </p>
                 <div className="mt-4">
                   <CopyCodeBlock
@@ -297,6 +298,7 @@ export function IntegrationGuide() {
   SignedIn,
   SignedOut,
   SsoUserMenu,
+  UserProfile,
 } from "@skycanvasstudio/sso/react"
 
 export function AccountMenu() {
@@ -310,13 +312,14 @@ export function AccountMenu() {
           items={[{ label: "Dashboard", href: "/dashboard" }]}
           logoutReturnTo="/"
         />
+        <UserProfile mode="content" />
       </SignedIn>
     </>
   )
 }
 
-// The Profile item shows name, email, verification status,
-// and a password-reset action when applicable.`,
+// Or use <UserProfile mode="dialog" label={<ProfileIcon />} />.
+// The label accepts text, an icon, or both.`,
                     }}
                   />
                 </div>

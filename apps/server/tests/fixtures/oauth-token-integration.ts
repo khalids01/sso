@@ -303,6 +303,7 @@ try {
       applicationId: payload.application_id,
       membershipId: payload.membership_id,
       authorizationVersion: payload.authorization_version,
+      sessionId: payload.sid,
       hasPlatformPermissions: "permissions" in payload || "roles" in payload,
     },
     idClaims: {

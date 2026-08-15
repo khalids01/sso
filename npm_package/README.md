@@ -53,6 +53,7 @@ import {
   SignedIn,
   SignedOut,
   SsoUserMenu,
+  UserProfile,
   useAuth,
   useUser,
 } from "@skycanvasstudio/sso/react"
@@ -71,6 +72,22 @@ function Account() {
   </>
 }
 ```
+
+Use the same profile UI as a dialog trigger or as normal page content:
+
+```tsx
+<UserProfile mode="dialog" label={<><UserIcon /> Profile</>} />
+
+// Render directly inside a profile page
+<UserProfile mode="content" />
+```
+
+`UserProfile` keeps the OAuth avatar read-only and includes name management,
+email verification state, application-mail availability, password recovery,
+connected social accounts, and active-session controls. Pass one optional
+`additionalContent` node for a small application-specific section. These
+identity actions use short-lived app-scoped authorization; mail-provider and
+OAuth-provider credentials never enter the application browser.
 
 After password or popup OAuth succeeds, `SignIn` and `SignUp` navigate the
 original window to their safe relative `returnTo` path. Providing `onSuccess`
@@ -255,8 +272,13 @@ The package owns these routes by default:
 /auth/password/signup
 /auth/magic-link
 /auth/profile
+/auth/user-profile
 /auth/logout
 ```
+
+`GET` and `POST /auth/user-profile` power `UserProfile` in full-stack apps.
+The package proxies these operations with the access token sealed inside the
+application's HttpOnly session cookie; it never sends that token to React.
 
 ## Security model
 

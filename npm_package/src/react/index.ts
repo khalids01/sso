@@ -17,7 +17,9 @@ import {
   type SsoBetterAuthBootstrap,
   type SsoSession,
   type SsoClientMetadata,
+  type SsoProfileAction,
   type SsoUser,
+  type SsoUserProfile,
   safeReturnTo,
 } from "../index.js";
 import {
@@ -46,6 +48,8 @@ export {
   type SsoUserMenuProps,
 } from "./components.js";
 
+export { UserProfile, type UserProfileProps } from "./user-profile.js";
+
 export type SsoStatus = "loading" | "authenticated" | "unauthenticated" | "error";
 
 export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
@@ -61,6 +65,8 @@ export interface SsoContextValue<TUser extends SsoUser = SsoUser> {
   signUpWithPassword: (input: { name: string; email: string; password: string; returnTo?: string }) => Promise<{ session: SsoSession<TUser> | null; requiresEmailVerification: boolean }>;
   sendMagicLink: (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => Promise<void>;
   requestPasswordReset: (input: { email: string }) => Promise<void>;
+  getUserProfile: () => Promise<SsoUserProfile>;
+  updateUserProfile: (action: SsoProfileAction) => Promise<SsoUserProfile>;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
   refresh: () => Promise<SsoSession<TUser> | null>;
   getToken: () => Promise<string | null>;
@@ -97,6 +103,7 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
       ...(clientOptions ? {
         loginPath: clientOptions.loginPath,
         profilePath: clientOptions.profilePath,
+        ...(clientOptions.userProfilePath ? { userProfilePath: clientOptions.userProfilePath } : {}),
         logoutPath: clientOptions.logoutPath,
       } : {}),
       ...(clientOptions?.configPath ? { configPath: clientOptions.configPath } : {}),
@@ -114,6 +121,7 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
       clientOptions?.magicLinkPath,
       clientOptions?.logoutPath,
       clientOptions?.profilePath,
+      clientOptions?.userProfilePath,
       clientOptions?.oauthMode,
       props.baseUrl,
       props.oauthMode,
@@ -266,6 +274,15 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     }
   }, [client]);
 
+  const getUserProfile = useCallback(() => client.getUserProfile(), [client]);
+  const updateUserProfile = useCallback(async (action: SsoProfileAction) => {
+    const profile = await client.updateUserProfile(action);
+    setSession((currentSession) => currentSession
+      ? { ...currentSession, user: profile.user as TUser }
+      : currentSession);
+    return profile;
+  }, [client]);
+
   const value = useMemo<SsoContextValue<TUser>>(() => ({
     session,
     status: loading ? "loading" : error ? "error" : session ? "authenticated" : "unauthenticated",
@@ -279,10 +296,12 @@ export function SsoProvider<TUser extends SsoUser = SsoUser>(props: SsoProviderP
     signUpWithPassword,
     sendMagicLink,
     requestPasswordReset,
+    getUserProfile,
+    updateUserProfile,
     logout,
     refresh,
     getToken: client.getToken,
-  }), [client.getToken, client.login, error, interactionMode, loading, logout, metadata, oauthMode, refresh, requestPasswordReset, sendMagicLink, session, signIn, signInWithPassword, signUpWithPassword]);
+  }), [client.getToken, client.login, error, getUserProfile, interactionMode, loading, logout, metadata, oauthMode, refresh, requestPasswordReset, sendMagicLink, session, signIn, signInWithPassword, signUpWithPassword, updateUserProfile]);
 
   return createElement(
     SsoContext.Provider,

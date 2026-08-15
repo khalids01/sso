@@ -1,4 +1,11 @@
-import type { SsoAuthMethod, SsoClientMetadata, SsoSession, SsoUser } from "../index.js";
+import type {
+  SsoAuthMethod,
+  SsoClientMetadata,
+  SsoProfileAction,
+  SsoSession,
+  SsoUser,
+  SsoUserProfile,
+} from "../index.js";
 import type { StandaloneSsoClientConfig } from "../server/index.js";
 import { openPopupShell } from "./popup-shell.js";
 
@@ -10,6 +17,7 @@ export interface SsoClientOptions<TUser extends SsoUser = SsoUser> {
   passwordSignupPath?: string;
   magicLinkPath?: string;
   profilePath?: string;
+  userProfilePath?: string;
   logoutPath?: string;
   oauthMode?: "redirect" | "popup";
   fetch?: typeof fetch;
@@ -39,6 +47,8 @@ export interface SsoClient<TUser extends SsoUser = SsoUser> {
   sendMagicLink: (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => Promise<void>;
   requestPasswordReset: (input: { email: string }) => Promise<void>;
   getSession: () => Promise<SsoSession<TUser> | null>;
+  getUserProfile: () => Promise<SsoUserProfile>;
+  updateUserProfile: (action: SsoProfileAction) => Promise<SsoUserProfile>;
   getToken: () => Promise<string | null>;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
 }
@@ -59,6 +69,7 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
   const magicLinkPath = options.magicLinkPath ?? "/auth/magic-link";
   const passwordResetPath = "/auth/password/request-reset";
   const profilePath = options.profilePath ?? "/auth/profile";
+  const userProfilePath = options.userProfilePath ?? "/auth/user-profile";
   const logoutPath = options.logoutPath ?? "/auth/logout";
 
   const buildLoginTarget = (loginOptions: SsoLoginOptions) => {
@@ -134,6 +145,21 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
     return response.json() as Promise<SsoSession<TUser>>;
   };
 
+  const profileRequest = async (action?: SsoProfileAction) => {
+    const response = await getFetch(options.fetch)(resolveRequestUrl(userProfilePath, baseUrl), {
+      method: action ? "POST" : "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: {
+        accept: "application/json",
+        ...(action ? { "content-type": "application/json" } : {}),
+      },
+      ...(action ? { body: JSON.stringify(action) } : {}),
+    });
+    if (!response.ok) throw await responseError(response, "profile request");
+    return response.json() as Promise<SsoUserProfile>;
+  };
+
   return {
     login(returnToOrOptions: string | SsoLoginOptions = "/") {
       const loginOptions = typeof returnToOrOptions === "string"
@@ -197,6 +223,8 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
       if (!response.ok) throw await responseError(response, "password-reset request");
     },
     getSession,
+    getUserProfile: () => profileRequest(),
+    updateUserProfile: (action) => profileRequest(action),
     async getToken() {
       return null;
     },

@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 
 import { createSsoBetterAuthIntegration } from "../src/index.js";
 import { completeAuthInteraction } from "../src/react/auth-completion.js";
-import { createSsoBetterAuthReact, SsoProvider, SsoUserMenu } from "../src/react/index.js";
+import { createSsoBetterAuthReact, SsoProvider, SsoUserMenu, UserProfile } from "../src/react/index.js";
 import type { StandaloneSsoBootstrap } from "../src/server/index.js";
 
 describe("SSR React providers", () => {
@@ -67,6 +67,35 @@ describe("SSR React providers", () => {
       createElement(SsoUserMenu),
     ));
     expect(html).toContain('aria-label="Open account menu"');
+  });
+
+  test("UserProfile provides content and labelled dialog modes", () => {
+    const bootstrap: StandaloneSsoBootstrap = {
+      kind: "standalone",
+      session: null,
+      client: {
+        baseUrl: "https://app.example.com",
+        loginPath: "/auth/login",
+        profilePath: "/auth/profile",
+        userProfilePath: "/auth/user-profile",
+        logoutPath: "/auth/logout",
+      },
+    };
+    const content = renderToString(createElement(
+      SsoProvider,
+      { bootstrap },
+      createElement(UserProfile, { mode: "content" }),
+    ));
+    const dialog = renderToString(createElement(
+      SsoProvider,
+      { bootstrap },
+      createElement(UserProfile, {
+        mode: "dialog",
+        label: createElement("span", null, "Open profile"),
+      }),
+    ));
+    expect(content).toContain("Loading profile");
+    expect(dialog).toContain("Open profile");
   });
 });
 

@@ -108,6 +108,7 @@ export interface SsoServerPaths {
   passwordSignup: string;
   magicLink: string;
   profile: string;
+  userProfile: string;
   logout: string;
 }
 
@@ -172,6 +173,7 @@ export interface SsoServer<TUser extends SsoUser = SsoUser> {
   passwordSignup: (request: Request) => Promise<Response>;
   magicLink: (request: Request) => Promise<Response>;
   profile: (request: Request) => Promise<Response>;
+  userProfile: (request: Request) => Promise<Response>;
   logout: (request: Request) => Promise<Response>;
   getSession: (request: SsoSessionRequest) => Promise<SsoSession<TUser> | null>;
   getBootstrap: (request: SsoSessionRequest) => Promise<StandaloneSsoBootstrap<TUser>>;
@@ -188,6 +190,7 @@ export interface StandaloneSsoClientConfig {
   passwordSignupPath?: string;
   magicLinkPath?: string;
   profilePath: string;
+  userProfilePath?: string;
   logoutPath: string;
   interactionMode?: "hosted" | "embedded";
   oauthMode?: "redirect" | "popup";
@@ -207,10 +210,15 @@ const DEFAULT_PATHS: SsoServerPaths = {
   passwordSignup: "/auth/password/signup",
   magicLink: "/auth/magic-link",
   profile: "/auth/profile",
+  userProfile: "/auth/user-profile",
   logout: "/auth/logout",
 };
 
 const pendingCallbacks = new Map<string, Promise<Response>>();
+
+type StoredSsoSession<TUser extends SsoUser> = SsoSession<TUser> & {
+  accessToken?: string;
+};
 
 export async function createSsoAuthorization(
   options: CreateSsoAuthorizationOptions,
@@ -447,6 +455,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     passwordSignupPath: paths.passwordSignup,
     magicLinkPath: paths.magicLink,
     profilePath: paths.profile,
+    userProfilePath: paths.userProfile,
     logoutPath: paths.logout,
     interactionMode: options.interactionMode ?? "embedded",
     oauthMode: options.oauthMode ?? "popup",
@@ -505,7 +514,11 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
           ? await options.onSignIn({ user: authorization.user, authorization, request })
           : authorization.user as TUser;
         const seconds = Math.min(authorization.tokens.expires_in, sessionTtl);
-        const session: SsoSession<TUser> = { user, expiresAt: Date.now() + seconds * 1000 };
+        const session: StoredSsoSession<TUser> = {
+          user,
+          expiresAt: Date.now() + seconds * 1000,
+          accessToken: authorization.tokens.access_token,
+        };
         const sessionCookie = serializeCookie(
           cookieConfig.sessionName,
           await seal(session, seconds, key),
@@ -565,13 +578,18 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     }
   }
 
-  async function getSession(request: SsoSessionRequest): Promise<SsoSession<TUser> | null> {
+  async function getStoredSession(request: SsoSessionRequest): Promise<StoredSsoSession<TUser> | null> {
     try {
-      const session = await unseal<SsoSession<TUser>>(readCookie(request, cookieConfig.sessionName), key);
+      const session = await unseal<StoredSsoSession<TUser>>(readCookie(request, cookieConfig.sessionName), key);
       return session.expiresAt > Date.now() ? session : null;
     } catch {
       return null;
     }
+  }
+
+  async function getSession(request: SsoSessionRequest): Promise<SsoSession<TUser> | null> {
+    const session = await getStoredSession(request);
+    return session ? { user: session.user, expiresAt: session.expiresAt } : null;
   }
 
   async function getBootstrap(request: SsoSessionRequest): Promise<StandaloneSsoBootstrap<TUser>> {
@@ -740,6 +758,49 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
         );
   }
 
+  async function userProfile(request: Request): Promise<Response> {
+    const session = await getStoredSession(request);
+    if (!session?.accessToken) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const upstream = await (options.fetch ?? fetch)(
+      new URL("/auth/sdk/profile", baseUrl),
+      {
+        method: request.method,
+        headers: {
+          accept: "application/json",
+          authorization: `Bearer ${session.accessToken}`,
+          origin: redirectOrigin,
+          ...(request.method === "POST" ? { "content-type": "application/json" } : {}),
+        },
+        ...(request.method === "POST" ? { body: await request.text() } : {}),
+      },
+    );
+    const updated = upstream.ok && request.method === "POST"
+      ? await upstream.clone().json().catch(() => null) as { user?: TUser } | null
+      : null;
+    const response = new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": upstream.headers.get("content-type") ?? "application/json",
+      },
+    });
+    if (updated?.user) {
+        const seconds = Math.max(1, Math.floor((session.expiresAt - Date.now()) / 1_000));
+        response.headers.append(
+          "set-cookie",
+          serializeCookie(
+            cookieConfig.sessionName,
+            await seal({ ...session, user: updated.user }, seconds, key),
+            seconds,
+            cookieConfig,
+          ),
+        );
+    }
+    return response;
+  }
+
   async function logout(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
     const origin = request.headers.get("origin");
@@ -778,6 +839,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     else if (pathname === paths.passwordSignup && request.method === "POST") response = await passwordSignup(request);
     else if (pathname === paths.magicLink && request.method === "POST") response = await magicLink(request);
     else if (pathname === paths.profile && request.method === "GET") response = await profile(request);
+    else if (pathname === paths.userProfile && ["GET", "POST"].includes(request.method)) response = await userProfile(request);
     else if (pathname === paths.logout && request.method === "POST") response = await logout(request);
     else if (
       pathname === paths.logout &&
@@ -820,6 +882,7 @@ export function createSsoServer<TUser extends SsoUser = SsoUser>(
     passwordSignup,
     magicLink,
     profile,
+    userProfile,
     logout,
     getSession,
     getBootstrap,
@@ -860,6 +923,7 @@ function createRequestAwareSsoServer<TUser extends SsoUser>(
     passwordSignup: (request) => serverFor(request).passwordSignup(request),
     magicLink: (request) => serverFor(request).magicLink(request),
     profile: (request) => serverFor(request).profile(request),
+    userProfile: (request) => serverFor(request).userProfile(request),
     logout: (request) => serverFor(request).logout(request),
     getSession: (request) => serverFor(request).getSession(request),
     getBootstrap: (request) => serverFor(request).getBootstrap(request),

@@ -86,6 +86,32 @@ test("browser client maps unauthorized profile responses to no session", async (
   expect(await client.getSession()).toBeNull();
 });
 
+test("standalone client loads and updates the packaged user profile", async () => {
+  const requests: Array<{ method: string; body?: string }> = [];
+  const client = createSsoClient({
+    baseUrl: "https://app.example.com",
+    fetch: (async (_input: string | URL | Request, init?: RequestInit) => {
+      requests.push({
+        method: init?.method ?? "GET",
+        ...(typeof init?.body === "string" ? { body: init.body } : {}),
+      });
+      return Response.json({
+        user: { id: "1", name: "Khalid", email: "k@example.com", emailVerified: true, image: null },
+        capabilities: { email: true, password: true, passwordSet: true },
+        accounts: [],
+        sessions: [],
+      });
+    }) as typeof fetch,
+  });
+
+  expect((await client.getUserProfile()).user.name).toBe("Khalid");
+  await client.updateUserProfile({ action: "update_name", name: "Khalid Hasan" });
+  expect(requests).toEqual([
+    { method: "GET" },
+    { method: "POST", body: JSON.stringify({ action: "update_name", name: "Khalid Hasan" }) },
+  ]);
+});
+
 test("browser client can explicitly keep logout local", async () => {
   let requestInit: RequestInit | undefined;
   const client = createSsoClient({

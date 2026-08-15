@@ -599,6 +599,7 @@ async function performAuthorizationCodeExchange(
             application_id: client.application.id,
             membership_id: member.id,
             authorization_version: member.authorizationVersion,
+            sid: stored.sessionId,
           },
         },
       }),

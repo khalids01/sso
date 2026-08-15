@@ -247,8 +247,8 @@ export async function requireSkyCanvasUser(request: Request) {
       {
         title: "Add the ready-made user menu and profile",
         filename: "src/components/account-menu.tsx",
-        description: "SsoUserMenu is an optional account control for signed-in users. It opens a built-in Profile dialog with their name, email, and email status, includes a password-reset action when applicable, then shows your custom links and logout.",
-        code: `import { SsoUserMenu } from "@skycanvasstudio/sso/react"
+        description: "SsoUserMenu opens the packaged UserProfile dialog. UserProfile can also render identical content directly in a page. OAuth avatars remain read-only; identity actions use short-lived app-scoped authorization and never expose mail or provider credentials.",
+        code: `import { SsoUserMenu, UserProfile } from "@skycanvasstudio/sso/react"
 
 export function AccountMenu() {
   return (
@@ -260,7 +260,18 @@ export function AccountMenu() {
 }
 
 // The menu reads the signed-in user from <SkyCanvasProvider>.
-// Click Profile in the menu to open the built-in profile dialog.`,
+// Click Profile in the menu to open the built-in Profile dialog.
+
+export function ProfilePage() {
+  return <UserProfile mode="content" />
+}
+
+export function ProfileButton() {
+  return <UserProfile mode="dialog" label="Profile" />
+}
+
+// label accepts text, an icon, or both.
+// additionalContent adds one minimal custom section.`,
       },
       {
         title: "Register the browser client",
@@ -705,7 +716,7 @@ export const sso = createSsoServer({
         title: "Mount the SSO routes",
         tabLabel: "TanStack Start",
         filename: "src/server.ts",
-        description: "Choose your framework. The standalone helper must receive GET /auth/login, GET /auth/callback, GET /auth/profile, and POST /auth/logout.",
+        description: "Choose your framework. Mount the complete /auth/* handler so login, callback, session, UserProfile, and logout routes all reach the standalone helper.",
         code: `import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server"
 import { sso } from "./lib/sso.server"
 
@@ -725,6 +736,7 @@ export default { fetch }
 // GET  /auth/login
 // GET  /auth/callback
 // GET  /auth/profile
+// GET + POST /auth/user-profile
 // POST /auth/logout`,
         alternatives: [
           {

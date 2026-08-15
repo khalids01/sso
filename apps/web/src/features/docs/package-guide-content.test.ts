@@ -40,6 +40,9 @@ describe("SSO integration guide", () => {
     expect(react).toContain("Add the ready-made user menu and profile");
     expect(react).toContain("SsoUserMenu");
     expect(react).toContain("built-in Profile dialog");
+    expect(react).toContain("<UserProfile mode=\\\"content\\\"");
+    expect(react).toContain("label accepts text, an icon, or both");
+    expect(react).toContain("OAuth avatars remain read-only");
     expect(better).toContain("signInWithSkyCanvas");
     expect(standalone).toContain("immediate popup loading screen");
     expect(standalone).toContain("appUrl: env.APP_URL");
