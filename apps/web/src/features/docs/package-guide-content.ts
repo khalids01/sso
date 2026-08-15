@@ -899,10 +899,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         ],
       },
       {
-        title: "Use session, sign-in, and logout",
+        title: "Use session, sign-in, profile, and logout",
         filename: "src/components/account-menu.tsx",
-        description: "Components below the provider can use the standalone hooks and controls. SsoUserMenu includes the account menu and built-in Profile dialog; OAuth tokens remain on the server.",
-        code: `import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
+        description: "Components below the provider can use the standalone hooks and controls. UserProfile supports dialog and page-content modes; OAuth tokens remain sealed on the server and the OAuth avatar stays read-only.",
+        code: `import { SsoSignInButton, SsoUserMenu, UserProfile } from "@skycanvasstudio/sso/react"
 
 export function AccountMenu() {
   return <SsoUserMenu items={[{ label: "Dashboard", href: "/dashboard" }]} />
@@ -910,7 +910,15 @@ export function AccountMenu() {
 
 export function SignIn() {
   return <SsoSignInButton callbackURL="/dashboard" />
-}`,
+}
+
+export function ProfilePage() {
+  return <UserProfile mode="content" />
+}
+
+// Or: <UserProfile mode="dialog" label={<><UserIcon /> Profile</>} />
+// Email actions show a warning when this application has no mail connection.
+// Avatar upload and account deletion are intentionally not included.`,
       },
       {
         title: "Register the callback URL",

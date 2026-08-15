@@ -287,7 +287,9 @@ export function IntegrationGuide() {
                 <h3 className="text-base font-semibold text-[#f4f6ff]">Add a complete account menu and profile</h3>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a9b1d6]">
                   <InlineCode>UserProfile</InlineCode> is the single profile implementation. SsoUserMenu opens it
-                  in dialog mode, while a profile route can render the same component in content mode.
+                  in dialog mode, while a profile route can render the same component in content mode. OAuth images
+                  stay read-only, account deletion is intentionally absent, and email actions clearly explain when
+                  the application needs a connected mail provider.
                 </p>
                 <div className="mt-4">
                   <CopyCodeBlock
@@ -319,7 +321,8 @@ export function AccountMenu() {
 }
 
 // Or use <UserProfile mode="dialog" label={<ProfileIcon />} />.
-// The label accepts text, an icon, or both.`,
+// The label accepts text, an icon, or both.
+// additionalContent can add one minimal app-specific section.`,
                     }}
                   />
                 </div>

@@ -52,6 +52,26 @@ each protected request. Treat `SignedIn` as presentation control, not backend
 authorization. Do not add `createSsoServer`, Elysia, a client secret, or a second
 callback to this path.
 
+Use the same packaged profile UI in either form:
+
+```tsx
+import { UserProfile } from "@skycanvasstudio/sso/react"
+
+<UserProfile mode="dialog" label="Profile" />
+<UserProfile mode="content" />
+```
+
+The dialog `label` accepts any React node, including text, an icon, or both.
+`UserProfile` keeps the OAuth avatar read-only and provides name updates, email
+verification, password set/reset when enabled, connected-account management,
+and active-session controls. It has no account-deletion action. Use the single
+`additionalContent` slot only for a small application-specific section.
+
+Profile requests use the same short-lived, application-scoped access token.
+The browser never receives OAuth-provider credentials, mail-provider secrets,
+or file-server credentials. If the application has no active mail connection,
+the profile shows a warning and disables verification/password-email actions.
+
 `SignIn` must remain embedded and show the password, magic-link, and social
 methods returned by the application's public metadata. Password and magic-link
 forms call central SkyCanvas directly. Only social provider buttons open a
@@ -150,13 +170,25 @@ infers the public app origin and `/auth/callback` URL from the request. Set
 `appUrl` only when a proxy does not forward the original host and protocol.
 
 Mount `SkyCanvasProvider` once and use the packaged `SignIn`, `SignedIn`,
-`SignedOut`, `useAuth`, and `SsoUserMenu` APIs. Register
+`SignedOut`, `useAuth`, `SsoUserMenu`, and `UserProfile` APIs. Register
 `{APP_ORIGIN}/auth/callback` in SkyCanvas.
 
-`SsoUserMenu` is an optional ready-made account menu. Its Profile item opens a
-built-in dialog showing the user's name, email, and verification state, with a
-password-reset request when applicable. Supply `items` for application links
-and `logoutReturnTo` for the post-logout path.
+`SsoUserMenu` uses `UserProfile mode="dialog"` internally. Render
+`<UserProfile mode="content" />` on a dedicated profile page, or render
+`<UserProfile mode="dialog" label={...} />` for a custom trigger. The component
+provides the same read-only OAuth avatar, name, verification, password,
+connected-account, active-session, mail-capability, and minimal extension
+behavior described in the React-only path. It intentionally excludes account
+deletion and avatar upload.
+
+The standalone handler must receive both `GET` and `POST /auth/user-profile`.
+Mounting the documented `/auth/*` catch-all or the Next/TanStack adapters does
+this automatically. The adapter keeps the app access token sealed in the
+application's encrypted HttpOnly cookie and proxies profile operations to
+SkyCanvas; do not expose that token through bootstrap data or a JSON session
+endpoint. After upgrading an existing integration to a version that adds this
+route, sign in once again so the local session contains the required profile
+authorization data.
 
 ## Required verification
 
@@ -173,3 +205,9 @@ and `logoutReturnTo` for the post-logout path.
 - The React-only flow keeps PKCE state and the short-lived application token in
   the SDK-managed browser session; protected APIs verify every Bearer token and
   no session secret exists in the frontend.
+- `UserProfile` works in both dialog and content modes; full-stack profile
+  requests reach `GET` and `POST /auth/user-profile` without returning the
+  sealed access token to React.
+- OAuth avatars remain read-only, account deletion is absent, and email-driven
+  actions are disabled with a clear warning when the application has no active
+  mail-provider connection.

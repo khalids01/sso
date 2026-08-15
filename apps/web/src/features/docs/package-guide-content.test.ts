@@ -67,4 +67,16 @@ describe("SSO integration guide", () => {
     expect(troubleshootingItems.some((item) => item.problem.includes("Protected UI"))).toBe(true);
     expect(troubleshootingItems.some((item) => item.fix.includes("/auth/callback"))).toBe(true);
   });
+
+  test("keeps the coding-agent handoff current with UserProfile", async () => {
+    const agentGuide = await Bun.file(
+      new URL("./sso-agent-guide.md", import.meta.url),
+    ).text();
+    expect(agentGuide).toContain('<UserProfile mode="dialog" label="Profile" />');
+    expect(agentGuide).toContain('<UserProfile mode="content" />');
+    expect(agentGuide).toContain("GET` and `POST /auth/user-profile");
+    expect(agentGuide).toContain("OAuth avatar read-only");
+    expect(agentGuide).toContain("no account-deletion action");
+    expect(agentGuide).toContain("no active mail connection");
+  });
 });
