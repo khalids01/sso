@@ -6,9 +6,6 @@ SSO is a Bun/Turborepo TypeScript monorepo.
 
 - `apps/web`: TanStack Start frontend for public pages, protected user pages, onboarding, and admin.
 - `apps/server`: Elysia API server for auth helpers, session context, admin modules, rate limits, application usage, notifications, feedback, Polar, and invitations.
-- `apps/sso-demo`: canonical TanStack Start relying party for popup and embedded package authentication.
-- `apps/sso-demo-elysia`: split React frontend and Elysia API reference using trusted-origin CORS.
-- `apps/sso-demo-next`: Next.js App Router reference with server bootstrap and route guards.
 - External React-only clients can use the package's browser public-client mode
   without deploying an application auth bridge.
 - `packages/auth`: Better Auth configuration, custom session payload, magic-link auth, Polar integration, and session types.

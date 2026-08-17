@@ -131,13 +131,6 @@ deferred.
   access-token verification. Central embedded-auth CORS is restricted to
   registered active application origins. No schema or migration was added.
 
-- `apps/sso-demo` now completes the public-client authorization-code flow with
-  server-side PKCE, state and nonce validation, JWKS verification, an encrypted
-  HttpOnly local session, safe claim display, reload persistence, and local sign-out.
-- The full local browser suite passes: `10 passed`, `0 failed`, including
-  password-only application login and signup without email verification,
-  protocol checks, and run-owned cleanup.
-
 - Server tests: `238 pass`, `0 fail` across 55 files.
 - OAuth Provider runtime initialization succeeded.
 - Better Auth's built-in token endpoint and generic session-JWT endpoint return

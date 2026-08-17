@@ -107,9 +107,6 @@ Redis stores short-lived and regeneratable data such as rate-limit counters, RBA
 sso/
 ├── apps/
 │   ├── web/         # TanStack Start frontend and admin UI
-│   ├── sso-demo/    # TanStack Start reference relying-party application
-│   ├── sso-demo-elysia/ # React frontend + separate Elysia auth API
-│   ├── sso-demo-next/   # Next.js App Router reference application
 │   └── server/      # Elysia API server
 ├── packages/
 │   ├── auth/        # Better Auth configuration and session types

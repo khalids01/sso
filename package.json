@@ -33,7 +33,6 @@
     "tsc": "node_modules/@typescript/native/bin/tsc",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
-    "dev:demo": "turbo -F sso-demo dev",
     "sso:build": "bun run --cwd npm_package build",
     "sso:check-types": "bun run --cwd npm_package check-types",
     "sso:test": "bun run --cwd npm_package test",
