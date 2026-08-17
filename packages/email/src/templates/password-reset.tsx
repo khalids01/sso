@@ -1,0 +1,9 @@
+import { Body, Button, Container, Head, Heading, Hr, Html, Preview, Section, Tailwind, Text } from "@react-email/components";
+import { siteConfig } from "@sso/config";
+import { renderEmailTemplate } from "../render.server";
+
+export function PasswordResetEmail({ url }: { url: string }) {
+  return <Html><Head /><Preview>{`Reset your ${siteConfig.name} password`}</Preview><Tailwind><Body className="m-0 bg-slate-100 p-0 text-slate-900"><Container className="my-8 overflow-hidden rounded-[16px] border border-slate-200 bg-white"><Section className="bg-slate-950 px-8 py-6"><Text className="m-0 text-[20px] font-bold text-white">{siteConfig.name}</Text><Text className="m-0 mt-1 text-[13px] text-slate-300">Password reset</Text></Section><Section className="px-8 py-8"><Heading className="m-0 text-[26px] leading-[1.25] text-slate-950">Reset your password</Heading><Text className="mb-0 mt-4 text-[15px] leading-[1.65] text-slate-600">We received a request to reset your password. Use the secure link below to choose a new one.</Text><Section className="my-7 text-center"><Button href={url} className="rounded-[9px] bg-slate-950 px-7 py-[13px] text-[15px] font-semibold text-white no-underline">Reset password</Button></Section><Text className="mb-0 text-[13px] leading-[1.55] text-slate-500">This link expires in one hour and can only be used once. If you did not request it, you can safely ignore this email.</Text></Section><Hr className="m-0 border-slate-200" /><Section className="px-8 py-5 text-center"><Text className="m-0 text-[12px] text-slate-400">{`© ${new Date().getFullYear()} ${siteConfig.name}. Security notifications are sent automatically.`}</Text></Section></Container></Body></Tailwind></Html>;
+}
+
+export const passwordResetTemplate = async (url: string) => renderEmailTemplate(<PasswordResetEmail url={url} />);

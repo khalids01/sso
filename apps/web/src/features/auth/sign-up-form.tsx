@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getApplicationAuthPath, getAuthCallbackURL } from "./auth-callback";
 import type { ApplicationAuthPolicy } from "./application-auth-shell";
+import { getRequestedApplicationSocialProvider } from "./application-social-provider";
 import { AuthMethodDivider } from "./auth-method-divider";
 import { PasswordSignUpForm } from "./password-sign-up-form";
 import {
@@ -49,6 +50,8 @@ export default function SignUpForm({
       method === "linkedin" ||
       method === "github",
   );
+  const requestedProvider = getRequestedApplicationSocialProvider(search);
+  const autoStartProvider = socialMethods.find((method) => method === requestedProvider);
   const signupAvailable =
     showMagicSignup || showPasswordSignup || socialMethods.length > 0;
   const magicLinkForm = useForm({
@@ -112,7 +115,11 @@ export default function SignUpForm({
         <div className="space-y-5">
           {socialMethods.length > 0 ? (
             <>
-              <SocialAuthButtons methods={socialMethods} requestSignUp />
+              <SocialAuthButtons
+                methods={socialMethods}
+                requestSignUp
+                autoStartProvider={autoStartProvider}
+              />
               {showMagicSignup || showPasswordSignup ? (
                 <AuthMethodDivider label="or sign up with email" />
               ) : null}

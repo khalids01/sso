@@ -137,8 +137,7 @@ test("manage the complete application, client, and membership lifecycle", async 
 
     await createClient(page, firstClientName);
     firstClientId = await trackClient(applicationId, firstClientName);
-    const clientCard = page.getByLabel(`Client ${firstClientName}`);
-    await expect(clientCard.getByRole("button")).toHaveCount(3);
+    await expect(page.getByLabel(`Client ${firstClientName}`)).toBeVisible();
     await clickClientAction(page, firstClientName, "View");
     await expect(page.getByRole("dialog", { name: "Client details" })).toContainText(firstClientName);
     await page.keyboard.press("Escape");

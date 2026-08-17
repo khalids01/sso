@@ -6,9 +6,11 @@ import type {
   SsoUser,
 } from "../index.js";
 import type {
+  CreateSsoServerOptions,
   SsoServer,
   StandaloneSsoBootstrap,
 } from "../server/index.js";
+import { createSsoServer } from "../server/index.js";
 
 export interface NextBetterAuthServerLike<TSession> {
   api: {
@@ -34,4 +36,33 @@ export async function getNextStandaloneSsoBootstrap<TUser extends SsoUser>(optio
     throw new Error("Next.js standalone SSO bootstrap requires an SsoServer");
   }
   return options.sso.getBootstrap(await headers());
+}
+
+/**
+ * Clerk-style Next.js App Router integration. Mount GET, POST, and OPTIONS from
+ * the returned handlers in `app/auth/[...sso]/route.ts`.
+ */
+export function createNextSso<TUser extends SsoUser = SsoUser>(
+  options: CreateSsoServerOptions<TUser>,
+) {
+  const sso = createSsoServer(options);
+  const handler = (request: Request) => sso.handle(request);
+
+  return {
+    sso,
+    handlers: {
+      GET: handler,
+      POST: handler,
+      OPTIONS: handler,
+    },
+    auth: async () => {
+      const session = await sso.getSession(await headers());
+      return {
+        isAuthenticated: Boolean(session),
+        userId: session?.user.id ?? null,
+        session,
+      };
+    },
+    getBootstrap: () => getNextStandaloneSsoBootstrap({ sso }),
+  };
 }

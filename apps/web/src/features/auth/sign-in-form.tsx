@@ -8,6 +8,7 @@ import { MagicLinkSignInForm } from "./magic-link-sign-in-form";
 import { PasswordSignInForm } from "./password-sign-in-form";
 import { getApplicationAuthPath } from "./auth-callback";
 import type { ApplicationAuthPolicy } from "./application-auth-shell";
+import { getRequestedApplicationSocialProvider } from "./application-social-provider";
 import {
   SocialAuthButtons,
   type SocialAuthMethod,
@@ -39,6 +40,8 @@ export default function SignInForm({
       method === "linkedin" ||
       method === "github",
   );
+  const requestedProvider = getRequestedApplicationSocialProvider(search);
+  const autoStartProvider = socialMethods.find((method) => method === requestedProvider);
   const showSignup = !applicationPolicy || applicationPolicy.signUpMethods.length > 0;
 
   return (
@@ -70,7 +73,7 @@ export default function SignInForm({
       <div className="space-y-6">
         {socialMethods.length > 0 ? (
           <>
-            <SocialAuthButtons methods={socialMethods} />
+            <SocialAuthButtons methods={socialMethods} autoStartProvider={autoStartProvider} />
             {(showPassword || showMagicLink) ? (
               <AuthMethodDivider label="or continue with email" />
             ) : null}

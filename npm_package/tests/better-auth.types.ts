@@ -1,7 +1,5 @@
-import { genericOAuth } from "better-auth/plugins";
 import { createAuthClient } from "better-auth/react";
-import { genericOAuthClient } from "better-auth/client/plugins";
-import { createSsoBetterAuthIntegration } from "../src/index.js";
+import { skycanvas, skycanvasClient } from "../src/better-auth/index.js";
 import { createSsoBetterAuthReact } from "../src/react/index.js";
 import type {
   SsoSession,
@@ -9,16 +7,22 @@ import type {
   VerifiedSsoIdentity,
 } from "../src/types/index.js";
 
-const skycanvas = createSsoBetterAuthIntegration({
-  clientId: "client_123",
-  baseUrl: "https://api-sso.skycanvasstudio.com",
+skycanvas({
+  publishableKey: "client_123",
+  ssoUrl: "https://api-sso.skycanvasstudio.com",
 });
 
-genericOAuth({ config: [skycanvas.provider] });
-
-const authClient = createAuthClient({ plugins: [genericOAuthClient()] });
+const authClient = createAuthClient({ plugins: [skycanvasClient()] });
 const reactIntegration = createSsoBetterAuthReact(authClient);
-const bootstrap = skycanvas.createBootstrap<typeof authClient.$Infer.Session>(null);
+const bootstrap = {
+  kind: "better-auth" as const,
+  config: {
+    providerId: "skycanvas" as const,
+    clientId: "client_123",
+    baseUrl: "https://api-sso.skycanvasstudio.com",
+  },
+  session: null as typeof authClient.$Infer.Session | null,
+};
 const providerProps: Parameters<typeof reactIntegration.SsoProvider>[0] = {
   bootstrap,
 };

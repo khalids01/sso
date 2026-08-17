@@ -3,6 +3,7 @@ export type {
   BetterAuthSsoActions,
   CreateSsoProviderOptions,
   SsoClientMetadata,
+  SsoAuthMethod,
   SsoEndpoints,
   SsoProvider,
   SsoBetterAuthBootstrap,
@@ -10,13 +11,18 @@ export type {
   SsoBetterAuthIntegrationOptions,
   SsoPublicConfig,
   SsoSession,
+  SsoProfileAccount,
+  SsoProfileAction,
+  SsoProfileSession,
   SsoTokenResponse,
   SsoUser,
+  SsoUserProfile,
 } from "../index.js";
 
 export type {
   SsoClient,
   SsoClientOptions,
+  BrowserSsoClientOptions,
   SsoLoginOptions,
   SsoLogoutOptions,
 } from "../client/index.js";
@@ -34,7 +40,10 @@ export type {
   StandaloneSsoBootstrap,
   StandaloneSsoClientConfig,
   VerifiedSsoAuthorization,
+  VerifiedSsoAccessToken,
   VerifiedSsoIdentity,
+  SsoAccessTokenVerifier,
+  VerifySsoAccessTokenOptions,
   VerifySsoIdTokenOptions,
 } from "../server/index.js";
 
@@ -46,19 +55,19 @@ export type {
   BetterAuthSsoProviderProps,
   BetterAuthSsoReact,
   SsoDisplayUser,
+  SsoAuthProps,
+  SsoAuthDialogProps,
+  SsoContextValue,
   SsoMenuItem,
   SsoProviderProps,
   SsoSignInButtonProps,
   SsoStatus,
   SsoUserMenuProps,
+  UserProfileProps,
 } from "../react/index.js";
 
-export type {
-  BetterAuthServerIntegration,
-  BetterAuthServerLike,
-} from "../tanstack-start/index.js";
-
 export type { NextBetterAuthServerLike } from "../next/index.js";
+export type { ElysiaSsoOptions } from "../elysia/index.js";
 
 export type {
   NodeHeaderValue,

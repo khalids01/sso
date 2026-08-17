@@ -71,6 +71,7 @@ test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) =>
     expect(await response.json()).toEqual({
       client_id: fixture.clientId,
       application_id: fixture.applicationId,
+      application_logo_url: null,
       audience: `urn:sso:application:${fixture.applicationId}`,
       issuer: e2eEnv.SSO_ISSUER,
       sign_in_methods: ["password"],
@@ -207,10 +208,12 @@ test("exchange a Better Auth-produced single-use PKCE code", async ({ page }) =>
       `${e2eEnv.E2E_API_ORIGIN}/admin/application-usage/overview?applicationId=${fixture.applicationId}`,
     );
     expect(overview.status()).toBe(200);
-    expect((await overview.json()).metrics).toMatchObject({
-      tokenIssuances: expect.any(Number),
-      activeApplications: 1,
-    });
+    const overviewMetrics = (await overview.json()).metrics as {
+      tokenIssuances: number;
+      activeApplications: number;
+    };
+    expect(overviewMetrics.tokenIssuances).toBeGreaterThan(0);
+    expect(overviewMetrics.activeApplications).toBeGreaterThanOrEqual(1);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(

@@ -37,6 +37,7 @@ describe("OAuth authorization-code token exchange", () => {
         applicationId: expect.any(String),
         membershipId: expect.any(String),
         authorizationVersion: 1,
+        sessionId: expect.any(String),
         hasPlatformPermissions: false,
       },
       idClaims: {
@@ -50,7 +51,8 @@ describe("OAuth authorization-code token exchange", () => {
       },
       refreshTokenPresent: false,
       resourceIndicator: 400,
-      concurrent: [200, 400],
+      concurrent: [200, 200],
+      afterConcurrent: 400,
       wrongVerifier: 400,
       afterWrongVerifier: 400,
       expired: 400,

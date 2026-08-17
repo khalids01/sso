@@ -1,17 +1,36 @@
-import type { SsoSession, SsoUser } from "../index.js";
+import type {
+  SsoAuthMethod,
+  SsoClientMetadata,
+  SsoProfileAction,
+  SsoSession,
+  SsoUser,
+  SsoUserProfile,
+} from "../index.js";
+import type { StandaloneSsoClientConfig } from "../server/index.js";
+import { openPopupShell } from "./popup-shell.js";
 
 export interface SsoClientOptions<TUser extends SsoUser = SsoUser> {
   baseUrl?: string;
   loginPath?: string;
+  configPath?: string;
+  passwordLoginPath?: string;
+  passwordSignupPath?: string;
+  magicLinkPath?: string;
   profilePath?: string;
+  userProfilePath?: string;
   logoutPath?: string;
+  oauthMode?: "redirect" | "popup";
   fetch?: typeof fetch;
   navigate?: (url: string) => void;
+  popupTimeoutMs?: number;
 }
 
 export interface SsoLoginOptions {
   returnTo?: string;
   forceLogin?: boolean;
+  mode?: "redirect" | "popup";
+  provider?: Extract<SsoAuthMethod, "google" | "facebook" | "linkedin" | "github">;
+  intent?: "signin" | "signup";
 }
 
 export interface SsoLogoutOptions {
@@ -21,38 +40,193 @@ export interface SsoLogoutOptions {
 
 export interface SsoClient<TUser extends SsoUser = SsoUser> {
   login: (returnToOrOptions?: string | SsoLoginOptions) => void;
+  signIn: (options?: SsoLoginOptions) => Promise<void>;
+  getConfig: () => Promise<{ client?: StandaloneSsoClientConfig; metadata: SsoClientMetadata }>;
+  signInWithPassword: (input: { email: string; password: string; returnTo?: string }) => Promise<SsoSession<TUser> | null>;
+  signUpWithPassword: (input: { name: string; email: string; password: string; returnTo?: string }) => Promise<{ session: SsoSession<TUser> | null; requiresEmailVerification: boolean }>;
+  sendMagicLink: (input: { intent?: "signin" | "signup"; name?: string; email: string; returnTo?: string }) => Promise<void>;
+  requestPasswordReset: (input: { email: string }) => Promise<void>;
   getSession: () => Promise<SsoSession<TUser> | null>;
+  getUserProfile: () => Promise<SsoUserProfile>;
+  updateUserProfile: (action: SsoProfileAction) => Promise<SsoUserProfile>;
+  getToken: () => Promise<string | null>;
   logout: (options?: SsoLogoutOptions) => Promise<void>;
 }
+
+export {
+  createBrowserSsoClient,
+  type BrowserSsoClientOptions,
+} from "./browser.js";
 
 export function createSsoClient<TUser extends SsoUser = SsoUser>(
   options: SsoClientOptions<TUser> = {},
 ): SsoClient<TUser> {
   const baseUrl = options.baseUrl;
   const loginPath = options.loginPath ?? "/auth/login";
+  const configPath = options.configPath ?? "/auth/config";
+  const passwordLoginPath = options.passwordLoginPath ?? "/auth/password/login";
+  const passwordSignupPath = options.passwordSignupPath ?? "/auth/password/signup";
+  const magicLinkPath = options.magicLinkPath ?? "/auth/magic-link";
+  const passwordResetPath = "/auth/password/request-reset";
   const profilePath = options.profilePath ?? "/auth/profile";
+  const userProfilePath = options.userProfilePath ?? "/auth/user-profile";
   const logoutPath = options.logoutPath ?? "/auth/logout";
+
+  const buildLoginTarget = (loginOptions: SsoLoginOptions) => {
+    const target = resolveUrl(loginPath, baseUrl);
+    target.searchParams.set("returnTo", loginOptions.returnTo ?? "/");
+    if (loginOptions.forceLogin) target.searchParams.set("forceLogin", "true");
+    if (loginOptions.provider) target.searchParams.set("provider", loginOptions.provider);
+    if (loginOptions.intent === "signup") target.searchParams.set("intent", "signup");
+    return target;
+  };
+
+  const signIn = async (loginOptions: SsoLoginOptions = {}) => {
+    const mode = loginOptions.mode ?? options.oauthMode ?? "redirect";
+    const target = buildLoginTarget(loginOptions);
+    if (mode === "popup") {
+      target.searchParams.set("popup", "true");
+      await popupSignIn(
+        baseUrl ? target.toString() : `${target.pathname}${target.search}`,
+        options.popupTimeoutMs,
+      );
+      return;
+    }
+    const navigate = options.navigate ?? defaultNavigate;
+    navigate(baseUrl ? target.toString() : `${target.pathname}${target.search}`);
+  };
+
+  const completeEmbeddedAuthorization = async (redirectUrl: string) => {
+    const callback = new URL(redirectUrl);
+    const expectedOrigin = baseUrl
+      ? new URL(baseUrl).origin
+      : typeof window === "undefined"
+        ? undefined
+        : window.location.origin;
+    if (expectedOrigin && callback.origin !== expectedOrigin) {
+      throw new Error("SSO embedded callback returned an unexpected origin");
+    }
+    const response = await getFetch(options.fetch)(callback.toString(), {
+      credentials: "include",
+      cache: "no-store",
+      redirect: "follow",
+    });
+    if (!response.ok) throw await responseError(response, "embedded callback");
+  };
+
+  const passwordRequest = async (path: string, input: Record<string, string>) => {
+    const response = await getFetch(options.fetch)(resolveRequestUrl(path, baseUrl), {
+      method: "POST",
+      credentials: "include",
+      headers: { accept: "application/json", "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const result = await response.json().catch(() => null) as {
+      redirectUrl?: string;
+      requiresEmailVerification?: boolean;
+      error?: string;
+      message?: string;
+    } | null;
+    if (!response.ok) {
+      throw new Error(result?.message ?? result?.error ?? `SSO authentication failed (${response.status})`);
+    }
+    if (result?.redirectUrl) await completeEmbeddedAuthorization(result.redirectUrl);
+    return result;
+  };
+
+  const getSession = async () => {
+    const response = await getFetch(options.fetch)(resolveRequestUrl(profilePath, baseUrl), {
+      credentials: "include",
+      cache: "no-store",
+      headers: { accept: "application/json" },
+    });
+    if (response.status === 401) return null;
+    if (!response.ok) throw await responseError(response, "session request");
+    return response.json() as Promise<SsoSession<TUser>>;
+  };
+
+  const profileRequest = async (action?: SsoProfileAction) => {
+    const response = await getFetch(options.fetch)(resolveRequestUrl(userProfilePath, baseUrl), {
+      method: action ? "POST" : "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: {
+        accept: "application/json",
+        ...(action ? { "content-type": "application/json" } : {}),
+      },
+      ...(action ? { body: JSON.stringify(action) } : {}),
+    });
+    if (!response.ok) throw await responseError(response, "profile request");
+    return response.json() as Promise<SsoUserProfile>;
+  };
 
   return {
     login(returnToOrOptions: string | SsoLoginOptions = "/") {
       const loginOptions = typeof returnToOrOptions === "string"
         ? { returnTo: returnToOrOptions }
         : returnToOrOptions;
-      const target = resolveUrl(loginPath, baseUrl);
-      target.searchParams.set("returnTo", loginOptions.returnTo ?? "/");
-      if (loginOptions.forceLogin) target.searchParams.set("forceLogin", "true");
-      const navigate = options.navigate ?? defaultNavigate;
-      navigate(baseUrl ? target.toString() : `${target.pathname}${target.search}`);
+      void signIn(loginOptions);
     },
-    async getSession() {
-      const response = await getFetch(options.fetch)(resolveRequestUrl(profilePath, baseUrl), {
+    signIn,
+    async getConfig() {
+      const response = await getFetch(options.fetch)(resolveRequestUrl(configPath, baseUrl), {
         credentials: "include",
         cache: "no-store",
         headers: { accept: "application/json" },
       });
-      if (response.status === 401) return null;
-      if (!response.ok) throw await responseError(response, "session request");
-      return response.json() as Promise<SsoSession<TUser>>;
+      if (!response.ok) throw await responseError(response, "configuration request");
+      return response.json() as Promise<{ client?: StandaloneSsoClientConfig; metadata: SsoClientMetadata }>;
+    },
+    async signInWithPassword(input) {
+      const result = await passwordRequest(passwordLoginPath, {
+        email: input.email,
+        password: input.password,
+        returnTo: input.returnTo ?? "/",
+      });
+      if (!result?.redirectUrl) throw new Error("SSO password sign-in did not complete");
+      return getSession();
+    },
+    async signUpWithPassword(input) {
+      const result = await passwordRequest(passwordSignupPath, {
+        name: input.name,
+        email: input.email,
+        password: input.password,
+        returnTo: input.returnTo ?? "/",
+      });
+      if (result?.requiresEmailVerification) {
+        return { session: null, requiresEmailVerification: true };
+      }
+      if (!result?.redirectUrl) throw new Error("SSO password signup did not complete");
+      return { session: await getSession(), requiresEmailVerification: false };
+    },
+    async sendMagicLink(input) {
+      const response = await getFetch(options.fetch)(resolveRequestUrl(magicLinkPath, baseUrl), {
+        method: "POST",
+        credentials: "include",
+        headers: { accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({
+          intent: input.intent ?? "signin",
+          email: input.email,
+          returnTo: input.returnTo ?? "/",
+          ...(input.name ? { name: input.name } : {}),
+        }),
+      });
+      if (!response.ok) throw await responseError(response, "magic-link request");
+    },
+    async requestPasswordReset(input) {
+      const response = await getFetch(options.fetch)(resolveRequestUrl(passwordResetPath, baseUrl), {
+        method: "POST",
+        credentials: "include",
+        headers: { accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({ email: input.email }),
+      });
+      if (!response.ok) throw await responseError(response, "password-reset request");
+    },
+    getSession,
+    getUserProfile: () => profileRequest(),
+    updateUserProfile: (action) => profileRequest(action),
+    async getToken() {
+      return null;
     },
     async logout(logoutOptions = {}) {
       if (logoutOptions.global !== false) {
@@ -71,6 +245,54 @@ export function createSsoClient<TUser extends SsoUser = SsoUser>(
       if (!response.ok) throw await responseError(response, "logout");
     },
   };
+}
+
+async function popupSignIn(url: string, timeoutMs = 10 * 60_000): Promise<void> {
+  if (typeof window === "undefined") {
+    throw new Error("SSO popup sign-in requires a browser");
+  }
+  const popupUrl = new URL(url, window.location.href);
+  const expectedMessageOrigin = popupUrl.origin;
+  const popup = openPopupShell();
+  if (!popup) {
+    window.location.assign(url.replace(/([?&])popup=true(&|$)/, "$1").replace(/[?&]$/, ""));
+    return;
+  }
+  await new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => finish(new Error("SSO popup timed out")), timeoutMs);
+    const poll = window.setInterval(() => {
+      if (popup.closed) finish(new Error("SSO popup was closed"));
+    }, 400);
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== expectedMessageOrigin) return;
+      if (event.source !== popup) return;
+      if (event.data?.type !== "skycanvas:sso:complete") return;
+      if (event.data?.error) {
+        finish(new Error(
+          typeof event.data.message === "string"
+            ? event.data.message
+            : "SSO authentication failed",
+        ));
+        return;
+      }
+      finish();
+    };
+    const finish = (error?: Error) => {
+      window.clearTimeout(timeout);
+      window.clearInterval(poll);
+      window.removeEventListener("message", onMessage);
+      if (!popup.closed) popup.close();
+      error ? reject(error) : resolve();
+    };
+    window.addEventListener("message", onMessage);
+    window.setTimeout(() => {
+      try {
+        popup.location.replace(popupUrl.toString());
+      } catch {
+        finish(new Error("SSO could not navigate the sign-in popup"));
+      }
+    }, 0);
+  });
 }
 
 function defaultNavigate(url: string): void {

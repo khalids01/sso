@@ -1,8 +1,9 @@
-import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
 import { Fragment, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 
+import { completeAuthInteraction } from "./auth-completion.js";
 import { useOptionalSso } from "./index.js";
+import { UserProfile } from "./user-profile.js";
 
 type AsyncAction = () => unknown | Promise<unknown>;
 
@@ -11,6 +12,7 @@ export interface SsoSignInButtonProps
   callbackURL?: string;
   onSignIn?: AsyncAction;
   loadingLabel?: string;
+  onAuthError?: (error: Error) => void;
 }
 
 export interface SsoMenuItem {
@@ -43,6 +45,7 @@ export function SsoSignInButton({
   callbackURL = "/",
   onSignIn,
   loadingLabel = "Signing in…",
+  onAuthError,
   children = "Sign in",
   className,
   disabled,
@@ -54,7 +57,18 @@ export function SsoSignInButton({
   const signIn = async () => {
     setLoading(true);
     try {
-      await (onSignIn ? onSignIn() : sso?.login(callbackURL));
+      if (onSignIn) {
+        await onSignIn();
+      } else if (sso) {
+        completeAuthInteraction(
+          await sso.signIn({ returnTo: callbackURL }),
+          callbackURL,
+        );
+      } else {
+        throw new Error("SsoSignInButton requires SkyCanvasProvider or onSignIn");
+      }
+    } catch (cause) {
+      onAuthError?.(cause instanceof Error ? cause : new Error("SSO sign-in failed"));
     } finally {
       setLoading(false);
     }
@@ -106,7 +120,7 @@ export function SsoUserMenu({
     returnTo: logoutReturnTo,
   }));
   return (
-    <Dialog.Root open={profileOpen} onOpenChange={setProfileOpen}>
+    <Fragment>
       <Menu.Root>
         <Menu.Trigger
           render={
@@ -170,38 +184,15 @@ export function SsoUserMenu({
           </Menu.Positioner>
         </Menu.Portal>
       </Menu.Root>
-
-      <Dialog.Portal>
-        <Dialog.Backdrop className="sso-dialog-overlay" />
-        <Dialog.Popup className="sso-dialog-content">
-          <div className="sso-dialog-heading">
-            <div>
-              <Dialog.Title className="sso-dialog-title">Profile</Dialog.Title>
-              <Dialog.Description className="sso-dialog-description">
-                Your account information is managed by SkyCanvas SSO.
-              </Dialog.Description>
-            </div>
-            <Dialog.Close className="sso-icon-button" aria-label="Close profile">
-              <CloseIcon />
-            </Dialog.Close>
-          </div>
-          <div className="sso-profile-summary">
-            <Avatar user={user} large />
-            <div>
-              <strong>{user.name}</strong>
-              <span>{user.email}</span>
-            </div>
-          </div>
-          <dl className="sso-profile-fields">
-            <ProfileField label="Name" value={user.name} />
-            <ProfileField label="Email" value={user.email} />
-            {typeof user.emailVerified === "boolean" ? (
-              <ProfileField label="Email status" value={user.emailVerified ? "Verified" : "Not verified"} />
-            ) : null}
-          </dl>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      {sso ? (
+        <UserProfile
+          mode="dialog"
+          label={null}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+        />
+      ) : null}
+    </Fragment>
   );
 }
 
@@ -212,10 +203,6 @@ function Avatar({ user, large = false }: { user: SsoDisplayUser; large?: boolean
       {user.image ? <img src={user.image} alt="" referrerPolicy="no-referrer" /> : initial}
     </span>
   );
-}
-
-function ProfileField({ label, value }: { label: string; value: string }) {
-  return <div><dt>{label}</dt><dd>{value}</dd></div>;
 }
 
 function joinClasses(...values: Array<string | undefined>) {
@@ -232,8 +219,4 @@ function ProfileIcon() {
 
 function LogoutIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /></svg>;
-}
-
-function CloseIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>;
 }

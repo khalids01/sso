@@ -6,15 +6,22 @@ import {
   CheckCircle2,
   ChevronRight,
   Clipboard,
+  Clock3,
   Code2,
   ExternalLink,
   KeyRound,
   Menu,
   Server,
   ShieldCheck,
+  TriangleAlert,
   X,
 } from "lucide-react";
-import { securityChecklist, type CodeSample } from "./integration-guide-content";
+import {
+  integrationComparison,
+  securityChecklist,
+  troubleshootingItems,
+  type CodeSample,
+} from "./integration-guide-content";
 import { CopyCodeBlock } from "./copy-code-block";
 import ssoAgentGuide from "./sso-agent-guide.md?raw";
 import { packageRecipes, type GuideMode } from "./package-guide-content";
@@ -23,16 +30,50 @@ const headingClass =
   "text-[clamp(1.65rem,3vw,2rem)] font-semibold leading-tight tracking-[-0.025em] text-[#f4f6ff]";
 const leadClass = "mt-3 max-w-2xl text-[0.95rem] leading-7 text-[#7f849c]";
 
+const guideOptions: Array<{
+  value: GuideMode;
+  label: string;
+  description: string;
+  badge?: string;
+}> = [
+  { value: "manual", label: "Next.js or TanStack Start", description: "New full-stack TypeScript app", badge: "Recommended" },
+  { value: "react", label: "React / Vite SPA", description: "Browser app with no auth server" },
+  { value: "better", label: "Existing Better Auth", description: "Keep your current users and sessions" },
+  { value: "other", label: "Another auth library", description: "Connect through generic OAuth/OIDC" },
+  { value: "language", label: "Non-JavaScript backend", description: "Use your language's OIDC library" },
+];
+
+const guideMeta: Record<GuideMode, { time: string; values: string; result: string }> = {
+  manual: { time: "10–15 minutes", values: "3 server values", result: "First-party HttpOnly session" },
+  react: { time: "5–10 minutes", values: "2 public values", result: "Short-lived app token" },
+  better: { time: "About 5 minutes", values: "2 SSO values", result: "Existing Better Auth session" },
+  other: { time: "10–20 minutes", values: "Client ID + SSO URL", result: "Existing library session" },
+  language: { time: "20–40 minutes", values: "OIDC configuration", result: "Backend-owned session" },
+};
+
+function visibleSamples(mode: GuideMode, samples: CodeSample[]) {
+  if (mode !== "better") return samples;
+  const visibleTitles = new Set([
+    "Install",
+    "Configure the server environment",
+    "Add the provider to Better Auth",
+    "Create the browser client",
+    "Register the callback URL",
+  ]);
+  return samples.filter((sample) => visibleTitles.has(sample.title ?? sample.filename));
+}
+
 export function IntegrationGuide() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<GuideMode>("better");
+  const [authMode, setAuthMode] = useState<GuideMode>("manual");
   const activeRecipe = packageRecipes[authMode];
+  const activeSamples = visibleSamples(authMode, activeRecipe.samples);
   const navigation = [
     {
       label: "Selected guide",
       items: [
         { label: "Overview", href: "#overview" },
-        ...activeRecipe.samples.map((sample, index) => ({
+        ...activeSamples.map((sample, index) => ({
           label: sample.title ?? sample.filename,
           href: `#guide-file-${index + 1}`,
         })),
@@ -45,6 +86,9 @@ export function IntegrationGuide() {
     {
       label: "Reference",
       items: [
+        { label: "Choose an integration", href: "#choose-integration" },
+        { label: "SDK reference", href: "#sdk-reference" },
+        { label: "Troubleshooting", href: "#troubleshooting" },
         { label: "Security checklist", href: "#security" },
       ],
     },
@@ -85,7 +129,7 @@ export function IntegrationGuide() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[230px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)_290px]">
+      <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[230px_minmax(0,1fr)]">
         <DocsSidebar
           navigation={navigation}
           open={mobileNavOpen}
@@ -93,11 +137,8 @@ export function IntegrationGuide() {
         />
 
         <main className="min-w-0 px-5 pb-24 pt-12 sm:px-8 lg:px-10 2xl:px-14">
-          <div className="mx-auto mb-10 max-w-4xl xl:hidden">
-            <GuidePicker {...pickerProps} compact />
-          </div>
-          <article className="mx-auto max-w-4xl">
-            <section id="overview" className="scroll-mt-28 border-b border-[#292e42] pb-14">
+          <article className="mx-auto flex max-w-5xl flex-col">
+            <section id="overview" className="order-1 scroll-mt-28 border-b border-[#292e42] pb-14">
               <div className="mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#7aa2f7]">
                 <BookOpen className="size-4" /> Selected integration guide
               </div>
@@ -105,23 +146,37 @@ export function IntegrationGuide() {
                 Add SkyCanvas SSO to your application
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-[#a9b1d6] sm:text-lg sm:leading-8">
-                {activeRecipe.description} Follow the selected steps from top to bottom.
+                Pick the app you are integrating. The page will show only the setup that applies to it.
               </p>
+
+              <div className="mt-8">
+                <GuidePicker {...pickerProps} compact />
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <QuickFact icon={Clock3} label="Typical setup" value={guideMeta[authMode].time} />
+                <QuickFact icon={KeyRound} label="Configuration" value={guideMeta[authMode].values} />
+                <QuickFact icon={ShieldCheck} label="You get" value={guideMeta[authMode].result} />
+              </div>
 
               <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-[#292e42] bg-[#292e42] sm:grid-cols-3">
                 <FlowStep number="01" icon={Code2} title="Install" text="Add the SSO package" />
-                <FlowStep number="02" icon={Server} title="Connect server" text="Configure and mount auth" />
+                <FlowStep number="02" icon={Server} title={authMode === "react" ? "Connect SSO" : "Connect server"} text={authMode === "react" ? "Add the provider" : "Configure and mount auth"} />
                 <FlowStep number="03" icon={KeyRound} title="Use session" text="Sign in, protect, sign out" />
               </div>
 
               <Callout>
-                {authMode === "better" ? (
+                {authMode === "react" ? (
+                  <span>
+                    Register the exact <InlineCode>/auth/callback</InlineCode> URL and app origin. The browser uses
+                    PKCE and a publishable client key; there is no app auth server or client secret.
+                  </span>
+                ) : authMode === "better" ? (
                   <span>
                     Better Auth generates <InlineCode>/api/auth/oauth2/callback/skycanvas</InlineCode>. Register that
-                    exact path in SkyCanvas. <InlineCode>/api/auth/callback</InlineCode> is wrong for this setup, and
-                    you should not add <InlineCode>SSO_CALLBACK_URL</InlineCode>. This guide mounts the package
-                    <InlineCode>SsoProvider</InlineCode> with serializable SSR bootstrap data for TanStack Start and
-                    Next.js, without duplicate browser environment variables.
+                    exact path in SkyCanvas. Keep your existing Better Auth route, session hooks, and provider. You
+                    only add <InlineCode>skycanvas()</InlineCode> on the server and
+                    <InlineCode>skycanvasClient()</InlineCode> in the browser client.
                   </span>
                 ) : authMode === "manual" ? (
                   <span>
@@ -143,15 +198,52 @@ export function IntegrationGuide() {
               </Callout>
             </section>
 
-            <section id="selected-guide" className="scroll-mt-24 border-b border-[#292e42] py-14">
+            <section id="choose-integration" className="order-3 scroll-mt-24 border-b border-[#292e42] py-14">
+              <SectionEyebrow>Architecture</SectionEyebrow>
+              <h2 className={headingClass}>Choose who owns the application session</h2>
+              <p className={leadClass}>
+                SkyCanvas always owns central identity and upstream OAuth callbacks. Your integration choice decides
+                how the consuming application proves authentication on later requests.
+              </p>
+              <div className="mt-8 overflow-x-auto rounded-xl border border-[#292e42]">
+                <table className="min-w-[760px] w-full border-collapse text-left text-sm">
+                  <thead className="bg-[#161822] text-xs text-[#7f849c]">
+                    <tr>
+                      <TableHead>Integration</TableHead>
+                      <TableHead>Best for</TableHead>
+                      <TableHead>Session owner</TableHead>
+                      <TableHead>App credential</TableHead>
+                      <TableHead>New auth server?</TableHead>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {integrationComparison.map((row) => (
+                      <tr key={row.mode} className="border-t border-[#292e42] bg-[#111522] align-top">
+                        <TableCell strong>{row.mode}</TableCell>
+                        <TableCell>{row.chooseWhen}</TableCell>
+                        <TableCell>{row.sessionOwner}</TableCell>
+                        <TableCell>{row.credential}</TableCell>
+                        <TableCell>{row.appAuthServer}</TableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section id="selected-guide" className="order-2 scroll-mt-24 border-b border-[#292e42] py-14">
               <SectionEyebrow>Selected guide</SectionEyebrow>
               <h2 className={headingClass}>{activeRecipe.label}</h2>
-              <p className={leadClass}>Complete these steps in order and keep all OAuth tokens on the server.</p>
+              <p className={leadClass}>
+                {authMode === "react"
+                  ? "Complete these steps in order. The SDK uses short-lived, application-scoped browser tokens; your API must verify them before returning protected data."
+                  : "Complete these steps in order. OAuth tokens and session secrets stay on the server for this integration."}
+              </p>
 
               {authMode === "better" ? <BetterAuthPrerequisites /> : null}
 
               <ol className="mt-9 space-y-10">
-                {activeRecipe.samples.map((sample, index) => (
+                {activeSamples.map((sample, index) => (
                   <GuideStep
                     key={`${sample.title ?? sample.filename}-${sample.filename}`}
                     id={`guide-file-${index + 1}`}
@@ -165,7 +257,83 @@ export function IntegrationGuide() {
               </ol>
             </section>
 
-            <section id="agent-guide" className="scroll-mt-24 border-b border-[#292e42] py-14">
+            <section id="sdk-reference" className="order-4 scroll-mt-24 border-b border-[#292e42] py-14">
+              <SectionEyebrow>React SDK</SectionEyebrow>
+              <h2 className={headingClass}>Components, hooks, and ready-made account UI</h2>
+              <p className={leadClass}>
+                These APIs are available below <InlineCode>SkyCanvasProvider</InlineCode> in standalone integrations.
+                Better Auth integrations keep using Better Auth's own session hooks and components.
+              </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                {[
+                  ["<SkyCanvasProvider />", "Connect a React-only app with its publishable key and SSO URL. Full-stack apps instead give SsoProvider its server bootstrap."],
+                  ["<SignIn /> / <SignUp />", "Ready-made embedded password, magic-link, and OAuth forms. Only OAuth buttons open provider popups."],
+                  ["<SsoAuth /> / <SsoAuthDialog />", "The configurable auth form and its dialog wrapper when you need a custom sign-in or sign-up entry point."],
+                  ["<SsoSignInButton />", "A small ready-made sign-in button for a header, hero, or any place a full auth form does not fit."],
+                  ["<SignedIn /> / <SignedOut />", "Conditionally render UI after the provider has resolved authentication state."],
+                  ["useAuth()", "Read isLoaded, isSignedIn, userId, session, getToken, and signOut."],
+                  ["useUser()", "Read the verified SkyCanvas user and loading/authentication state."],
+                  ["<UserProfile />", "One complete profile component with dialog and content modes, read-only OAuth avatar, email capability warnings, connected accounts, and active sessions."],
+                  ["<SsoUserMenu />", "Ready-made account menu that opens UserProfile in dialog mode, supports custom links, and handles logout."],
+                  ["createSsoAccessTokenVerifier()", "Cache public metadata/JWKS and verify React-only Bearer tokens in an application API."],
+                ].map(([name, description]) => (
+                  <div key={name} className="rounded-xl border border-[#292e42] bg-[#111522] p-4">
+                    <code className="font-mono text-sm text-[#7dcfff]">{name}</code>
+                    <p className="mt-2 text-sm leading-6 text-[#a9b1d6]">{description}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 rounded-xl border border-[#3b4261] bg-[#111522] p-5">
+                <h3 className="text-base font-semibold text-[#f4f6ff]">Add a complete account menu and profile</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a9b1d6]">
+                  <InlineCode>UserProfile</InlineCode> is the single profile implementation. SsoUserMenu opens it
+                  in dialog mode, while a profile route can render the same component in content mode. OAuth images
+                  stay read-only, account deletion is intentionally absent, and email actions clearly explain when
+                  the application needs a connected mail provider.
+                </p>
+                <div className="mt-4">
+                  <CopyCodeBlock
+                    sample={{
+                      filename: "src/components/account-menu.tsx",
+                      code: `import {
+  SignIn,
+  SignedIn,
+  SignedOut,
+  SsoUserMenu,
+  UserProfile,
+} from "@skycanvasstudio/sso/react"
+
+export function AccountMenu() {
+  return (
+    <>
+      <SignedOut>
+        <SignIn returnTo="/dashboard" />
+      </SignedOut>
+      <SignedIn>
+        <SsoUserMenu
+          items={[{ label: "Dashboard", href: "/dashboard" }]}
+          logoutReturnTo="/"
+        />
+        <UserProfile mode="content" />
+      </SignedIn>
+    </>
+  )
+}
+
+// Or use <UserProfile mode="dialog" label={<ProfileIcon />} />.
+// The label accepts text, an icon, or both.
+// additionalContent can add one minimal app-specific section.`,
+                    }}
+                  />
+                </div>
+              </div>
+              <Callout>
+                <InlineCode>SignedIn</InlineCode> protects presentation, not data. Always enforce authentication again
+                in the server loader, route handler, or API that returns protected information.
+              </Callout>
+            </section>
+
+            <section id="agent-guide" className="order-5 scroll-mt-24 border-b border-[#292e42] py-14">
               <SectionEyebrow>Agent handoff</SectionEyebrow>
               <h2 className={headingClass}>Give any coding agent the complete context</h2>
               <p className={leadClass}>
@@ -182,7 +350,24 @@ export function IntegrationGuide() {
               </div>
             </section>
 
-            <section id="security" className="scroll-mt-24 py-14">
+            <section id="troubleshooting" className="order-6 scroll-mt-24 border-b border-[#292e42] py-14">
+              <SectionEyebrow>Common problems</SectionEyebrow>
+              <h2 className={headingClass}>Troubleshooting</h2>
+              <div className="mt-7 space-y-3">
+                {troubleshootingItems.map((item) => (
+                  <details key={item.problem} className="group rounded-xl border border-[#292e42] bg-[#111522] p-4">
+                    <summary className="flex cursor-pointer list-none items-center gap-3 text-sm font-medium text-[#f4f6ff]">
+                      <TriangleAlert className="size-4 shrink-0 text-[#e0af68]" />
+                      {item.problem}
+                      <ChevronRight className="ml-auto size-4 transition group-open:rotate-90" />
+                    </summary>
+                    <p className="ml-7 mt-3 text-sm leading-6 text-[#a9b1d6]">{item.fix}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+
+            <section id="security" className="order-7 scroll-mt-24 py-14">
               <SectionEyebrow>Before production</SectionEyebrow>
               <h2 className={headingClass}>Security checklist</h2>
               <ul className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -206,14 +391,17 @@ export function IntegrationGuide() {
           </article>
         </main>
 
-        <aside className="hidden border-l border-[#292e42] px-5 py-8 xl:block">
-          <div className="sticky top-24">
-            <GuidePicker {...pickerProps} />
-          </div>
-        </aside>
       </div>
     </div>
   );
+}
+
+function TableHead({ children }: { children: ReactNode }) {
+  return <th className="px-4 py-3 font-medium">{children}</th>;
+}
+
+function TableCell({ children, strong = false }: { children: ReactNode; strong?: boolean }) {
+  return <td className={`px-4 py-4 leading-6 ${strong ? "font-medium text-[#f4f6ff]" : "text-[#a9b1d6]"}`}>{children}</td>;
 }
 
 function BetterAuthPrerequisites() {
@@ -278,24 +466,39 @@ function GuidePicker({
         </span>
         <div>
           <h2 id={titleId} className="text-sm font-semibold text-[#f4f6ff]">
-            Choose your auth setup
+            What kind of app are you adding SSO to?
           </h2>
-          <p className="mt-1 text-xs leading-5 text-[#7f849c]">The server framework does not change the SSO flow.</p>
+          <p className="mt-1 text-xs leading-5 text-[#7f849c]">Choose the closest match. You can switch without losing anything.</p>
         </div>
       </div>
 
-      <div className={`mt-5 ${compact ? "grid gap-5 sm:grid-cols-2" : "space-y-5"}`}>
-        <PickerGroup
-          label="Current authentication"
-          value={authMode}
-          onChange={setAuthMode}
-          options={[
-            ["better", "Existing Better Auth"],
-            ["other", "Another auth library"],
-            ["manual", "No auth library"],
-            ["language", "Non-JavaScript backend"],
-          ]}
-        />
+      <div className={`mt-5 grid gap-2 ${compact ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
+        {guideOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={authMode === option.value}
+            onClick={() => setAuthMode(option.value)}
+            className={`relative min-h-24 rounded-xl border p-3 text-left transition ${
+              authMode === option.value
+                ? "border-[#7aa2f7] bg-[#7aa2f7]/10 shadow-[0_0_0_1px_rgba(122,162,247,0.2)]"
+                : "border-[#292e42] bg-[#161822] hover:border-[#3b4261] hover:bg-[#1a1f2e]"
+            }`}
+          >
+            <span className="flex items-center justify-between gap-2">
+              <span className={`text-sm font-semibold ${authMode === option.value ? "text-[#f4f6ff]" : "text-[#c0caf5]"}`}>
+                {option.label}
+              </span>
+              {authMode === option.value ? <Check className="size-4 shrink-0 text-[#9ece6a]" /> : null}
+            </span>
+            <span className="mt-2 block text-xs leading-5 text-[#7f849c]">{option.description}</span>
+            {option.badge ? (
+              <span className="mt-3 inline-flex rounded-full bg-[#9ece6a]/10 px-2 py-1 text-[10px] font-semibold text-[#9ece6a]">
+                {option.badge}
+              </span>
+            ) : null}
+          </button>
+        ))}
       </div>
 
       <div className="mt-5 rounded-lg border border-[#3b4261] bg-[#0b0f19] p-3">
@@ -305,48 +508,10 @@ function GuidePicker({
         </p>
       </div>
 
-      <a
-        href="#selected-guide"
-        className="mt-4 flex items-center justify-between rounded-lg bg-[#7aa2f7] px-3 py-2.5 text-xs font-semibold text-[#0b0f19] transition hover:bg-[#8db0ff]"
-      >
-        View this guide <ArrowRight className="size-3.5" />
+      <a href="#selected-guide" className="mt-4 flex items-center justify-between rounded-lg bg-[#7aa2f7] px-3 py-2.5 text-xs font-semibold text-[#0b0f19] transition hover:bg-[#8db0ff]">
+        Start this guide <ArrowRight className="size-3.5" />
       </a>
     </section>
-  );
-}
-
-function PickerGroup<T extends string>({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: T;
-  onChange: (value: T) => void;
-  options: readonly (readonly [T, string])[];
-}) {
-  return (
-    <fieldset>
-      <legend className="mb-2 text-[11px] font-semibold text-[#a9b1d6]">{label}</legend>
-      <div className="grid gap-1.5">
-        {options.map(([optionValue, optionLabel]) => (
-          <button
-            key={optionValue}
-            type="button"
-            aria-pressed={value === optionValue}
-            onClick={() => onChange(optionValue)}
-            className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
-              value === optionValue
-                ? "border-[#7aa2f7]/60 bg-[#7aa2f7]/10 text-[#f4f6ff]"
-                : "border-[#292e42] bg-[#161822] text-[#7f849c] hover:border-[#3b4261] hover:text-[#c0caf5]"
-            }`}
-          >
-            {optionLabel}
-          </button>
-        ))}
-      </div>
-    </fieldset>
   );
 }
 
@@ -417,6 +582,28 @@ function FlowStep({
       </div>
       <p className="mt-5 text-sm font-semibold text-[#f4f6ff]">{title}</p>
       <p className="mt-1 text-xs text-[#7f849c]">{text}</p>
+    </div>
+  );
+}
+
+function QuickFact({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Code2;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[#292e42] bg-[#111522] p-3.5">
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#7aa2f7]/10 text-[#7aa2f7]">
+        <Icon className="size-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#565f89]">{label}</span>
+        <span className="mt-1 block truncate text-xs font-medium text-[#c0caf5]">{value}</span>
+      </span>
     </div>
   );
 }

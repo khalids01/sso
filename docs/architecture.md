@@ -6,7 +6,11 @@ SSO is a Bun/Turborepo TypeScript monorepo.
 
 - `apps/web`: TanStack Start frontend for public pages, protected user pages, onboarding, and admin.
 - `apps/server`: Elysia API server for auth helpers, session context, admin modules, rate limits, application usage, notifications, feedback, Polar, and invitations.
-- `apps/sso-demo`: TanStack Start reference relying party for the public-client OAuth contract and deterministic password-auth browser validation.
+- `apps/sso-demo`: canonical TanStack Start relying party for popup and embedded package authentication.
+- `apps/sso-demo-elysia`: split React frontend and Elysia API reference using trusted-origin CORS.
+- `apps/sso-demo-next`: Next.js App Router reference with server bootstrap and route guards.
+- External React-only clients can use the package's browser public-client mode
+  without deploying an application auth bridge.
 - `packages/auth`: Better Auth configuration, custom session payload, magic-link auth, Polar integration, and session types.
 - `packages/db`: Prisma schema, generated client, RBAC data access, session revocation, and seed helpers.
 - `packages/rbac`: permission catalog, role definitions, role-permission defaults, and permission checks.
@@ -89,13 +93,26 @@ receive only `code` and `state`; tokens do not pass through browser URLs or the
 web frontend. Userinfo, introspection, revocation, logout, discovery,
 registration, and provider client-management endpoints remain deferred.
 
-The `sso-demo` reference client keeps PKCE state and nonce in an encrypted,
+The reference clients keep PKCE state and nonce in an encrypted,
 short-lived HttpOnly cookie, performs authorization-code exchange on its server,
 and verifies both tokens against SSO JWKS before creating an encrypted local
 session. OAuth tokens are not exposed to React, browser storage, or callback
 URLs. The reference session follows the ten-minute issued-token lifetime and
-implements application-local sign-out; global logout and durable application
-session storage remain outside the initial protocol.
+supports both application-local and global sign-out.
+
+React-only clients are a deliberate second session model. `<SignIn />` fetches
+the application's public auth policy and renders enabled password, magic-link,
+and social methods inside the consumer app. Password and magic-link submissions
+go directly to origin-bound central SDK endpoints; only a selected social
+provider opens the central authorization flow in a popup or redirect. Every
+method returns an authorization code bound to browser-generated PKCE. The SDK
+exchanges it at the SSO-owned token endpoint, verifies both tokens against JWKS,
+and exposes the application-audienced access token through
+`useAuth().getToken()`. The app's API verifies that token locally. Tokens default
+to memory plus `sessionStorage` for reload continuity and never use a client
+secret. This mode cannot provide an app-domain `HttpOnly` cookie because an
+unrelated SSO origin cannot set one; Next.js, TanStack Start, and generic server
+adapters remain the preferred mode when a first-party cookie is required.
 
 OAuth requests use dedicated `/application/login` and `/application/signup`
 pages. They share the platform's underlying accounts and sessions but do not

@@ -570,7 +570,7 @@ function ConnectionDialog(props: {
                 type={showSecret ? "text" : "password"}
                 autoComplete="new-password"
                 placeholder={
-                  props.connection ? "Current credential is hidden" : undefined
+                  props.connection ? "••••••••••••" : undefined
                 }
                 {...form.register("secret", {
                   validate: (value) =>

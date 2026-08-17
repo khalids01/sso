@@ -198,7 +198,9 @@ export class EmailConnectionsService {
       if (!connection.smtpHost || !connection.smtpPort) throw new EmailConnectionsPolicyError("SMTP configuration is incomplete");
       await nodemailer.createTransport({
         host: connection.smtpHost, port: connection.smtpPort, secure: connection.smtpSecure ?? false,
-        auth: connection.smtpUsername ? { user: connection.smtpUsername, pass: secret } : undefined,
+        // The username is optional because the sender address is the usual
+        // SMTP login. An explicit username still takes precedence.
+        auth: { user: connection.smtpUsername || connection.fromAddress, pass: secret },
       }).sendMail({ from, to, subject: "Your SSO email connection is ready", html });
     }
     return { success: true };

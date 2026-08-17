@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthorizeRouteImport } from './routes/authorize'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -46,6 +47,11 @@ import { Route as AdminApplicationsApplicationIdRevocationRouteImport } from './
 import { Route as AdminApplicationsApplicationIdMembersRouteImport } from './routes/admin/applications_/$applicationId/members'
 import { Route as AdminApplicationsApplicationIdClientsRouteImport } from './routes/admin/applications_/$applicationId/clients'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/authorize': typeof AuthorizeRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/account': typeof ProtectedAccountRoute
@@ -271,6 +278,7 @@ export interface FileRoutesByTo {
   '/accept-invitation': typeof AcceptInvitationRoute
   '/authorize': typeof AuthorizeRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/account': typeof ProtectedAccountRoute
@@ -309,6 +317,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/authorize': typeof AuthorizeRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
   '/_protected/account': typeof ProtectedAccountRoute
@@ -349,6 +358,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/authorize'
     | '/onboarding'
+    | '/reset-password'
     | '/login'
     | '/signup'
     | '/account'
@@ -385,6 +395,7 @@ export interface FileRouteTypes {
     | '/accept-invitation'
     | '/authorize'
     | '/onboarding'
+    | '/reset-password'
     | '/login'
     | '/signup'
     | '/account'
@@ -422,6 +433,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/authorize'
     | '/onboarding'
+    | '/reset-password'
     | '/_auth/login'
     | '/_auth/signup'
     | '/_protected/account'
@@ -461,6 +473,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthorizeRoute: typeof AuthorizeRoute
   OnboardingRoute: typeof OnboardingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
   PublicDataDeletionRoute: typeof PublicDataDeletionRoute
@@ -475,6 +488,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -809,6 +829,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthorizeRoute: AuthorizeRoute,
   OnboardingRoute: OnboardingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
   PublicDataDeletionRoute: PublicDataDeletionRoute,

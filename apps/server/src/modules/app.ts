@@ -17,9 +17,13 @@ import { applicationsController } from "./admin/applications/applications.contro
 import { oauthConnectionsController } from "./admin/oauth-connections/oauth-connections.controller";
 import { emailConnectionsController } from "./admin/email-connections/email-connections.controller";
 import { platformAuthSettingsController } from "./admin/settings/platform-auth.controller";
+import { browserAuthCorsController } from "./auth/browser-auth-cors";
+import { profileController } from "./profile/profile.controller";
 
 export const app = new Elysia()
+  .use(browserAuthCorsController)
   .use(authController)
+  .use(profileController)
   .use(sessionController)
   .use(usersController)
   .use(rolesController)

@@ -21,20 +21,23 @@ export interface SsoProvider {
   pkce: true;
 }
 
-export interface CreateSsoProviderOptions {
-  clientId: string;
-  baseUrl?: string;
-}
+export type CreateSsoProviderOptions =
+  | { publishableKey: string; ssoUrl: string; clientId?: string; baseUrl?: string }
+  | { clientId: string; baseUrl?: string; publishableKey?: string; ssoUrl?: string };
 
 interface BetterAuthTokenSet {
   idToken?: string | undefined;
 }
 
-export interface SsoBetterAuthIntegrationOptions extends CreateSsoProviderOptions {
-  baseUrl: string;
+type SsoBetterAuthIntegrationAdvancedOptions = {
   fetch?: typeof fetch;
   forceLogin?: boolean;
-}
+};
+
+export type SsoBetterAuthIntegrationOptions = SsoBetterAuthIntegrationAdvancedOptions & (
+  | { publishableKey: string; ssoUrl: string; clientId?: string; baseUrl?: string }
+  | { clientId: string; baseUrl: string; publishableKey?: string; ssoUrl?: string }
+);
 
 export interface SsoPublicConfig {
   providerId: typeof SSO_PROVIDER_ID;
@@ -84,12 +87,59 @@ export interface SsoSession<TUser extends SsoUser = SsoUser> {
   expiresAt: number;
 }
 
+export interface SsoProfileAccount {
+  id: string;
+  provider: "password" | "google" | "facebook" | "linkedin" | "github";
+  createdAt: string;
+}
+
+export interface SsoProfileSession {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  isCurrent: boolean;
+}
+
+export interface SsoUserProfile {
+  user: SsoUser;
+  capabilities: {
+    email: boolean;
+    password: boolean;
+    passwordSet: boolean;
+  };
+  accounts: SsoProfileAccount[];
+  sessions: SsoProfileSession[];
+}
+
+export type SsoProfileAction =
+  | { action: "update_name"; name: string }
+  | { action: "resend_verification" }
+  | { action: "revoke_session"; sessionId: string }
+  | { action: "revoke_other_sessions" }
+  | { action: "unlink_account"; accountId: string };
+
 export interface SsoClientMetadata {
   client_id: string;
   application_id: string;
+  application_logo_url?: string | null;
   audience: string;
   issuer: string;
+  sign_in_methods?: SsoAuthMethod[];
+  sign_up_methods?: SsoAuthMethod[];
+  registration_mode?: "closed" | "invite_only" | "open";
+  password_email_verification_required?: boolean;
 }
+
+export type SsoAuthMethod =
+  | "magic_link"
+  | "password"
+  | "google"
+  | "facebook"
+  | "linkedin"
+  | "github";
 
 export interface SsoTokenResponse {
   access_token: string;
@@ -115,23 +165,28 @@ export function getSsoEndpoints(baseUrl = SSO_DEFAULT_URL): SsoEndpoints {
 }
 
 export function createSsoProvider(options: CreateSsoProviderOptions): SsoProvider {
-  requireValue(options.clientId, "clientId");
-  const endpoints = getSsoEndpoints(options.baseUrl);
+  const clientId = options.publishableKey ?? options.clientId;
+  const baseUrl = options.ssoUrl ?? options.baseUrl;
+  requireValue(clientId, "publishableKey");
+  const endpoints = getSsoEndpoints(baseUrl);
   return {
     providerId: SSO_PROVIDER_ID,
-    clientId: options.clientId,
+    clientId,
     authorizationUrl: endpoints.authorization,
     tokenUrl: endpoints.token,
     jwksUrl: endpoints.jwks,
-    metadataUrl: endpoints.clientMetadata(options.clientId),
+    metadataUrl: endpoints.clientMetadata(clientId),
     scopes: [SSO_SCOPE],
     pkce: true,
   };
 }
 
 function createBetterAuthProvider(options: SsoBetterAuthIntegrationOptions) {
-  requireValue(options.baseUrl, "baseUrl");
-  const provider = createSsoProvider(options);
+  const clientId = options.publishableKey ?? options.clientId;
+  const baseUrl = options.ssoUrl ?? options.baseUrl;
+  requireValue(clientId, "publishableKey");
+  requireValue(baseUrl, "ssoUrl");
+  const provider = createSsoProvider({ clientId, baseUrl });
   return {
     providerId: provider.providerId,
     clientId: provider.clientId,
@@ -145,9 +200,9 @@ function createBetterAuthProvider(options: SsoBetterAuthIntegrationOptions) {
       try {
         const { verifySsoIdToken } = await import("./server/index.js");
         const identity = await verifySsoIdToken({
-          clientId: options.clientId,
+          clientId,
           idToken: tokens.idToken,
-          baseUrl: options.baseUrl,
+          baseUrl,
           ...(options.fetch ? { fetch: options.fetch } : {}),
         });
         return { ...identity.user, image: identity.user.image ?? undefined };
@@ -161,12 +216,14 @@ function createBetterAuthProvider(options: SsoBetterAuthIntegrationOptions) {
 export function createSsoBetterAuthIntegration(
   options: SsoBetterAuthIntegrationOptions,
 ): SsoBetterAuthIntegration {
-  requireValue(options.clientId, "clientId");
-  const baseUrl = requireOrigin(options.baseUrl, "baseUrl");
-  const provider = createBetterAuthProvider({ ...options, baseUrl });
+  const clientId = options.publishableKey ?? options.clientId;
+  const configuredSsoUrl = options.ssoUrl ?? options.baseUrl;
+  requireValue(clientId, "publishableKey");
+  const baseUrl = requireOrigin(configuredSsoUrl, "ssoUrl");
+  const provider = createBetterAuthProvider({ ...options, clientId, baseUrl });
   const config: SsoPublicConfig = {
     providerId: SSO_PROVIDER_ID,
-    clientId: options.clientId,
+    clientId,
     baseUrl,
   };
 

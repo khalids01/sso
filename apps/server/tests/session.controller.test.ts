@@ -51,6 +51,7 @@ describe("sessionController", () => {
         id: "user-1",
         name: "Test User",
         email: "test@example.com",
+        image: null,
         onboardingComplete: true,
         plan: null,
         subscriptionStatus: null,

@@ -1,6 +1,6 @@
 import type { CodeSample } from "./integration-guide-content";
 
-export type GuideMode = "better" | "other" | "manual" | "language";
+export type GuideMode = "react" | "better" | "other" | "manual" | "language";
 
 export type PackageRecipe = {
   label: string;
@@ -10,7 +10,309 @@ export type PackageRecipe = {
   samples: CodeSample[];
 };
 
+const clerkLikeManualRecipe: Pick<PackageRecipe, "description" | "samples"> = {
+  description:
+    "Recommended for new TypeScript applications. Install one package; Better Auth stays private inside New SSO. Embedded mode renders packaged sign-in/sign-up forms in your app, while hosted mode redirects to the SSO page. Social OAuth uses a popup and does not require another Google callback or JavaScript origin.",
+  samples: [
+    {
+      title: "Install one package",
+      filename: "Terminal",
+      description: "No Better Auth package, auth database, or consumer-side OAuth plugin is required.",
+      code: `bun add @skycanvasstudio/sso`,
+    },
+    {
+      title: "Server environment (required)",
+      filename: ".env — server only",
+      description: "Put these values in your server-only environment module. APP_URL is the public origin of this app and prevents a container, proxy, or server bound to 0.0.0.0 from generating an invalid callback. SKYCANVAS_SECRET_KEY must never reach browser code.",
+      code: `# Server only — do not prefix these with VITE_ or NEXT_PUBLIC_
+SKYCANVAS_PUBLISHABLE_KEY=your_client_id
+SKYCANVAS_SECRET_KEY=replace_with_at_least_32_random_characters
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com
+APP_URL=http://localhost:3000`,
+    },
+    {
+      title: "Client environment (not needed)",
+      filename: "No client .env entry",
+      description: "The packaged UI gets its safe configuration from the server bootstrap and local auth routes. Do not create VITE_SKYCANVAS_* or NEXT_PUBLIC_SKYCANVAS_* variables—not even for the publishable key.",
+      code: `No browser environment variables are required.`,
+    },
+    {
+      title: "Configure SkyCanvas once",
+      tabLabel: "TanStack Start",
+      filename: "src/lib/skycanvas.server.ts",
+      description: "Choose embedded forms or the hosted page here. Popup is recommended for social OAuth; redirect remains available. The SDK provides an immediate popup loading screen while it prepares and opens SkyCanvas, so no application popup route is needed.",
+      code: `import { createTanStackSso } from "@skycanvasstudio/sso/tanstack-start"
+import { env } from "./env.server"
+
+export const skycanvas = createTanStackSso({
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  secretKey: env.SKYCANVAS_SECRET_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
+  appUrl: env.APP_URL,
+  interactionMode: "embedded", // "hosted" redirects to the SSO auth page
+  oauthMode: "popup",          // or "redirect"
+})`,
+      alternatives: [
+        {
+          tabLabel: "Next.js",
+          filename: "src/lib/skycanvas.ts",
+          code: `import { createNextSso } from "@skycanvasstudio/sso/next"
+import { env } from "./env.server"
+
+export const skycanvas = createNextSso({
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  secretKey: env.SKYCANVAS_SECRET_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
+  appUrl: env.APP_URL,
+  interactionMode: "embedded",
+  oauthMode: "popup",
+})`,
+        },
+      ],
+    },
+    {
+      title: "Add one middleware",
+      tabLabel: "TanStack Start",
+      filename: "src/start.ts",
+      description: "It mounts the package auth routes and makes the verified session available as context.skycanvasAuth.",
+      code: `import { createServerOnlyFn, createStart } from "@tanstack/react-start"
+import { createTanStackSsoMiddleware } from "@skycanvasstudio/sso/tanstack-start"
+
+const loadSkycanvas = createServerOnlyFn(
+  () => import("./lib/skycanvas.server").then(({ skycanvas }) => skycanvas),
+)
+const skycanvasMiddleware = createTanStackSsoMiddleware(
+  loadSkycanvas,
+)
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [skycanvasMiddleware],
+}))`,
+      alternatives: [
+        {
+          tabLabel: "Next.js",
+          filename: "app/auth/[...sso]/route.ts",
+          code: `import { skycanvas } from "@/lib/skycanvas"
+
+export const { GET, POST, OPTIONS } = skycanvas.handlers`,
+        },
+      ],
+    },
+    {
+      title: "Use the packaged UI anywhere",
+      filename: "src/routes/login.tsx",
+      description: "SignIn, SignUp, SsoAuth, and SsoAuthDialog automatically show only enabled methods. After successful password or popup OAuth authentication, returnTo safely navigates the original window. Provide onSuccess when your app should control navigation itself.",
+      code: `import "@skycanvasstudio/sso/styles.css"
+import { SignIn, SkyCanvasProvider } from "@skycanvasstudio/sso/react"
+
+export function LoginPage() {
+  return (
+    <SkyCanvasProvider>
+      <SignIn returnTo="/dashboard" />
+    </SkyCanvasProvider>
+  )
+}`,
+    },
+    {
+      title: "Protect server data",
+      tabLabel: "TanStack Start",
+      filename: "src/routes/protected.tsx",
+      description: "UI components improve navigation, but authorization must be enforced where protected data is loaded.",
+      code: `import { createFileRoute, redirect } from "@tanstack/react-router"
+
+export const Route = createFileRoute("/protected")({
+  beforeLoad: ({ context }) => {
+    if (!context.skycanvasAuth.isAuthenticated) throw redirect({ to: "/login" })
+  },
+  component: ProtectedPage,
+})`,
+      alternatives: [
+        {
+          tabLabel: "Next.js",
+          filename: "app/protected/page.tsx",
+          code: `import { redirect } from "next/navigation"
+import { skycanvas } from "@/lib/skycanvas"
+
+export default async function ProtectedPage() {
+  const auth = await skycanvas.auth()
+  if (!auth.isAuthenticated) redirect("/login")
+  return <main>Signed in as {auth.session?.user.email}</main>
+}`,
+        },
+      ],
+    },
+    {
+      title: "Register the app once in SkyCanvas",
+      filename: "SkyCanvas dashboard (not a project file)",
+      description: "Add your app origin and callback in SkyCanvas. Do not add this callback—or each consumer domain—to Google, GitHub, Facebook, or LinkedIn; those providers keep pointing only to New SSO.",
+      code: `Allowed origin: http://localhost:3000
+Callback URL:  http://localhost:3000/auth/callback`,
+    },
+  ],
+};
+
 export const packageRecipes: Record<GuideMode, PackageRecipe> = {
+  react: {
+    label: "Use SSO in a React-only app",
+    shortLabel: "React-only app",
+    description:
+      "The Clerk-like path for Vite and other client-rendered React apps. SkyCanvas hosts sign-in and owns OAuth provider callbacks, the central SSO session, code validation, and token issuance. Your app does not run an Elysia auth server.",
+    callbackPath: "/auth/callback",
+    samples: [
+      {
+        title: "Install",
+        filename: "Terminal",
+        description: "Add the React SDK. Its built-in auth forms include their own form dependency.",
+        code: `bun add @skycanvasstudio/sso`,
+      },
+      {
+        title: "Add public configuration",
+        filename: ".env",
+        description: "A publishable key identifies a public PKCE client; it is safe to include in a browser build and is not a secret.",
+        code: `VITE_SKYCANVAS_PUBLISHABLE_KEY=your_client_id
+VITE_SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
+      },
+      {
+        title: "Wrap the app once",
+        filename: "src/main.tsx",
+        description: "Popup is the default. On a social-provider click, the SDK immediately opens a small secure loading screen and navigates that same window to SkyCanvas—no popup route or loading component is required. Set oauthMode=\"redirect\" when top-level navigation is preferred. Your host must serve the SPA entry for /auth/callback as well as /.",
+        code: `import { SkyCanvasProvider } from "@skycanvasstudio/sso/react"
+import "@skycanvasstudio/sso/styles.css"
+
+createRoot(document.getElementById("root")!).render(
+  <SkyCanvasProvider
+    publishableKey={import.meta.env.VITE_SKYCANVAS_PUBLISHABLE_KEY}
+    ssoUrl={import.meta.env.VITE_SKYCANVAS_SSO_URL}
+  >
+    <App />
+  </SkyCanvasProvider>,
+)`,
+      },
+      {
+        title: "Use Clerk-like components and hooks",
+        filename: "src/App.tsx",
+        description: "SignIn renders every method enabled for this application. Password and magic link stay embedded; clicking Google, GitHub, Facebook, or LinkedIn opens only that provider flow in a popup.",
+        code: `import { SignIn, SignedIn, SignedOut, useAuth, useUser } from "@skycanvasstudio/sso/react"
+
+export function App() {
+  const { isLoaded, isSignedIn, getToken, signOut } = useAuth()
+  const { user } = useUser()
+
+  async function loadOrders() {
+    const token = await getToken()
+    const response = await fetch("https://api.example.com/orders", {
+      headers: token ? { authorization: "Bearer " + token } : {},
+    })
+    if (!response.ok) throw new Error("Could not load orders")
+    return response.json()
+  }
+
+  return <>
+    {!isLoaded ? <p>Loading session…</p> : null}
+    <SignedOut><SignIn returnTo="/protected" /></SignedOut>
+    <SignedIn>
+      <p>{user?.email}</p>
+      <button onClick={() => void loadOrders()}>Load protected data</button>
+      <button onClick={() => void signOut()}>Sign out</button>
+    </SignedIn>
+  </>
+}`,
+      },
+      {
+        title: "Protect your application API",
+        filename: "src/auth/skycanvas.server.ts",
+        description: "Create one cached verifier per backend process, then verify the Bearer token returned by getToken(). No client secret or per-request SSO call is required.",
+        code: `import { createSsoAccessTokenVerifier } from "@skycanvasstudio/sso/server"
+
+export const skycanvas = createSsoAccessTokenVerifier({
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
+})
+
+export async function requireSkyCanvasUser(request: Request) {
+  const header = request.headers.get("authorization")
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : null
+  if (!token) throw new Response("Unauthorized", { status: 401 })
+
+  try {
+    return await skycanvas.verify(token)
+  } catch {
+    throw new Response("Unauthorized", { status: 401 })
+  }
+}
+
+// auth.subject is the stable pairwise user ID for this application.
+// auth.claims contains only verified token claims.`,
+      },
+      {
+        title: "Add the ready-made user menu and profile",
+        filename: "src/components/account-menu.tsx",
+        description: "SsoUserMenu opens the packaged UserProfile dialog. UserProfile can also render identical content directly in a page. OAuth avatars remain read-only; identity actions use short-lived app-scoped authorization and never expose mail or provider credentials.",
+        code: `import { SsoUserMenu, UserProfile } from "@skycanvasstudio/sso/react"
+
+export function AccountMenu() {
+  return (
+    <SsoUserMenu
+      items={[{ label: "Dashboard", href: "/dashboard" }]}
+      logoutReturnTo="/"
+    />
+  )
+}
+
+// The menu reads the signed-in user from <SkyCanvasProvider>.
+// Click Profile in the menu to open the built-in Profile dialog.
+
+export function ProfilePage() {
+  return <UserProfile mode="content" />
+}
+
+export function ProfileButton() {
+  return <UserProfile mode="dialog" label="Profile" />
+}
+
+// label accepts text, an icon, or both.
+// additionalContent adds one minimal custom section.`,
+      },
+      {
+        title: "Register the browser client",
+        filename: "SkyCanvas dashboard (not a project file)",
+        description: "Both URLs are exact. Enable the sign-in/sign-up methods that SignIn should render. Provider credentials such as Google continue to point only at central SkyCanvas.",
+        code: `Allowed origin: http://localhost:5173
+Callback URL:  http://localhost:5173/auth/callback
+
+Sign-in methods: password, magic_link, google
+Sign-up methods: password, magic_link, google
+Registration:    open
+
+# Only enabled and fully configured methods appear in <SignIn />.`,
+      },
+      {
+        title: "Verify the complete flow",
+        filename: "Acceptance checklist",
+        description: "Do this before integrating real application data. UI-only route guards are not sufficient backend protection.",
+        code: `✓ New user and returning user can sign in
+✓ Popup and redirect modes return to /auth/callback
+✓ Reload restores the short-lived session
+✓ Protected API rejects missing, expired, and wrong-audience tokens
+✓ getToken() authorizes the expected API request
+✓ Local sign-out clears the app session
+✓ Global sign-out returns only to a registered origin`,
+      },
+      {
+        title: "Understand SPA loading",
+        filename: "Rendering behavior",
+        description: "A React-only app restores its session and public auth policy after the browser app starts. Keep a small isLoaded state in your page; the social popup transition itself is handled automatically by the SDK. Next.js and TanStack Start integrations can provide their initial session during SSR using the bootstrap steps in their guides, but OAuth navigation still has network latency in every framework.",
+        code: `// React-only: client bootstrap
+const { isLoaded } = useAuth()
+if (!isLoaded) return <p>Loading session…</p>
+
+// Next.js / TanStack Start: use the documented SSR bootstrap
+// and pass it to <SsoProvider bootstrap={bootstrap}>.
+
+// No custom popup loading page is needed in either mode.`,
+      },
+    ],
+  },
   better: {
     label: "Use SSO with Better Auth",
     shortLabel: "Existing Better Auth",
@@ -28,19 +330,19 @@ export const packageRecipes: Record<GuideMode, PackageRecipe> = {
         title: "Configure the server environment",
         tabLabel: "TanStack Start",
         filename: ".env",
-        description: "Define the SSO values once on the server. Validate them in your application's server-only env module; do not create VITE_SSO_* or NEXT_PUBLIC_SSO_* copies.",
+        description: "Keep the two SkyCanvas values beside your existing Better Auth server values. Do not create browser copies; the Better Auth client receives what it needs through its normal route.",
         code: `BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace_with_at_least_32_random_characters
-SSO_CLIENT_ID=your_skycanvas_client_id
-SSO_URL=https://api-sso.skycanvasstudio.com`,
+SKYCANVAS_PUBLISHABLE_KEY=your_skycanvas_client_id
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
         alternatives: [
           {
             tabLabel: "Next.js",
             filename: ".env.local",
             code: `BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace_with_at_least_32_random_characters
-SSO_CLIENT_ID=your_skycanvas_client_id
-SSO_URL=https://api-sso.skycanvasstudio.com`,
+SKYCANVAS_PUBLISHABLE_KEY=your_skycanvas_client_id
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
           },
         ],
       },
@@ -48,15 +350,13 @@ SSO_URL=https://api-sso.skycanvasstudio.com`,
         title: "Add the provider to Better Auth",
         filename: "src/lib/auth.ts",
         description: "Merge this plugin into your existing Better Auth instance. Preserve its database, plugins, and other sign-in methods. On TanStack Start, keep tanstackStartCookies() as the final plugin in the array.",
-        code: `import { createSsoBetterAuthIntegration } from "@skycanvasstudio/sso/better-auth"
+        code: `import { skycanvas } from "@skycanvasstudio/sso/better-auth"
 import { betterAuth } from "better-auth"
-import { genericOAuth } from "better-auth/plugins"
 import { env } from "./env.server"
 
-export const skycanvas = createSsoBetterAuthIntegration({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
-  // forceLogin: true, // optional explicit reauthentication
+export const skycanvasAuth = skycanvas({
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
 })
 
 export const auth = betterAuth({
@@ -64,7 +364,7 @@ export const auth = betterAuth({
   account: { encryptOAuthTokens: true },
   plugins: [
     // Keep your existing plugins here.
-    genericOAuth({ config: [skycanvas.provider] }),
+    skycanvasAuth,
   ],
 })`,
       },
@@ -138,17 +438,17 @@ export class AppModule {}
         title: "Create the browser client",
         tabLabel: "TanStack Start",
         filename: "src/lib/auth-client.ts",
-        description: "Create Better Auth's browser client and the typed SSO React integration. It receives safe configuration later from the server bootstrap, so no browser environment variables are needed.",
+        description: "Add the matching client plugin to your existing Better Auth client. Keep using Better Auth's normal session hook and UI; no second provider or bootstrap layer is required.",
         code: `import { createAuthClient } from "better-auth/react"
-import { genericOAuthClient } from "better-auth/client/plugins"
-import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
+import { skycanvasClient } from "@skycanvasstudio/sso/better-auth"
 
 export const authClient = createAuthClient({
-  plugins: [genericOAuthClient()],
+  plugins: [skycanvasClient()],
 })
 
-export const { SsoProvider, useSso, useSsoSession } =
-  createSsoBetterAuthReact(authClient)`,
+export function signInWithSkyCanvas(callbackURL = "/dashboard") {
+  return authClient.signIn.oauth2({ providerId: "skycanvas", callbackURL })
+}`,
         alternatives: [
           {
             tabLabel: "Next.js",
@@ -156,15 +456,15 @@ export const { SsoProvider, useSso, useSsoSession } =
             code: `"use client"
 
 import { createAuthClient } from "better-auth/react"
-import { genericOAuthClient } from "better-auth/client/plugins"
-import { createSsoBetterAuthReact } from "@skycanvasstudio/sso/react"
+import { skycanvasClient } from "@skycanvasstudio/sso/better-auth"
 
 export const authClient = createAuthClient({
-  plugins: [genericOAuthClient()],
+  plugins: [skycanvasClient()],
 })
 
-export const { SsoProvider, useSso, useSsoSession } =
-  createSsoBetterAuthReact(authClient)`,
+export function signInWithSkyCanvas(callbackURL = "/dashboard") {
+  return authClient.signIn.oauth2({ providerId: "skycanvas", callbackURL })
+}`,
           },
         ],
       },
@@ -178,8 +478,8 @@ import { getTanStackBetterAuthSsoBootstrap } from "@skycanvasstudio/sso/tanstack
 
 export const getInitialAuthSession = createServerFn({ method: "GET" }).handler(
   () => getTanStackBetterAuthSsoBootstrap(async () => {
-    const { auth, skycanvas } = await import("./auth")
-    return { auth, skycanvas }
+    const { auth, skycanvasAuth } = await import("./auth")
+    return { auth, skycanvas: skycanvasAuth }
   }),
 )`,
         alternatives: [
@@ -188,10 +488,10 @@ export const getInitialAuthSession = createServerFn({ method: "GET" }).handler(
             filename: "src/lib/auth-session.server.ts",
             code: `import "server-only"
 import { getNextBetterAuthSsoBootstrap } from "@skycanvasstudio/sso/next"
-import { auth, skycanvas } from "@/lib/auth"
+import { auth, skycanvasAuth } from "@/lib/auth"
 
 export async function getInitialAuthSession() {
-  return getNextBetterAuthSsoBootstrap({ auth, skycanvas })
+  return getNextBetterAuthSsoBootstrap({ auth, skycanvas: skycanvasAuth })
 }`,
           },
         ],
@@ -200,7 +500,7 @@ export async function getInitialAuthSession() {
         title: "Wrap the app with the initial session",
         tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
-        description: "Load the serializable bootstrap during SSR and mount the package-generated provider above every component that uses the SSO hooks.",
+        description: "Load the serializable bootstrap during SSR and mount the package-generated provider above every component that uses the SSO hooks. This avoids the client-only initial session flash; the SDK still supplies the immediate popup loading screen during social OAuth navigation.",
         code: `import { Outlet, createRootRoute } from "@tanstack/react-router"
 import { SsoProvider } from "@/lib/auth-client"
 import { getInitialAuthSession } from "@/lib/auth-session"
@@ -296,7 +596,13 @@ export function AccountMenu() {
         code: `http://localhost:3000/api/auth/oauth2/callback/skycanvas
 https://your-domain.example/api/auth/oauth2/callback/skycanvas`,
       },
-    ],
+    ].filter((sample) => new Set([
+      "Install",
+      "Configure the server environment",
+      "Add the provider to Better Auth",
+      "Create the browser client",
+      "Register the callback URL",
+    ]).has(sample.title ?? sample.filename)),
   },
 
   other: {
@@ -318,8 +624,8 @@ https://your-domain.example/api/auth/oauth2/callback/skycanvas`,
 import { env } from "./env.server"
 
 const sso = createSsoProvider({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
 })
 
 // Map these into your auth library:
@@ -352,8 +658,8 @@ sso.pkce             // true`,
 import { env } from "./env.server"
 
 const identity = await verifySsoIdToken({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
   idToken: tokens.id_token,
   nonce: expectedNonce,
 })
@@ -363,7 +669,7 @@ identity.user // { id, name, email, emailVerified, image }`,
       {
         filename: "Register and test the callback",
         description: "Inspect the redirect_uri produced by your auth library and register that exact URL. Keep using that library for sessions, hooks, and logout.",
-        code: `SSO_CLIENT_ID=your_skycanvas_client_id
+        code: `SKYCANVAS_PUBLISHABLE_KEY=your_skycanvas_client_id
 
 # Example only — copy the exact redirect_uri from your authorization request:
 https://your-domain.example/your-auth-library/callback/skycanvas`,
@@ -372,10 +678,10 @@ https://your-domain.example/your-auth-library/callback/skycanvas`,
   },
 
   manual: {
-    label: "Use SSO without an auth library",
-    shortLabel: "No auth library",
+    label: "Use SSO in a full-stack TypeScript app",
+    shortLabel: "Full-stack standalone",
     description:
-      "Choose this when the application has no auth system. Register {APP_URL}/auth/callback, not the Better Auth callback. The server helper owns OAuth, encrypted cookies, and the local session; the optional browser and React entries consume those local routes.",
+      "Choose this when the application has no auth system. Register the application's /auth/callback URL, not the Better Auth callback. The SDK infers that URL from requests and owns OAuth, encrypted cookies, and the local session.",
     callbackPath: "/auth/callback",
     samples: [
       {
@@ -387,11 +693,10 @@ https://your-domain.example/your-auth-library/callback/skycanvas`,
       {
         title: "Configure the server environment",
         filename: ".env",
-        description: "All four values are required. APP_URL is the public origin receiving the callback; generate SESSION_SECRET with openssl rand -base64 32.",
-        code: `SSO_CLIENT_ID=your_skycanvas_client_id
-SSO_URL=https://api-sso.skycanvasstudio.com
-APP_URL=http://localhost:3000
-SESSION_SECRET=replace_with_at_least_32_random_characters`,
+        description: "Only three values are required. The SDK infers the application origin and callback from each request.",
+        code: `SKYCANVAS_PUBLISHABLE_KEY=your_skycanvas_client_id
+SKYCANVAS_SECRET_KEY=replace_with_at_least_32_random_characters
+SKYCANVAS_SSO_URL=https://api-sso.skycanvasstudio.com`,
       },
       {
         title: "Create one SSO server",
@@ -401,19 +706,17 @@ SESSION_SECRET=replace_with_at_least_32_random_characters`,
 import { env } from "./env.server"
 
 export const sso = createSsoServer({
-  clientId: env.SSO_CLIENT_ID,
-  baseUrl: env.SSO_URL,
-  appUrl: env.APP_URL,
-  sessionSecret: env.SESSION_SECRET,
+  publishableKey: env.SKYCANVAS_PUBLISHABLE_KEY,
+  secretKey: env.SKYCANVAS_SECRET_KEY,
+  ssoUrl: env.SKYCANVAS_SSO_URL,
 })
-
-console.log(sso.callbackUrl) // register this exact URL`,
+`,
       },
       {
         title: "Mount the SSO routes",
         tabLabel: "TanStack Start",
         filename: "src/server.ts",
-        description: "Choose your framework. The standalone helper must receive GET /auth/login, GET /auth/callback, GET /auth/profile, and POST /auth/logout.",
+        description: "Choose your framework. Mount the complete /auth/* handler so login, callback, session, UserProfile, and logout routes all reach the standalone helper.",
         code: `import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server"
 import { sso } from "./lib/sso.server"
 
@@ -433,6 +736,7 @@ export default { fetch }
 // GET  /auth/login
 // GET  /auth/callback
 // GET  /auth/profile
+// GET + POST /auth/user-profile
 // POST /auth/logout`,
         alternatives: [
           {
@@ -546,7 +850,7 @@ export class SsoController {
         title: "Wrap the application with initial session data",
         tabLabel: "TanStack Start",
         filename: "src/routes/__root.tsx (relevant part)",
-        description: "Load the bootstrap during SSR and pass it into SsoProvider once above the application. The package controls read the session internally; do not import standalone session hooks.",
+        description: "Load the bootstrap during SSR and pass it into SsoProvider once above the application. This avoids the client-only initial session flash; the SDK supplies the immediate popup loading screen during social OAuth navigation. The package controls read the session internally; do not import standalone session hooks.",
         code: `import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router"
 import { SsoProvider } from "@skycanvasstudio/sso/react"
 import { getSsoBootstrap } from "@/lib/sso-session"
@@ -595,10 +899,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         ],
       },
       {
-        title: "Use session, sign-in, and logout",
+        title: "Use session, sign-in, profile, and logout",
         filename: "src/components/account-menu.tsx",
-        description: "Components below the provider can use the standalone hooks and controls. OAuth tokens remain on the server.",
-        code: `import { SsoSignInButton, SsoUserMenu } from "@skycanvasstudio/sso/react"
+        description: "Components below the provider can use the standalone hooks and controls. UserProfile supports dialog and page-content modes; OAuth tokens remain sealed on the server and the OAuth avatar stays read-only.",
+        code: `import { SsoSignInButton, SsoUserMenu, UserProfile } from "@skycanvasstudio/sso/react"
 
 export function AccountMenu() {
   return <SsoUserMenu items={[{ label: "Dashboard", href: "/dashboard" }]} />
@@ -606,7 +910,15 @@ export function AccountMenu() {
 
 export function SignIn() {
   return <SsoSignInButton callbackURL="/dashboard" />
-}`,
+}
+
+export function ProfilePage() {
+  return <UserProfile mode="content" />
+}
+
+// Or: <UserProfile mode="dialog" label={<><UserIcon /> Profile</>} />
+// Email actions show a warning when this application has no mail connection.
+// Avatar upload and account deletion are intentionally not included.`,
       },
       {
         title: "Register the callback URL",
@@ -616,6 +928,7 @@ export function SignIn() {
 https://your-domain.example/auth/callback`,
       },
     ],
+    ...clerkLikeManualRecipe,
   },
 
   language: {

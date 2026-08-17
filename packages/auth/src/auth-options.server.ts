@@ -11,6 +11,7 @@ import {
   emailVerificationTemplate,
   getApplicationIdFromEmailUrl,
   magicLinkTemplate,
+  passwordResetTemplate,
   sendApplicationEmail,
   sendEmail,
 } from "../../email/src/index.server";
@@ -63,6 +64,18 @@ export const authOptions = {
     autoSignIn: false,
     minPasswordLength: 15,
     maxPasswordLength: 128,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      const message = {
+        to: user.email,
+        subject: "Reset your SSO password",
+        html: await passwordResetTemplate(url),
+      };
+      const applicationId = await getApplicationIdFromEmailUrl(url);
+      await (applicationId
+        ? sendApplicationEmail(applicationId, message)
+        : sendEmail(message));
+    },
   },
   emailVerification: {
     autoSignInAfterVerification: true,

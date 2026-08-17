@@ -47,6 +47,8 @@ mock.module("@sso/db/server", () => ({
     },
   },
   Prisma,
+  getApplicationClientAccess: mock(async () => ({ allowed: true })),
+  registerApplicationMemberIfAllowed: mock(async () => true),
 }));
 
 mock.module("@sso/auth/server", () => ({
@@ -58,6 +60,10 @@ mock.module("@sso/auth/server", () => ({
   runWithOAuthProviderConnection: mock(
     (_connection: unknown, operation: () => unknown) => operation(),
   ),
+  hashOAuthToken: (value: string) => value,
+  isValidPkceVerifier: () => true,
+  securelyMatchesChallenge: mock(async () => true),
+  getAvailableApplicationAuthMethodIds: () => new Set(["magic_link", "password"]),
 }));
 
 mock.module("@sso/redis/server", () => ({
@@ -96,6 +102,107 @@ afterEach(() => {
 });
 
 describe("authController", () => {
+  it("bootstraps a signed application login in one browser request", async () => {
+    authApi.getOAuthClientPublicPrelogin.mockResolvedValue({
+      client_id: "sso_client_1",
+      client_name: "Production app",
+    });
+    applicationClientFindFirstMock.mockResolvedValue({
+      clientId: "sso_client_1",
+      applicationId: "application-1",
+      status: "active",
+      oauthDisabled: false,
+      application: {
+        status: "active",
+        logoUrl: "https://app.example.com/logo.png",
+        signInMethods: ["magic_link", "password"],
+        signUpMethods: ["magic_link"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: true,
+        oauthProviderConnections: [],
+      },
+    });
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const response = await authController.handle(new Request(
+      "http://localhost/auth/application/bootstrap",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          clientId: "sso_client_1",
+          oauthQuery: "client_id=sso_client_1&sig=signed",
+        }),
+      },
+    ));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      name: "Production app",
+      logoUrl: "https://app.example.com/logo.png",
+      policy: {
+        signInMethods: ["magic_link", "password"],
+        signUpMethods: ["magic_link"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: true,
+      },
+    });
+    expect(authApi.getOAuthClientPublicPrelogin).toHaveBeenCalledTimes(1);
+    expect(applicationClientFindFirstMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows embedded password requests only from the registered browser origin", async () => {
+    applicationClientFindFirstMock.mockResolvedValue({
+      id: "application-client-1",
+      applicationId: "application-1",
+      application: {
+        signInMethods: ["password"],
+        signUpMethods: ["password"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: false,
+      },
+    });
+    authApi.signInEmail.mockResolvedValue(new Response(null, { status: 401 }));
+    const { authController } = await import("../src/modules/auth/auth.controller");
+    const response = await authController.handle(new Request(
+      "http://localhost/auth/sdk/password/login",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://app.example.com",
+        },
+        body: JSON.stringify({
+          clientId: "sso_client_1",
+          redirectUri: "https://app.example.com/auth/callback",
+          origin: "https://app.example.com",
+          state: "state_value_that_is_long_enough",
+          nonce: "nonce_value_that_is_long_enough",
+          codeChallenge: "a".repeat(43),
+          email: "user@example.com",
+          password: "wrong-password",
+        }),
+      },
+    ));
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://app.example.com");
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+  });
+
+  it("handles embedded-auth preflight for a registered application origin", async () => {
+    applicationClientFindFirstMock.mockResolvedValue({ id: "application-client-1" });
+    const { browserAuthCorsController } = await import(
+      "../src/modules/auth/browser-auth-cors"
+    );
+    const response = await browserAuthCorsController.handle(new Request(
+      "http://localhost/auth/sdk/password/login",
+      { method: "OPTIONS", headers: { origin: "https://app.example.com" } },
+    ));
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://app.example.com");
+  });
+
   it("starts social authentication with the application's assigned connection", async () => {
     authApi.getOAuthClientPublicPrelogin.mockResolvedValue({
       client_id: "sso_client_1",
@@ -183,6 +290,19 @@ describe("authController", () => {
 
   it("returns 400 when magic-link login is requested for an unknown user", async () => {
     findUniqueMock.mockResolvedValue(null);
+    applicationClientFindUniqueMock.mockResolvedValue({
+      id: "application-client-1",
+      applicationId: "application-1",
+      status: "active",
+      oauthDisabled: false,
+      application: {
+        status: "active",
+        signInMethods: ["magic_link"],
+        signUpMethods: ["magic_link"],
+        registrationMode: "open",
+        passwordEmailVerificationRequired: false,
+      },
+    });
 
     const { authController } = await import("../src/modules/auth/auth.controller");
 
@@ -194,13 +314,13 @@ describe("authController", () => {
         },
         body: JSON.stringify({
           email: "missing@example.com",
+          callbackURL: "http://localhost:5002/authorize?client_id=sso_client_1",
         }),
       }),
     );
 
-    const body = await response.json();
-
     expect(response.status).toBe(400);
+    const body = await response.json();
     expect(body).toEqual({ message: "User not found" });
     expect(authApi.signInMagicLink).not.toHaveBeenCalled();
     expect(response.headers.get("x-request-id")).toBeTruthy();

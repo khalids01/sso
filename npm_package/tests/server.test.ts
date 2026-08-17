@@ -2,8 +2,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import {
   createSsoAuthorization,
+  createSsoAccessTokenVerifier,
   createSsoServer,
   finishSsoAuthorization,
+  verifySsoAccessToken,
   type SsoAuthorizationFlow,
 } from "../src/server/index.js";
 
@@ -48,6 +50,23 @@ const issuerServer = Bun.serve({
         token_type: "Bearer",
         expires_in: 600,
         scope: "openid",
+      });
+    }
+    if (url.pathname === "/auth/sdk/profile") {
+      if (!request.headers.get("authorization")?.startsWith("Bearer ")) {
+        return Response.json({ message: "Unauthorized" }, { status: 401 });
+      }
+      return Response.json({
+        user: {
+          id: subject,
+          name: request.method === "POST" ? "Updated User" : "Test User",
+          email: "test@example.com",
+          emailVerified: true,
+          image: "https://example.com/avatar.png",
+        },
+        capabilities: { email: true, password: true, passwordSet: true },
+        accounts: [],
+        sessions: [],
       });
     }
     return new Response(null, { status: 404 });
@@ -134,6 +153,36 @@ describe("authorization callback verification", () => {
       baseUrl: issuer,
     })).rejects.toThrow("nonce mismatch");
   });
+
+  test("verifies browser access tokens for an application backend", async () => {
+    const accessToken = await sign({ scope: "openid" }, audience);
+    const result = await verifySsoAccessToken({
+      clientId,
+      accessToken,
+      baseUrl: issuer,
+    });
+
+    expect(result.subject).toBe(subject);
+    expect(result.metadata.audience).toBe(audience);
+  });
+
+  test("reuses metadata and JWKS in a long-lived backend verifier", async () => {
+    let requests = 0;
+    const verifier = createSsoAccessTokenVerifier({
+      clientId,
+      baseUrl: issuer,
+      fetch: (async (input, init) => {
+        requests += 1;
+        return fetch(input, init);
+      }) as typeof fetch,
+    });
+    const accessToken = await sign({ scope: "openid" }, audience);
+
+    await verifier.verify(accessToken);
+    await verifier.verify(accessToken);
+
+    expect(requests).toBe(2);
+  });
 });
 
 describe("framework-independent SSO server", () => {
@@ -188,7 +237,7 @@ describe("framework-independent SSO server", () => {
     expect(callback.headers.get("location")).toBe("https://app.example.com/dashboard");
     const sessionCookie = callback.headers.getSetCookie()
       .map(cookiePair)
-      .find((cookie) => cookie.startsWith("sso_session="));
+      .find((cookie) => cookie.startsWith("sso_session_"));
     expect(sessionCookie).toBeDefined();
 
     const profile = await sso.handle(new Request("https://app.example.com/auth/profile", {
@@ -203,10 +252,36 @@ describe("framework-independent SSO server", () => {
     expect(bootstrap.client).toEqual({
       baseUrl: "https://app.example.com",
       loginPath: "/auth/login",
+      configPath: "/auth/config",
+      passwordLoginPath: "/auth/password/login",
+      passwordSignupPath: "/auth/password/signup",
+      magicLinkPath: "/auth/magic-link",
       profilePath: "/auth/profile",
+      userProfilePath: "/auth/user-profile",
       logoutPath: "/auth/logout",
+      interactionMode: "embedded",
+      oauthMode: "popup",
     });
     expect(JSON.stringify(bootstrap)).not.toContain("test-session-secret");
+    expect(JSON.stringify(bootstrap)).not.toContain("accessToken");
+
+    const userProfile = await sso.handle(new Request("https://app.example.com/auth/user-profile", {
+      headers: { cookie: sessionCookie ?? "" },
+    }));
+    expect(userProfile.status).toBe(200);
+    expect((await userProfile.json()).capabilities.email).toBe(true);
+
+    const updatedProfile = await sso.handle(new Request("https://app.example.com/auth/user-profile", {
+      method: "POST",
+      headers: {
+        cookie: sessionCookie ?? "",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ action: "update_name", name: "Updated User" }),
+    }));
+    expect(updatedProfile.status).toBe(200);
+    expect((await updatedProfile.json()).user.name).toBe("Updated User");
+    expect(updatedProfile.headers.getSetCookie().some((cookie) => cookie.startsWith("sso_session_"))).toBe(true);
 
     const rejectedLogout = await sso.handle(new Request("https://app.example.com/auth/logout", {
       method: "POST",
@@ -243,22 +318,140 @@ describe("framework-independent SSO server", () => {
     expect(() => createSsoServer({
       clientId,
       appUrl: "http://localhost:3000",
+      baseUrl: issuer,
       sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
       cookies: { sameSite: "none" },
     })).toThrow("must be Secure");
+  });
+
+  test("names local cookies per client so localhost applications cannot overwrite OAuth state", async () => {
+    const first = createSsoServer({
+      clientId: "client_one",
+      appUrl: "http://localhost:3000",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const second = createSsoServer({
+      clientId: "client_two",
+      appUrl: "http://localhost:4000",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const firstCookie = requiredHeader(
+      await first.login(new Request("http://localhost:3000/auth/login")),
+      "set-cookie",
+    ).split("=", 1)[0];
+    const secondCookie = requiredHeader(
+      await second.login(new Request("http://localhost:4000/auth/login")),
+      "set-cookie",
+    ).split("=", 1)[0];
+
+    expect(firstCookie).toBe("sso_flow_client_one");
+    expect(secondCookie).toBe("sso_flow_client_two");
+    expect(firstCookie).not.toBe(secondCookie);
+  });
+
+  test("completes popup login without allowing the return path to inject script", async () => {
+    const sso = createSsoServer({
+      clientId,
+      appUrl: "https://app.example.com",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const returnTo = "/?next=</script><script>alert(1)</script>";
+    const login = await sso.login(new Request(
+      `https://app.example.com/auth/login?popup=true&returnTo=${encodeURIComponent(returnTo)}`,
+    ));
+    const authorizationUrl = new URL(requiredHeader(login, "location"));
+    identityNonce = requiredParam(authorizationUrl, "nonce");
+    const response = await sso.callback(new Request(
+      `https://app.example.com/auth/callback?code=authorization_code&state=${requiredParam(authorizationUrl, "state")}`,
+      { headers: { cookie: cookiePair(requiredHeader(login, "set-cookie")) } },
+    ));
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("skycanvas:sso:complete");
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(response.headers.getSetCookie().some((cookie) => cookie.startsWith("sso_session_"))).toBe(true);
+  });
+
+  test("notifies the opener when popup authorization is denied", async () => {
+    const sso = createSsoServer({
+      clientId,
+      appUrl: "https://auth-api.example.com",
+      redirectOrigin: "https://app.example.com",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const login = await sso.login(new Request(
+      "https://auth-api.example.com/auth/login?popup=true&returnTo=/dashboard",
+    ));
+    const authorizationUrl = new URL(requiredHeader(login, "location"));
+    const response = await sso.callback(new Request(
+      `https://auth-api.example.com/auth/callback?error=access_denied&state=${requiredParam(authorizationUrl, "state")}`,
+      { headers: { cookie: cookiePair(requiredHeader(login, "set-cookie")) } },
+    ));
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("authentication_failed");
+    expect(html).toContain("https://app.example.com");
+    expect(html).not.toContain("https://auth-api.example.com/dashboard");
+  });
+
+  test("supports a separate trusted frontend origin with credentialed CORS", async () => {
+    const sso = createSsoServer({
+      clientId,
+      appUrl: "https://auth-api.example.com",
+      redirectOrigin: "https://app.example.com",
+      baseUrl: issuer,
+      sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
+    });
+    const response = await sso.handle(new Request(
+      "https://auth-api.example.com/auth/profile",
+      { headers: { origin: "https://app.example.com" } },
+    ));
+    const preflight = await sso.handle(new Request(
+      "https://auth-api.example.com/auth/profile",
+      { method: "OPTIONS", headers: { origin: "https://app.example.com" } },
+    ));
+
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://app.example.com");
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(preflight.status).toBe(204);
   });
 
   test("reports actionable server configuration errors", () => {
     expect(() => createSsoServer({
       clientId,
       appUrl: "not-a-url",
+      baseUrl: issuer,
       sessionSecret: "test-session-secret-that-is-at-least-32-bytes",
     })).toThrow("SSO appUrl must be a valid absolute URL");
     expect(() => createSsoServer({
       clientId,
       appUrl: "https://app.example.com",
+      baseUrl: issuer,
       sessionSecret: undefined as unknown as string,
-    })).toThrow("SSO sessionSecret is required");
+    })).toThrow("SSO secretKey is required");
+  });
+
+  test("infers the application and callback URL from the request", async () => {
+    const sso = createSsoServer({
+      publishableKey: clientId,
+      secretKey: "test-session-secret-that-is-at-least-32-bytes",
+      ssoUrl: issuer,
+    });
+
+    const login = await sso.handle(new Request(
+      "https://inferred.example.com/auth/login?returnTo=/dashboard",
+    ));
+    const authorization = new URL(requiredHeader(login, "location"));
+
+    expect(authorization.searchParams.get("redirect_uri")).toBe(
+      "https://inferred.example.com/auth/callback",
+    );
   });
 });
 
