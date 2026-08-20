@@ -26,6 +26,10 @@ export const env = createEnv({
       .string()
       .default("false")
       .transform((value) => value === "true"),
+    ENABLE_USER_WEBHOOK_DELIVERY: z
+      .string()
+      .default("false")
+      .transform((value) => value === "true"),
     ALLOW_LOCAL_APPLICATION_WEBHOOKS: z
       .string()
       .default("false")

@@ -280,6 +280,38 @@ The package owns these routes by default:
 The package proxies these operations with the access token sealed inside the
 application's HttpOnly session cookie; it never sends that token to React.
 
+## User webhooks
+
+Full-stack applications can receive SSO user lifecycle events without a
+framework-specific adapter. Configure the application webhook endpoint and its
+secret in SkyCanvas, then mount a separate `POST` route in the application.
+The route must be separate from the `/auth/[...sso]` handler.
+
+```ts
+import { createWebhookHandler } from "@skycanvasstudio/sso/server";
+
+export const POST = createWebhookHandler(
+  {
+    "user.created": async ({ data }) => {
+      await prisma.user.upsert({ /* map data.id to your SSO user id */ });
+    },
+    "user.updated": async ({ data }) => {
+      await prisma.user.upsert({ /* apply name, email, image, status */ });
+    },
+    "user.deleted": async ({ data }) => {
+      await prisma.user.delete({ where: { ssoUserId: data.id } });
+    },
+  },
+  { secret: process.env.SSO_WEBHOOK_SECRET! },
+);
+```
+
+`createWebhookHandler()` verifies the HMAC-SHA256 signature over the exact raw
+JSON body, rejects stale events after five minutes by default, then dispatches
+`user.created`, `user.updated`, or `user.deleted`. Return a successful response
+only after the local database change is committed; deliveries are retried and
+event IDs are stable for receiver-side deduplication.
+
 ## Security model
 
 - State, nonce, and PKCE verifier live in a short-lived encrypted HttpOnly cookie.

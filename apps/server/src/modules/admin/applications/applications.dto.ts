@@ -125,6 +125,20 @@ export const UpdateRevocationEndpointDto = t.Object({
   enabled: t.Boolean(),
 });
 
+const UserWebhookEventSchema = t.Union([
+  t.Literal("user.created"),
+  t.Literal("user.updated"),
+  t.Literal("user.deleted"),
+]);
+
+export const UpdateWebhookEndpointDto = t.Object({
+  url: t.String({ minLength: 1, maxLength: 2_048 }),
+  enabled: t.Boolean(),
+  subscribedEvents: t.Optional(t.Array(UserWebhookEventSchema, { minItems: 1 })),
+  secret: t.Optional(t.String({ minLength: 32, maxLength: 512 })),
+  rotateSecret: t.Optional(t.Boolean()),
+});
+
 export const RevocationDeliveriesQueryDto = t.Object({
   limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 25 })),
 });
@@ -143,5 +157,6 @@ export type UpdateApplicationClientInput =
   typeof UpdateApplicationClientDto.static;
 export type UpdateRevocationEndpointInput =
   typeof UpdateRevocationEndpointDto.static;
+export type UpdateWebhookEndpointInput = typeof UpdateWebhookEndpointDto.static;
 export type CreateApplicationInvitationInput =
   typeof CreateApplicationInvitationDto.static;

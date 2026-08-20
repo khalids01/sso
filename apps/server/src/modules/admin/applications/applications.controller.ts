@@ -19,6 +19,7 @@ import {
   UpdateApplicationClientDto,
   UpdateApplicationDto,
   UpdateRevocationEndpointDto,
+  UpdateWebhookEndpointDto,
 } from "./applications.dto";
 
 function getActor(ctx: { userId?: string }): AdminApplicationsActor {
@@ -509,5 +510,23 @@ export const applicationsController = new Elysia({
             beforeHandle: requirePermission(Permissions.AdminApplicationsManage),
             detail: { summary: "Retry a dead-lettered revocation delivery" },
           },
+        )
+        .get(
+          "/:id/webhooks",
+          ({ params: { id } }) => adminApplicationsService.getWebhookEndpoint(id),
+          { beforeHandle: requirePermission(Permissions.AdminApplicationsRead), detail: { summary: "Get the application user webhook endpoint" } },
+        )
+        .put(
+          "/:id/webhooks",
+          async ({ params: { id }, body, set, userId }) => {
+            try { return await adminApplicationsService.updateWebhookEndpoint(id, body, getActor({ userId })); }
+            catch (error) { return handleApplicationsMutationError(error, set); }
+          },
+          { beforeHandle: requirePermission(Permissions.AdminApplicationsManage), body: UpdateWebhookEndpointDto, detail: { summary: "Configure the application user webhook endpoint" } },
+        )
+        .get(
+          "/:id/webhooks/deliveries",
+          ({ params: { id }, query }) => adminApplicationsService.listWebhookDeliveries(id, query.limit),
+          { beforeHandle: requirePermission(Permissions.AdminApplicationsRead), query: RevocationDeliveriesQueryDto, detail: { summary: "List application user webhook deliveries" } },
         ),
   );

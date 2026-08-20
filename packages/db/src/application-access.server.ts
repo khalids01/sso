@@ -1,4 +1,5 @@
 import prisma from "./client.server";
+import { enqueueUserWebhookDeliveries, toWebhookUser } from "./user-webhooks.server";
 import { randomBytes } from "node:crypto";
 
 export type ApplicationClientAccessDenialReason =
@@ -139,7 +140,10 @@ export async function registerApplicationMemberIfAllowed(
 
     const user = await tx.user.findUnique({
       where: { id: userId },
-      select: { email: true, archived: true, banned: true },
+      select: {
+        id: true, name: true, email: true, emailVerified: true, image: true,
+        archived: true, banned: true,
+      },
     });
     if (!user || user.archived || user.banned) return null;
 
@@ -161,6 +165,10 @@ export async function registerApplicationMemberIfAllowed(
       return null;
     }
 
+    const existingMembership = await tx.applicationMember.findUnique({
+      where: { applicationId_userId: { applicationId: client.application.id, userId } },
+      select: { id: true },
+    });
     const membership = await tx.applicationMember.upsert({
       where: {
         applicationId_userId: {
@@ -185,6 +193,12 @@ export async function registerApplicationMemberIfAllowed(
       },
       update: {},
     });
+    if (!existingMembership) {
+      await enqueueUserWebhookDeliveries(tx, {
+        eventType: "user.created",
+        user: toWebhookUser(user),
+      });
+    }
     if (invitationId) {
       await tx.applicationInvitation.updateMany({
         where: { id: invitationId, status: "pending" },

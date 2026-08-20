@@ -24,6 +24,7 @@ import {
 } from "@/rbac/policies/owner.policy";
 import { assignUserRoleAndInvalidate } from "@/rbac/assignments";
 import { enqueueMemberRevocation } from "../../application-revocation/revocation.service";
+import { enqueueUserWebhookDeliveries, toWebhookUser } from "@sso/db/server/user-webhooks";
 import { mapUserAuthMethods, userAuthMethodSelect } from "../user-auth-methods";
 
 const adminUserSelect = {
@@ -366,12 +367,12 @@ export class UsersService {
       data,
     });
 
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        name: data.name,
-      },
-      select: adminUserSelect,
+    const user = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({ where: { id }, data: { name: data.name }, select: adminUserSelect });
+      if (data.name !== undefined) {
+        await enqueueUserWebhookDeliveries(tx, { eventType: "user.updated", user: toWebhookUser(updated) });
+      }
+      return updated;
     });
 
     if (data.roleSlug) {
@@ -420,6 +421,7 @@ export class UsersService {
         data: { banned: true, banReason: reason },
         select: adminUserSelect,
       });
+      if (!current.banned) await enqueueUserWebhookDeliveries(tx, { eventType: "user.updated", user: toWebhookUser(updated) });
       if (!current.banned) {
         await invalidateUserApplicationAccess(tx, id, "user_banned");
       }
@@ -450,6 +452,7 @@ export class UsersService {
         data: { banned: false, banReason: null },
         select: adminUserSelect,
       });
+      if (current.banned) await enqueueUserWebhookDeliveries(tx, { eventType: "user.updated", user: toWebhookUser(updated) });
       if (current.banned) await restoreUserApplicationAccessVersion(tx, id);
       await tx.activityEvent.create({
         data: {
@@ -483,6 +486,7 @@ export class UsersService {
         data: { archived: true },
         select: adminUserSelect,
       });
+      if (!current.archived) await enqueueUserWebhookDeliveries(tx, { eventType: "user.updated", user: toWebhookUser(updated) });
       if (!current.archived) {
         await invalidateUserApplicationAccess(tx, id, "user_archived");
       }
@@ -513,6 +517,7 @@ export class UsersService {
         data: { archived: false },
         select: adminUserSelect,
       });
+      if (current.archived) await enqueueUserWebhookDeliveries(tx, { eventType: "user.updated", user: toWebhookUser(updated) });
       if (current.archived) await restoreUserApplicationAccessVersion(tx, id);
       await tx.activityEvent.create({
         data: {
@@ -536,9 +541,12 @@ export class UsersService {
       action: "delete",
     });
 
-    const user = await prisma.user.delete({
-      where: { id },
-      select: adminUserSelect,
+    const user = await prisma.$transaction(async (tx) => {
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id }, select: { id: true, name: true, email: true, emailVerified: true, image: true, banned: true, archived: true },
+      });
+      await enqueueUserWebhookDeliveries(tx, { eventType: "user.deleted", user: { id: current.id } });
+      return tx.user.delete({ where: { id }, select: adminUserSelect });
     });
 
     return mapAdminUser(user);

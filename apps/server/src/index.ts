@@ -12,6 +12,7 @@ import { startApplicationUsageRetentionWorker } from "./modules/application-usag
 import { securityHeadersPlugin } from "./plugins/security-headers";
 import { oauthTokenController } from "./modules/oauth/oauth-token.controller";
 import { startApplicationRevocationWorker } from "./modules/application-revocation/revocation.service";
+import { startUserWebhookWorker } from "./modules/user-webhooks/delivery.service";
 import { observeBetterAuthFailure } from "./modules/auth/auth-observability.service";
 import {
   runWithOAuthProviderConnection,
@@ -157,6 +158,7 @@ await connectRedis();
 console.log("Redis is ready");
 startApplicationUsageRetentionWorker();
 startApplicationRevocationWorker();
+startUserWebhookWorker();
 
 const server = new Elysia()
   .use(securityHeadersPlugin({ production: env.NODE_ENV === "production" }))

@@ -17,6 +17,7 @@ import type {
   UpdateApplicationClientInput,
   UpdateApplicationInput,
   UpdateRevocationEndpointInput,
+  UpdateWebhookEndpointInput,
 } from "./applications.dto";
 import {
   ApplicationUrlValidationError,
@@ -36,6 +37,7 @@ import {
 } from "@sso/auth/application-capabilities";
 import { recordApplicationUsage } from "../../application-usage/application-usage.service";
 import { mapUserAuthMethods, userAuthMethodSelect } from "../user-auth-methods";
+import { enqueueUserWebhookDeliveries, toWebhookUser } from "@sso/db/server/user-webhooks";
 
 const allowedStatuses = new Set(["active", "disabled", "archived"]);
 const allowedMemberStatuses = new Set(["active", "suspended", "revoked"]);
@@ -1204,7 +1206,10 @@ export class AdminApplicationsService {
         id: true,
         name: true,
         email: true,
+        emailVerified: true,
+        image: true,
         archived: true,
+        banned: true,
       },
     });
 
@@ -1226,7 +1231,7 @@ export class AdminApplicationsService {
           update: {},
         });
 
-        return tx.applicationMember.create({
+        const member = await tx.applicationMember.create({
           data: {
             applicationId,
             userId: user.id,
@@ -1234,6 +1239,11 @@ export class AdminApplicationsService {
           },
           select: memberSelect,
         });
+        await enqueueUserWebhookDeliveries(tx, {
+          eventType: "user.created",
+          user: toWebhookUser(user),
+        });
+        return member;
       });
 
       await recordApplicationActivity({
@@ -1582,6 +1592,48 @@ export class AdminApplicationsService {
       return updated;
     });
     return { id: delivery.id, status: delivery.status };
+  }
+
+  async getWebhookEndpoint(applicationId: string) {
+    await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, select: { id: true } });
+    const endpoint = await prisma.applicationWebhookEndpoint.findUnique({ where: { applicationId } });
+    return endpoint ? {
+      id: endpoint.id, applicationId: endpoint.applicationId, url: endpoint.url, enabled: endpoint.enabled,
+      subscribedEvents: endpoint.subscribedEvents, createdAt: endpoint.createdAt.toISOString(), updatedAt: endpoint.updatedAt.toISOString(),
+    } : null;
+  }
+
+  async updateWebhookEndpoint(applicationId: string, input: UpdateWebhookEndpointInput, actor: AdminApplicationsActor) {
+    const url = await assertSafeRevocationDestination(input.url, { allowLocal: env.ALLOW_LOCAL_APPLICATION_WEBHOOKS });
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.application.findUniqueOrThrow({ where: { id: applicationId }, select: { id: true } });
+      const current = await tx.applicationWebhookEndpoint.findUnique({ where: { applicationId }, select: { secret: true } });
+      const secret = input.rotateSecret || !current ? randomBytes(32).toString("base64url") : (input.secret ?? current.secret);
+      const endpoint = await tx.applicationWebhookEndpoint.upsert({
+        where: { applicationId },
+        create: { applicationId, url, enabled: input.enabled, secret, subscribedEvents: input.subscribedEvents ?? ["user.created", "user.updated", "user.deleted"] },
+        update: { url, enabled: input.enabled, secret, ...(input.subscribedEvents ? { subscribedEvents: input.subscribedEvents } : {}) },
+      });
+      await tx.activityEvent.create({ data: {
+        type: "application.webhook_endpoint_updated", actorUserId: actor.id ?? null,
+        message: "Application user webhook endpoint updated",
+        metadata: { applicationId, endpointId: endpoint.id, enabled: endpoint.enabled, origin: new URL(endpoint.url).origin, subscribedEvents: endpoint.subscribedEvents },
+      }});
+      return { endpoint, secret: !current || input.rotateSecret || Boolean(input.secret) ? secret : null };
+    });
+    return {
+      id: result.endpoint.id, applicationId: result.endpoint.applicationId, url: result.endpoint.url,
+      enabled: result.endpoint.enabled, subscribedEvents: result.endpoint.subscribedEvents,
+      createdAt: result.endpoint.createdAt.toISOString(), updatedAt: result.endpoint.updatedAt.toISOString(), secret: result.secret,
+    };
+  }
+
+  async listWebhookDeliveries(applicationId: string, limit = 25) {
+    const rows = await prisma.applicationWebhookDelivery.findMany({
+      where: { applicationId }, orderBy: { createdAt: "desc" }, take: Math.min(Math.max(limit, 1), 100),
+      select: { id: true, eventType: true, status: true, attemptCount: true, nextAttemptAt: true, deliveredAt: true, lastHttpStatus: true, lastErrorCode: true, createdAt: true },
+    });
+    return rows.map((row) => ({ ...row, nextAttemptAt: row.nextAttemptAt.toISOString(), deliveredAt: row.deliveredAt?.toISOString() ?? null, createdAt: row.createdAt.toISOString() }));
   }
 
   async createClient(

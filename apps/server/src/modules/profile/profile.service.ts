@@ -1,5 +1,6 @@
 import { auth } from "@sso/auth/server";
 import prisma from "@sso/db/server";
+import { enqueueUserWebhookDeliveries, toWebhookUser } from "@sso/db/server/user-webhooks";
 import {
   listUserSessionDevices,
   revokeUserSessionDevice,
@@ -189,9 +190,12 @@ export async function runProfileAction(
     | { action: "unlink_account"; accountId: string },
 ) {
   if (action.action === "update_name") {
-    await prisma.user.update({
-      where: { id: context.userId },
-      data: { name: action.name.trim() },
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: context.userId }, data: { name: action.name.trim() },
+        select: { id: true, name: true, email: true, emailVerified: true, image: true, banned: true, archived: true },
+      });
+      await enqueueUserWebhookDeliveries(tx, { eventType: "user.updated", user: toWebhookUser(user) });
     });
   } else if (action.action === "resend_verification") {
     const profile = await getUserProfile(context);

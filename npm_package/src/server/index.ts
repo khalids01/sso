@@ -6,6 +6,20 @@ import {
   type JSONWebKeySet,
   type JWTPayload,
 } from "jose";
+export {
+  WEBHOOK_EVENT_TYPES,
+  WebhookVerificationError,
+  createWebhookHandler,
+  createWebhookSignature,
+  verifyWebhookEvent,
+  type WebhookEvent,
+  type WebhookEventType,
+  type WebhookHandlers,
+  type WebhookUser,
+  type UserCreatedEvent,
+  type UserUpdatedEvent,
+  type UserDeletedEvent,
+} from "./webhooks.js";
 import {
   SSO_SCOPE,
   getSsoEndpoints,

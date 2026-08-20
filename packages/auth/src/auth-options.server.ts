@@ -17,6 +17,7 @@ import {
 } from "../../email/src/index.server";
 
 import { defaultUserRoleOnSignup } from "./lib/default-user-role.server";
+import { userWebhookHooks } from "./lib/user-webhook-hooks.server";
 import { polarClient } from "./lib/payments.server";
 import { polarCustomersForBillingUsers } from "./lib/polar-customers.server";
 import {
@@ -291,6 +292,7 @@ export const authOptions = {
       },
     }),
     defaultUserRoleOnSignup(),
+    userWebhookHooks(),
   ],
 } satisfies BetterAuthOptions;
 
