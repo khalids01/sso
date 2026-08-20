@@ -99,6 +99,68 @@ export const { GET, POST, OPTIONS } = skycanvas.handlers`,
       ],
     },
     {
+      title: "Optional: receive user webhooks",
+      tabLabel: "Next.js",
+      filename: "app/api/sso/webhooks/route.ts",
+      description: "This is separate from app/auth/[...sso]/route.ts. Configure the webhook once for the SkyCanvas application through the SSO admin API: PUT /admin/applications/:applicationId/webhooks. This is application-level delivery configuration, not an OAuth client setting and not an option passed to createNextSso(). Save the one-time returned secret as SSO_WEBHOOK_SECRET in this app's server environment.",
+      code: `import { createWebhookHandler } from "@skycanvasstudio/sso/server"
+import { env } from "@/env"
+import { prisma } from "@/lib/prisma"
+
+export const POST = createWebhookHandler(
+  {
+    "user.created": async ({ data }) => {
+      await prisma.user.upsert({
+        where: { ssoUserId: data.id },
+        create: { ssoUserId: data.id, name: data.name, email: data.email, image: data.image },
+        update: { name: data.name, email: data.email, image: data.image },
+      })
+    },
+    "user.updated": async ({ data }) => {
+      await prisma.user.upsert({
+        where: { ssoUserId: data.id },
+        create: { ssoUserId: data.id, name: data.name, email: data.email, image: data.image },
+        update: { name: data.name, email: data.email, image: data.image },
+      })
+    },
+    "user.deleted": async ({ data }) => {
+      await prisma.user.deleteMany({ where: { ssoUserId: data.id } })
+    },
+  },
+  { secret: env.SSO_WEBHOOK_SECRET },
+)`,
+      alternatives: [
+        {
+          tabLabel: "TanStack Start",
+          filename: "src/routes/api/sso/webhooks.ts",
+          code: `import { createWebhookHandler } from "@skycanvasstudio/sso/server"
+import { env } from "@/env"
+
+export const POST = createWebhookHandler(
+  { /* use the same idempotent upsert handlers as the Next.js example */ },
+  { secret: env.SSO_WEBHOOK_SECRET },
+)`,
+        },
+      ],
+    },
+    {
+      title: "Repair a missed webhook on sign-in",
+      tabLabel: "Next.js",
+      filename: "src/lib/skycanvas.ts",
+      description: "Webhooks keep an app synchronized while the user is away. Add onSignIn as a recovery path: it runs after the SSO identity is verified and before the local application session is created. Always use a unique ssoUserId column; do not assume the local primary key is the SSO user ID.",
+      code: `export const skycanvas = createNextSso({
+  // publishableKey, secretKey, ssoUrl, and appUrl from the earlier step
+  onSignIn: async ({ user }) => {
+    const localUser = await prisma.user.upsert({
+      where: { ssoUserId: user.id },
+      create: { ssoUserId: user.id, name: user.name, email: user.email, image: user.image },
+      update: { name: user.name, email: user.email, image: user.image },
+    })
+    return { ...user, localUserId: localUser.id }
+  },
+})`,
+    },
+    {
       title: "Use the packaged UI anywhere",
       filename: "src/routes/login.tsx",
       description: "SignIn, SignUp, SsoAuth, and SsoAuthDialog automatically show only enabled methods. After successful password or popup OAuth authentication, returnTo safely navigates the original window. Provide onSuccess when your app should control navigation itself.",

@@ -181,6 +181,40 @@ connected-account, active-session, mail-capability, and minimal extension
 behavior described in the React-only path. It intentionally excludes account
 deletion and avatar upload.
 
+## User webhooks for full-stack applications
+
+User webhooks are optional application-level delivery configuration. They are
+not OAuth client configuration and are not passed to `createNextSso()`,
+`createTanStackSso()`, or the `/auth/[...sso]` route. Configure one endpoint
+per SkyCanvas application with `PUT /admin/applications/:applicationId/webhooks`.
+The response returns the generated secret only when the endpoint is first
+created or rotated; store it as server-only `SSO_WEBHOOK_SECRET` in that
+application.
+
+Mount a separate `POST` route such as `/api/sso/webhooks`; never put it inside
+`app/auth/[...sso]/route.ts`. Use `createWebhookHandler()` from
+`@skycanvasstudio/sso/server`, keep receiver changes idempotent with an upsert
+using a unique `ssoUserId`, and delete by that column for `user.deleted`.
+
+```ts
+import { createWebhookHandler } from "@skycanvasstudio/sso/server"
+
+export const POST = createWebhookHandler(
+  {
+    "user.created": ({ data }) => prisma.user.upsert(/* keyed by data.id */),
+    "user.updated": ({ data }) => prisma.user.upsert(/* keyed by data.id */),
+    "user.deleted": ({ data }) => prisma.user.deleteMany({ where: { ssoUserId: data.id } }),
+  },
+  { secret: process.env.SSO_WEBHOOK_SECRET! },
+)
+```
+
+Webhooks are eventually delivered, so add `onSignIn` to the full-stack SDK
+configuration as a repair path. It receives the verified SSO user before the
+local session is written; upsert the same `ssoUserId` there. This repairs a
+client database user that is missing because a prior webhook or local write
+failed.
+
 The standalone handler must receive both `GET` and `POST /auth/user-profile`.
 Mounting the documented `/auth/*` catch-all or the Next/TanStack adapters does
 this automatically. The adapter keeps the app access token sealed in the
@@ -211,3 +245,7 @@ authorization data.
 - OAuth avatars remain read-only, account deletion is absent, and email-driven
   actions are disabled with a clear warning when the application has no active
   mail-provider connection.
+- Webhook endpoints are configured once per SkyCanvas application, not in an
+  OAuth client or browser configuration. The receiver route is separate from
+  `/auth/[...sso]`, verifies `SSO_WEBHOOK_SECRET`, handles every event
+  idempotently, and `onSignIn` repairs a missed delivery.

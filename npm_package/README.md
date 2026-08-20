@@ -285,7 +285,10 @@ application's HttpOnly session cookie; it never sends that token to React.
 Full-stack applications can receive SSO user lifecycle events without a
 framework-specific adapter. Configure the application webhook endpoint and its
 secret in SkyCanvas, then mount a separate `POST` route in the application.
-The route must be separate from the `/auth/[...sso]` handler.
+The route must be separate from the `/auth/[...sso]` handler. This is configured
+once per SkyCanvas application, not in the OAuth client configuration or
+`createNextSso()` options. The endpoint-creation response reveals its generated
+secret once; store it in server-only `SSO_WEBHOOK_SECRET`.
 
 ```ts
 import { createWebhookHandler } from "@skycanvasstudio/sso/server";
@@ -311,6 +314,10 @@ JSON body, rejects stale events after five minutes by default, then dispatches
 `user.created`, `user.updated`, or `user.deleted`. Return a successful response
 only after the local database change is committed; deliveries are retried and
 event IDs are stable for receiver-side deduplication.
+
+Use `onSignIn` in the full-stack SDK configuration as a recovery upsert for a
+missed webhook. It receives the verified SSO identity before the local session
+is created; upsert a local record by a unique `ssoUserId` there.
 
 ## Security model
 
