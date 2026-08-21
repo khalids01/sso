@@ -64,6 +64,17 @@ export function ApplicationActionsMenu(props: {
           nativeButton={false}
           render={
             <Link
+              to="/admin/applications/$applicationId/webhooks"
+              params={{ applicationId: props.application.id }}
+            />
+          }
+        >
+          User webhooks
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          nativeButton={false}
+          render={
+            <Link
               to="/admin/application-usage"
               search={{ applicationId: props.application.id }}
             />

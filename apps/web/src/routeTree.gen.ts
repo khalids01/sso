@@ -43,6 +43,7 @@ import { Route as ProtectedAccountRouteImport } from './routes/_protected/accoun
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AdminRolesRoleIdRouteImport } from './routes/admin/roles/$roleId'
+import { Route as AdminApplicationsApplicationIdWebhooksRouteImport } from './routes/admin/applications_/$applicationId/webhooks'
 import { Route as AdminApplicationsApplicationIdRevocationRouteImport } from './routes/admin/applications_/$applicationId/revocation'
 import { Route as AdminApplicationsApplicationIdMembersRouteImport } from './routes/admin/applications_/$applicationId/members'
 import { Route as AdminApplicationsApplicationIdClientsRouteImport } from './routes/admin/applications_/$applicationId/clients'
@@ -216,6 +217,12 @@ const AdminRolesRoleIdRoute = AdminRolesRoleIdRouteImport.update({
   path: '/$roleId',
   getParentRoute: () => AdminRolesRoute,
 } as any)
+const AdminApplicationsApplicationIdWebhooksRoute =
+  AdminApplicationsApplicationIdWebhooksRouteImport.update({
+    id: '/applications_/$applicationId/webhooks',
+    path: '/applications/$applicationId/webhooks',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminApplicationsApplicationIdRevocationRoute =
   AdminApplicationsApplicationIdRevocationRouteImport.update({
     id: '/applications_/$applicationId/revocation',
@@ -272,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/admin/applications/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
   '/admin/applications/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
   '/admin/applications/$applicationId/revocation': typeof AdminApplicationsApplicationIdRevocationRoute
+  '/admin/applications/$applicationId/webhooks': typeof AdminApplicationsApplicationIdWebhooksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -309,6 +317,7 @@ export interface FileRoutesByTo {
   '/admin/applications/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
   '/admin/applications/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
   '/admin/applications/$applicationId/revocation': typeof AdminApplicationsApplicationIdRevocationRoute
+  '/admin/applications/$applicationId/webhooks': typeof AdminApplicationsApplicationIdWebhooksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -349,6 +358,7 @@ export interface FileRoutesById {
   '/admin/applications_/$applicationId/clients': typeof AdminApplicationsApplicationIdClientsRoute
   '/admin/applications_/$applicationId/members': typeof AdminApplicationsApplicationIdMembersRoute
   '/admin/applications_/$applicationId/revocation': typeof AdminApplicationsApplicationIdRevocationRoute
+  '/admin/applications_/$applicationId/webhooks': typeof AdminApplicationsApplicationIdWebhooksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -389,6 +399,7 @@ export interface FileRouteTypes {
     | '/admin/applications/$applicationId/clients'
     | '/admin/applications/$applicationId/members'
     | '/admin/applications/$applicationId/revocation'
+    | '/admin/applications/$applicationId/webhooks'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -426,6 +437,7 @@ export interface FileRouteTypes {
     | '/admin/applications/$applicationId/clients'
     | '/admin/applications/$applicationId/members'
     | '/admin/applications/$applicationId/revocation'
+    | '/admin/applications/$applicationId/webhooks'
   id:
     | '__root__'
     | '/_protected'
@@ -465,6 +477,7 @@ export interface FileRouteTypes {
     | '/admin/applications_/$applicationId/clients'
     | '/admin/applications_/$applicationId/members'
     | '/admin/applications_/$applicationId/revocation'
+    | '/admin/applications_/$applicationId/webhooks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -726,6 +739,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRolesRoleIdRouteImport
       parentRoute: typeof AdminRolesRoute
     }
+    '/admin/applications_/$applicationId/webhooks': {
+      id: '/admin/applications_/$applicationId/webhooks'
+      path: '/applications/$applicationId/webhooks'
+      fullPath: '/admin/applications/$applicationId/webhooks'
+      preLoaderRoute: typeof AdminApplicationsApplicationIdWebhooksRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/applications_/$applicationId/revocation': {
       id: '/admin/applications_/$applicationId/revocation'
       path: '/applications/$applicationId/revocation'
@@ -797,6 +817,7 @@ interface AdminRouteChildren {
   AdminApplicationsApplicationIdClientsRoute: typeof AdminApplicationsApplicationIdClientsRoute
   AdminApplicationsApplicationIdMembersRoute: typeof AdminApplicationsApplicationIdMembersRoute
   AdminApplicationsApplicationIdRevocationRoute: typeof AdminApplicationsApplicationIdRevocationRoute
+  AdminApplicationsApplicationIdWebhooksRoute: typeof AdminApplicationsApplicationIdWebhooksRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -819,6 +840,8 @@ const AdminRouteChildren: AdminRouteChildren = {
     AdminApplicationsApplicationIdMembersRoute,
   AdminApplicationsApplicationIdRevocationRoute:
     AdminApplicationsApplicationIdRevocationRoute,
+  AdminApplicationsApplicationIdWebhooksRoute:
+    AdminApplicationsApplicationIdWebhooksRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

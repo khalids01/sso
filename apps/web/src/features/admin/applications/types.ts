@@ -129,6 +129,37 @@ export type ApplicationRevocationDelivery = {
   createdAt: string;
 };
 
+export type UserWebhookEventType =
+  | "user.created"
+  | "user.updated"
+  | "user.deleted";
+
+export type ApplicationWebhookEndpoint = {
+  id: string;
+  applicationId: string;
+  url: string;
+  enabled: boolean;
+  subscribedEvents: UserWebhookEventType[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplicationWebhookEndpointUpdate = ApplicationWebhookEndpoint & {
+  secret: string | null;
+};
+
+export type ApplicationWebhookDelivery = {
+  id: string;
+  eventType: UserWebhookEventType;
+  status: string;
+  attemptCount: number;
+  nextAttemptAt: string;
+  deliveredAt: string | null;
+  lastHttpStatus: number | null;
+  lastErrorCode: string | null;
+  createdAt: string;
+};
+
 export type ApplicationMembersResponse = {
   items: ApplicationMember[];
   total: number;

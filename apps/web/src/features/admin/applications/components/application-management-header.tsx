@@ -10,7 +10,7 @@ export function ApplicationManagementHeader({
   section,
 }: {
   application: AdminApplication;
-  section: "clients" | "members" | "revocation";
+  section: "clients" | "members" | "revocation" | "webhooks";
 }) {
   return (
     <div className="space-y-5">
@@ -39,7 +39,7 @@ export function ApplicationManagementHeader({
       </div>
 
       <nav className="flex gap-1 border-b" aria-label="Application sections">
-        {(["clients", "members", "revocation"] as const).map((item) => (
+        {(["clients", "members", "revocation", "webhooks"] as const).map((item) => (
           <Link
             key={item}
             to={`/admin/applications/$applicationId/${item}`}
@@ -49,7 +49,7 @@ export function ApplicationManagementHeader({
               section === item && "border-primary text-foreground",
             )}
           >
-            {item}
+            {item === "webhooks" ? "User webhooks" : item}
           </Link>
         ))}
       </nav>

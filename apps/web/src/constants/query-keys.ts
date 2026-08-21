@@ -54,6 +54,10 @@ export const queryKeys = {
         [...queryKeys.admin.applications.all(), applicationId, "revocation"] as const,
       revocationDeliveries: (applicationId: string) =>
         [...queryKeys.admin.applications.revocation(applicationId), "deliveries"] as const,
+      webhooks: (applicationId: string) =>
+        [...queryKeys.admin.applications.all(), applicationId, "webhooks"] as const,
+      webhookDeliveries: (applicationId: string) =>
+        [...queryKeys.admin.applications.webhooks(applicationId), "deliveries"] as const,
     },
     oauthConnections: {
       all: () => ["admin-oauth-connections"] as const,
