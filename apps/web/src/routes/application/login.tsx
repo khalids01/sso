@@ -2,22 +2,29 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { ApplicationAuthShell } from "@/features/auth/application-auth-shell";
 import SignInForm from "@/features/auth/sign-in-form";
-import { getRootSession } from "@/features/user/lib/get-root-session";
 import { requiresFreshAuthentication } from "@/features/auth/auth-callback";
+import { getApplicationAuthBootstrap } from "@/features/auth/application-auth-bootstrap";
 
 export const Route = createFileRoute("/application/login")({
-  beforeLoad: async ({ context, location }) => {
-    const session = context.session ?? (await getRootSession());
-    if (session && !requiresFreshAuthentication(location.searchStr)) {
+  beforeLoad: async ({ location }) => {
+    const oauthQuery = location.searchStr.replace(/^\?/, "");
+    const clientId = new URLSearchParams(oauthQuery).get("client_id");
+    if (!clientId) throw redirect({ to: "/login" });
+    const application = await getApplicationAuthBootstrap({
+      data: { clientId, oauthQuery },
+    });
+    if (application.isAuthenticated && !requiresFreshAuthentication(location.searchStr)) {
       throw redirect({ href: `/authorize${location.searchStr}` });
     }
+    return { application };
   },
   component: ApplicationLogin,
 });
 
 function ApplicationLogin() {
+  const { application } = Route.useRouteContext();
   return (
-    <ApplicationAuthShell>
+    <ApplicationAuthShell application={application}>
       {(applicationName, policy, applicationLogoUrl) => (
         <SignInForm
           applicationName={applicationName}

@@ -143,7 +143,7 @@ export const authController = new Elysia({ prefix: "/auth" })
     "/application/bootstrap",
     async ({ body, request, set }) => {
       try {
-        const [prelogin, metadata] = await Promise.all([
+        const [prelogin, metadata, session] = await Promise.all([
           auth.api.getOAuthClientPublicPrelogin({
             body: {
               client_id: body.clientId,
@@ -152,6 +152,7 @@ export const authController = new Elysia({ prefix: "/auth" })
             headers: request.headers,
           }),
           getPublicClientMetadata(body.clientId),
+          auth.api.getSession({ headers: request.headers }),
         ]);
         if (!metadata || metadata.client_id !== body.clientId) {
           set.status = 404;
@@ -167,6 +168,7 @@ export const authController = new Elysia({ prefix: "/auth" })
             passwordEmailVerificationRequired:
               metadata.password_email_verification_required,
           },
+          isAuthenticated: Boolean(session?.user.id),
         };
       } catch {
         set.status = 403;

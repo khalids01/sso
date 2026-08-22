@@ -42,7 +42,13 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
     ],
   }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
+    if (
+      location.pathname === "/application/login" ||
+      location.pathname === "/application/signup"
+    ) {
+      return { session: null };
+    }
     const session = await getRootSession();
     return { session: session ?? null };
   },
