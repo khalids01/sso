@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { AuthMethodDivider } from "./auth-method-divider";
 import { MagicLinkSignInForm } from "./magic-link-sign-in-form";
 import { PasswordSignInForm } from "./password-sign-in-form";
-import { getApplicationAuthPath } from "./auth-callback";
+import {
+  getApplicationAuthPath,
+  getSocialAuthErrorMessage,
+} from "./auth-callback";
 import type { ApplicationAuthPolicy } from "./application-auth-shell";
 import { getRequestedApplicationSocialProvider } from "./application-social-provider";
 import {
@@ -41,7 +44,10 @@ export default function SignInForm({
       method === "github",
   );
   const requestedProvider = getRequestedApplicationSocialProvider(search);
-  const autoStartProvider = socialMethods.find((method) => method === requestedProvider);
+  const socialErrorMessage = getSocialAuthErrorMessage(search);
+  const autoStartProvider = socialErrorMessage
+    ? undefined
+    : socialMethods.find((method) => method === requestedProvider);
   const showSignup = !applicationPolicy || applicationPolicy.signUpMethods.length > 0;
 
   return (
@@ -69,6 +75,12 @@ export default function SignInForm({
           ? `Sign in to your account.`
           : `Sign in to ${BRANDING.appName}.`}
       </p>
+
+      {socialErrorMessage ? (
+        <p className="mb-6 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive" role="alert">
+          {socialErrorMessage}
+        </p>
+      ) : null}
 
       <div className="space-y-6">
         {socialMethods.length > 0 ? (

@@ -3,7 +3,7 @@ import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { client } from "@/lib/client";
-import { getAuthCallbackURL } from "./auth-callback";
+import { getSocialAuthCallbackURL } from "./auth-callback";
 import { useAuthMethodStore } from "./auth-method-store";
 import { LastUsedBadge } from "./last-used-badge";
 
@@ -129,7 +129,7 @@ export function SocialAuthButtons({
     if (pendingMethod) return false;
     setPendingMethod(method);
     setErrorMessage(null);
-    const callbackURL = getAuthCallbackURL();
+    const callbackURL = getSocialAuthCallbackURL();
     const requestKey = `${method}:${requestSignUp}:${callbackURL}`;
     let operation = activeSocialStarts.get(requestKey);
     if (!operation) {

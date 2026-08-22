@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   getApplicationAuthPath,
   getAuthCallbackURLForLocation,
+  getSocialAuthCallbackURLForLocation,
+  getSocialAuthErrorMessage,
   requiresFreshAuthentication,
 } from "./auth-callback";
 
@@ -24,6 +26,21 @@ describe("OAuth authentication navigation", () => {
   test("keeps platform authentication pointed at the dashboard", () => {
     expect(getAuthCallbackURLForLocation("http://localhost:5002", "")).toBe(
       "http://localhost:5002/dashboard",
+    );
+  });
+
+  test("returns social OAuth failures to the original application sign-in page", () => {
+    expect(getSocialAuthCallbackURLForLocation("http://localhost:5002", oauthSearch)).toBe(
+      `http://localhost:5002/application/login${oauthSearch}`,
+    );
+  });
+
+  test("shows a professional error without restarting the failed social provider", () => {
+    expect(getSocialAuthErrorMessage(`${oauthSearch}&error=user_not_found`)).toBe(
+      "No account is associated with this sign-in method. Contact your administrator or use another sign-in method.",
+    );
+    expect(getApplicationAuthPath("/application/signup", `${oauthSearch}&error=user_not_found`)).toBe(
+      `/application/signup${oauthSearch}`,
     );
   });
 

@@ -2,7 +2,6 @@ import { createFileRoute, useLocation } from "@tanstack/react-router";
 import { LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import Logo from "@/components/core/logo";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { BRANDING } from "@/constants/branding";
@@ -159,11 +158,6 @@ function AuthorizePage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto flex max-w-6xl items-center py-3">
-          <Logo />
-        </div>
-      </header>
       <section className="mx-auto flex max-w-md flex-col items-center px-6 py-20 text-center">
         {errorMessage ? (
           <>

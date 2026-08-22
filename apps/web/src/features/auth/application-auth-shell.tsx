@@ -5,6 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import { client } from "@/lib/client";
 import { queryKeys } from "@/constants/query-keys";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { getApplicationAuthPath } from "./auth-callback";
 
 export type ApplicationAuthPolicy = {
   signInMethods: Array<
@@ -22,7 +23,7 @@ type AuthRequest = { clientId: string; oauthQuery: string };
 function getAuthRequest(): AuthRequest | null {
   if (typeof window === "undefined") return null;
 
-  const oauthQuery = window.location.search.slice(1);
+  const oauthQuery = getApplicationAuthPath("", window.location.search).slice(1);
   const clientId = new URLSearchParams(oauthQuery).get("client_id");
   return oauthQuery && clientId ? { clientId, oauthQuery } : null;
 }
